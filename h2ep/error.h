@@ -25,7 +25,7 @@ namespace tobilib
 	class protocol_error: public std::exception
 	{
 	public:
-		template<class strT> protocoll_error(strT m): msg(m) {};
+		template<class strT> protocol_error(strT m): msg(m) {};
 		std::string msg;
 		const char* what() const noexcept {return msg.c_str();};
 	};
