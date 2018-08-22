@@ -9,7 +9,7 @@ namespace tobilib::h2ep
 	
 	void Endpoint::intern_on_error(const network_error& err)
 	{
-		on_error(protocoll_error(err.what()));
+		on_error(protocol_error(err.what()));
 	}
 	
 	void Endpoint::intern_on_receive()
@@ -26,7 +26,7 @@ namespace tobilib::h2ep
 		}
 		catch (h2parser_error& err)
 		{
-			on_error(protocoll_error(std::string("Parsing-Fehler: ")+err.what()));
+			on_error(protocol_error(std::string("Parsing-Fehler: ")+err.what()));
 			stream->close();
 		}
 	}
@@ -50,7 +50,7 @@ namespace tobilib::h2ep
 	{
 		if (stream != NULL)
 		{
-			throw protocoll_error("Ein h2ep::Endpoint kann nur einmal gedockt werden!");
+			throw protocol_error("Ein h2ep::Endpoint kann nur einmal gedockt werden!");
 			return;
 		}
 		str->on_error.notify(std::bind(&Endpoint::intern_on_error,this,std::placeholders::_1));
@@ -68,7 +68,7 @@ namespace tobilib::h2ep
 	{
 		if (stream == NULL)
 		{
-			throw protocoll_error("Der h2ep::Endpoint wurde nicht an einen Datenstrom gedockt.");
+			throw protocol_error("Der h2ep::Endpoint wurde nicht an einen Datenstrom gedockt.");
 			return;
 		}
 		stream->write(ev.stringify());
@@ -87,7 +87,7 @@ namespace tobilib::h2ep
 	{
 		if (stream==NULL)
 		{
-			throw protocoll_error("Der h2ep::Endpoint wurde nicht an einen Datenstrom gedockt.");
+			throw protocol_error("Der h2ep::Endpoint wurde nicht an einen Datenstrom gedockt.");
 			return;
 		}
 		stream->close();

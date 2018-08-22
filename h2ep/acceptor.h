@@ -19,7 +19,7 @@ namespace tobilib::h2ep
 		
 		void next();
 		Callback<Endpoint&> on_accept;
-		Callback<const protocoll_error&> on_error;
+		Callback<const protocol_error&> on_error;
 	};
 	
 	typedef Acceptor<stream::WS_Acceptor> WS_Acceptor;

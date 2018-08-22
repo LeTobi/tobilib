@@ -17,7 +17,7 @@ namespace tobilib::h2ep
 		typedef std::function<void(const JSObject&)> event_callback;
 		
 		Callback<const Event&> fallback;
-		Callback<const protocoll_error&> on_error;
+		Callback<const protocol_error&> on_error;
 		Callback< > on_close;
 		
 		void dock(stream::Endpoint*);

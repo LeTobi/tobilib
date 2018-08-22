@@ -7,7 +7,7 @@ namespace tobilib::h2ep
 	{
 		accpt.on_error.notify([this](const network_error& err)
 		{
-			on_error(protocoll_error(err.what()));
+			on_error(protocol_error(err.what()));
 		});
 		accpt.on_accept.notify(std::bind(&Acceptor<StrAccpt>::intern_accept,this,std::placeholders::_1));
 	}
