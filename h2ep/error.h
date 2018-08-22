@@ -22,7 +22,7 @@ namespace tobilib
 		const char* what() const noexcept {return msg.c_str();};
 	};
 	
-	class protocoll_error: public std::exception
+	class protocol_error: public std::exception
 	{
 	public:
 		template<class strT> protocoll_error(strT m): msg(m) {};
