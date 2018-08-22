@@ -5,7 +5,7 @@ namespace tobilib::h2ep
 	template<class Streamclient>
 	Client<Streamclient>::Client(boost::asio::io_context& ioc): intern_client(ioc)
 	{
-		intern_client.on_connect = std::bind(&Client::intern_on_connect,this);
+		intern_client.on_connect.notify(std::bind(&Client::intern_on_connect,this));
 		dock(&intern_client);
 	}
 	
@@ -18,8 +18,7 @@ namespace tobilib::h2ep
 	template<class Streamclient>
 	void Client<Streamclient>::intern_on_connect()
 	{
-		if (on_connect)
-			on_connect();
+		on_connect();
 	}
 	
 	template class Client<stream::WS_Client>;

@@ -2,11 +2,14 @@
 
 namespace tobilib::h2ep
 {
+	Endpoint::Endpoint(stream::Endpoint* ep)
+	{
+		dock(ep);
+	}
 	
 	void Endpoint::intern_on_error(const network_error& err)
 	{
-		if (on_error)
-			on_error(protocoll_error(err.what()));
+		on_error(protocoll_error(err.what()));
 	}
 	
 	void Endpoint::intern_on_receive()
@@ -23,29 +26,24 @@ namespace tobilib::h2ep
 		}
 		catch (h2parser_error& err)
 		{
-			if (on_error)
-				on_error(protocoll_error(std::string("Parsing-Fehler: ")+err.what()));
+			on_error(protocoll_error(std::string("Parsing-Fehler: ")+err.what()));
 			stream->close();
 		}
 	}
 	
 	void Endpoint::intern_on_close()
 	{
-		if (on_close)
-			on_close();
+		on_close();
 	}
 	
 	void Endpoint::call(const Event& ev)
 	{
 		if (callbacks.count(ev.name)>0)
 		{
-			event_callback cb = callbacks.at(ev.name);
-			if (cb)
-				cb(ev.data);
+			callbacks.at(ev.name)(ev.data);
 			return;
 		}
-		if (fallback)
-			fallback(ev);
+		fallback(ev);
 	}
 	
 	void Endpoint::dock(stream::Endpoint* str)
@@ -55,10 +53,15 @@ namespace tobilib::h2ep
 			throw protocoll_error("Ein h2ep::Endpoint kann nur einmal gedockt werden!");
 			return;
 		}
-		str->on_error = std::bind(&Endpoint::intern_on_error,this,std::placeholders::_1);
-		str->on_receive = std::bind(&Endpoint::intern_on_receive,this);
-		str->on_close = std::bind(&Endpoint::intern_on_close,this);
+		str->on_error.notify(std::bind(&Endpoint::intern_on_error,this,std::placeholders::_1));
+		str->on_receive.notify(std::bind(&Endpoint::intern_on_receive,this));
+		str->on_close.notify(std::bind(&Endpoint::intern_on_close,this),callback_position::late);
 		stream = str;
+	}
+	
+	bool Endpoint::connected() const
+	{
+		return stream!=NULL && stream->connected();
 	}
 	
 	void Endpoint::send(const Event& ev)
@@ -71,9 +74,13 @@ namespace tobilib::h2ep
 		stream->write(ev.stringify());
 	}
 	
-	void Endpoint::addEventListener(const std::string& name, event_callback cb)
+	Callback_Ticket Endpoint::addEventListener(const std::string& name, event_callback cb, callback_position pos)
 	{
-		callbacks.emplace(name,cb);
+		if (callbacks.count(name)==0)
+		{
+			callbacks.emplace(std::piecewise_construct,std::forward_as_tuple(name),std::forward_as_tuple());
+		}
+		return callbacks[name].notify(cb,pos);
 	}
 	
 	void Endpoint::close()

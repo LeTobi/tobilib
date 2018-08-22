@@ -2,7 +2,7 @@
 #define TC_NETWORK_ENDPOINT
 
 #include "error.h"
-#include <functional>
+#include "../general/callback.hpp"
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/bind.hpp>
@@ -22,11 +22,11 @@ namespace tobilib::stream
 		EndpointState _status = EndpointState::closed;
 		
 	public:
-		typedef std::function<void()> callback_type;
+		Endpoint() {};
 		
-		callback_type on_receive;
-		callback_type on_close;
-		error_callback on_error;
+		Callback< > on_receive;
+		Callback< > on_close;
+		Callback<const network_error&> on_error;
 		
 		std::string received;
 		
@@ -37,7 +37,8 @@ namespace tobilib::stream
 		virtual void write(const std::string&) = 0;
 		virtual void close() = 0;
 		
-		virtual ~Endpoint() = 0;
+		Endpoint(const Endpoint&) = delete;
+		void operator=(const Endpoint&) = delete;
 	};
 	
 	class Endpoint_relay: public Endpoint
@@ -52,9 +53,9 @@ namespace tobilib::stream
 	public:
 		Endpoint_relay(Endpoint& o);
 		
-		callback_type master_on_receive;
-		callback_type master_on_close;
-		error_callback master_on_error;
+		Callback< > master_on_receive;
+		Callback< > master_on_close;
+		Callback<const network_error&> master_on_error;
 		
 		void start(){origin.start();};
 		void write(const std::string& str) {origin.write(str);};
@@ -80,7 +81,6 @@ namespace tobilib::stream
 		boost::beast::websocket::stream<boost::asio::ip::tcp::socket> socket;
 		
 		WS_Endpoint (boost::asio::io_context& _ioc): socket(_ioc) {};
-		~WS_Endpoint() = default;
 		
 		void start();
 		void write(const std::string&);

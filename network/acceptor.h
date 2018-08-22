@@ -8,12 +8,13 @@ namespace tobilib::stream
 	class Acceptor
 	{
 	public:
-		typedef std::function<void(Endpoint*)> callback;
-		typedef std::function<void(const network_error&)> error_callback;
+		Acceptor() {};
+		Acceptor(const Acceptor&) = delete;
+		void operator=(const Acceptor&) = delete;
 		
 		virtual void next() = 0;
-		callback on_accept;
-		error_callback on_error;
+		Callback<Endpoint&> on_accept;
+		Callback<const network_error&> on_error;
 	};
 	
 	class WS_Acceptor: public Acceptor
@@ -25,9 +26,11 @@ namespace tobilib::stream
 		
 		void intern_on_accept1(const boost::system::error_code&);
 		void intern_on_accept2(const boost::system::error_code&);
+		void intern_cleanup(WS_Endpoint*);
 		
 	public:
 		WS_Acceptor(boost::asio::io_context& _ioc, int port): ioc(_ioc), accpt(_ioc,boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),port)) {};
+		~WS_Acceptor();
 		
 		void next();
 	};

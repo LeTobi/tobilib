@@ -8,7 +8,7 @@ namespace tobilib::stream
 	class Client: public virtual Endpoint
 	{
 	public:
-		callback_type on_connect;
+		Callback< > on_connect;
 		virtual void connect(const std::string&, int) = 0;
 		
 		~Client(){};
@@ -26,7 +26,6 @@ namespace tobilib::stream
 	public:
 		WS_Client(boost::asio::io_context& _ioc): WS_Endpoint(_ioc), ioc(_ioc) {};
 		void connect(const std::string&, int);
-		~WS_Client(){};
 	};
 }
 

@@ -13,8 +13,6 @@ namespace tobilib
 		std::string msg;
 		const char* what() const noexcept {return msg.c_str();};
 	};
-	
-	typedef std::function<void(const network_error&)> error_callback;
 }
 
 #endif

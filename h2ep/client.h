@@ -20,7 +20,7 @@ namespace tobilib::h2ep
 		
 		void connect(const std::string&, int);
 		
-		empty_callback on_connect;
+		Callback< > on_connect;
 	};
 	
 	typedef Client<stream::WS_Client> WS_Client;

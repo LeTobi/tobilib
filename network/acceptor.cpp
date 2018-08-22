@@ -6,8 +6,7 @@ namespace tobilib::stream
 	{
 		if (ec)
 		{
-			if (on_error)
-				on_error(network_error(std::string("Fehler bei Verbindungsaufbau: ")+ec.message()));
+			on_error(network_error(std::string("Fehler bei Verbindungsaufbau: ")+ec.message()));
 			delete client;
 			client = NULL;
 			return;
@@ -19,23 +18,21 @@ namespace tobilib::stream
 	{
 		if (ec)
 		{
-			if (on_error)
-				on_error(network_error(std::string("Fehler bei Handshake: ")+ec.message()));
+			on_error(network_error(std::string("Fehler bei Handshake: ")+ec.message()));
 			delete client;
 			client = NULL;
 			return;
 		}
-		client->start();
-		if (on_accept)
-		{
-			Endpoint* p = client;
-			client = NULL;
-			on_accept(p);
-		}
-		else
-		{
-			delete client;
-		}
+		WS_Endpoint* ep = client;
+		client = NULL;
+		ep->start();
+		ep->on_close.notify(std::bind(&WS_Acceptor::intern_cleanup,this,ep),callback_position::late);
+		on_accept(*ep);
+	}
+	
+	void WS_Acceptor::intern_cleanup(WS_Endpoint* ep)
+	{
+		delete ep;
 	}
 	
 	void WS_Acceptor::next()
@@ -44,5 +41,11 @@ namespace tobilib::stream
 			return;
 		client = new WS_Endpoint(ioc);
 		accpt.async_accept(client->socket.next_layer(),boost::bind(&WS_Acceptor::intern_on_accept1,this,_1));
+	}
+	
+	WS_Acceptor::~WS_Acceptor()
+	{
+		if (client!=NULL)
+			delete client;
 	}
 }

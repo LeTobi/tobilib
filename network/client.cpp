@@ -6,8 +6,7 @@ namespace tobilib::stream
 	{
 		if (ec)
 		{
-			if (on_error)
-				on_error(network_error(std::string("WS_Client::intern_on_connect(): ")+ec.message()));
+			on_error(network_error(std::string("WS_Client::intern_on_connect(): ")+ec.message()));
 			return;
 		}
 		socket.async_handshake(host,"/",boost::bind(&WS_Client::intern_on_handshake,this,_1));
@@ -21,8 +20,7 @@ namespace tobilib::stream
 			return;
 		}
 		start();
-		if (on_connect)
-			on_connect();
+		on_connect();
 	}
 	
 	void WS_Client::connect(const std::string& _host, int port)
@@ -33,8 +31,7 @@ namespace tobilib::stream
 		auto const results = rslv.resolve(host,std::to_string(port),err);
 		if (err)
 		{
-			if (on_error)
-				on_error(network_error(std::string("WS_Client::connect() resolve-Fehler:")+err.message()));
+			on_error(network_error(std::string("WS_Client::connect() resolve-Fehler:")+err.message()));
 			return;
 		}
 		boost::asio::async_connect(socket.next_layer(),results,boost::bind(&WS_Client::intern_on_connect,this,_1,_2));

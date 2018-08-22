@@ -11,18 +11,19 @@ namespace tobilib::h2ep
 	class Endpoint
 	{
 	public:
-		typedef std::function<void()> empty_callback;
-		typedef std::function<void(const Event&)> default_callback;
-		typedef std::function<void(const JSObject&)> event_callback;
-		typedef std::function<void(const protocoll_error&)> error_callback;
+		Endpoint() {};
+		Endpoint(stream::Endpoint*);
 		
-		default_callback fallback;
-		error_callback on_error;
-		empty_callback on_close;
+		typedef std::function<void(const JSObject&)> event_callback;
+		
+		Callback<const Event&> fallback;
+		Callback<const protocoll_error&> on_error;
+		Callback< > on_close;
 		
 		void dock(stream::Endpoint*);
+		bool connected() const;
 		void send(const Event&);
-		void addEventListener(const std::string&, event_callback);
+		Callback_Ticket addEventListener(const std::string&, event_callback, callback_position pos = callback_position::early);
 		void close();
 		
 	private:
@@ -33,7 +34,7 @@ namespace tobilib::h2ep
 		void intern_on_receive();
 		void intern_on_close();
 		void call(const Event&);
-		std::map<std::string,event_callback> callbacks;
+		std::map<std::string,Callback<const JSObject&>> callbacks;
 	};
 }
 
