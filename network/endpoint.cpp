@@ -106,6 +106,8 @@ namespace tobilib::stream
 	
 	void WS_Endpoint::flush()
 	{
+		if (_status != EndpointState::open)
+			return;
 		if (outqueue.size()==0 || writing)
 			return;
 		writing = true;
