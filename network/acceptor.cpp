@@ -26,13 +26,8 @@ namespace tobilib::stream
 		WS_Endpoint* ep = client;
 		client = NULL;
 		ep->start();
-		ep->on_close.notify(std::bind(&WS_Acceptor::intern_cleanup,this,ep),callback_position::late);
+		ep->on_close.notify([ep](){delete ep;},callback_position::late);
 		on_accept(*ep);
-	}
-	
-	void WS_Acceptor::intern_cleanup(WS_Endpoint* ep)
-	{
-		delete ep;
 	}
 	
 	void WS_Acceptor::next()

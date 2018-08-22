@@ -26,7 +26,6 @@ namespace tobilib::stream
 		
 		void intern_on_accept1(const boost::system::error_code&);
 		void intern_on_accept2(const boost::system::error_code&);
-		void intern_cleanup(WS_Endpoint*);
 		
 	public:
 		WS_Acceptor(boost::asio::io_context& _ioc, int port): ioc(_ioc), accpt(_ioc,boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),port)) {};
