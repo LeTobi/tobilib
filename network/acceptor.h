@@ -13,7 +13,7 @@ namespace tobilib::stream
 		void operator=(const Acceptor&) = delete;
 		
 		virtual void next() = 0;
-		Callback<Endpoint&> on_accept;
+		Callback<Endpoint*> on_accept;
 		Callback<const network_error&> on_error;
 	};
 	

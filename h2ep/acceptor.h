@@ -12,13 +12,13 @@ namespace tobilib::h2ep
 	private:
 		StrAccpt accpt;
 		
-		void intern_accept(stream::Endpoint&);
+		void intern_accept(stream::Endpoint*);
 		
 	public:
 		Acceptor(boost::asio::io_context& ioc,int port);
 		
 		void next();
-		Callback<Endpoint&> on_accept;
+		Callback<Endpoint*> on_accept;
 		Callback<const protocol_error&> on_error;
 	};
 	

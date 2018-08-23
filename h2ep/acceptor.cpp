@@ -13,13 +13,13 @@ namespace tobilib::h2ep
 	}
 	
 	template <class StrAccpt>
-	void Acceptor<StrAccpt>::intern_accept(stream::Endpoint& ep)
+	void Acceptor<StrAccpt>::intern_accept(stream::Endpoint* ep)
 	{
-		Endpoint* pep = new Endpoint(&ep);
+		Endpoint* pep = new Endpoint(ep);
 		pep->on_close.notify([pep](){
 			delete pep;
 		},callback_position::late);
-		on_accept(*pep);
+		on_accept(pep);
 	}
 	
 	template <class StrAccpt>

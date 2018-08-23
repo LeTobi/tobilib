@@ -71,7 +71,11 @@ namespace tobilib::h2ep
 			throw protocol_error("Der h2ep::Endpoint wurde nicht an einen Datenstrom gedockt.");
 			return;
 		}
-		stream->write(ev.stringify());
+		try {
+			stream->write(ev.stringify());
+		} catch (h2parser_error& err) {
+			on_error(protocol_error(err.what()));
+		}
 	}
 	
 	Callback_Ticket Endpoint::addEventListener(const std::string& name, event_callback cb, callback_position pos)

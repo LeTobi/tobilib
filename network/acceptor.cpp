@@ -27,7 +27,7 @@ namespace tobilib::stream
 		client = NULL;
 		ep->start();
 		ep->on_close.notify([ep](){delete ep;},callback_position::late);
-		on_accept(*ep);
+		on_accept(ep);
 	}
 	
 	void WS_Acceptor::next()
