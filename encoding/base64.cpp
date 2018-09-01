@@ -3,24 +3,26 @@
 
 namespace tobilib
 {
-	StringPlus b64char_order = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	const StringPlus b64char_order = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 	
 	StringPlus encode64(const StringPlus& text)
 	{
-		StringPlus out;
-		StringPlus t = text;
-		int added = (3-(t.size()%3))%3;
-		t.append(added,0);
-		for (int i=0;i<t.size();i+=3)
+		StringPlus out (0,(text.size()*4+2)/3);
+		int overflow = 0;
+		for (int i=0;i<text.size();i++)
 		{
-			if (t[i]>0xFF || t[i+1]>0xFF || t[i+2]>0xFF)
+			if (text[i]>0xFF)
 				throw encoding_error("Ein Byte ist laenger als 8 bit");
-			out += b64char_order[t[i]>>2];
-			out += b64char_order[0x3F&(t[i]<<4) | (t[i+1]>>4)];
-			out += b64char_order[0x3F&(t[i+1]<<2) | (t[i+2]>>6)];
-			out += b64char_order[0x3F&t[i+2]];
+			int codei = i*4/3;
+			out[codei] |= text[i]>>(2+overflow);
+			out[codei+1] |= 0x3F & (text[i]<<(4-overflow));
+			overflow = (overflow+2)%6;
 		}
-		out = out.substr(0,out.size()-added) + StringPlus('=',added);
+		for (int i=0;i<out.size();i++)
+		{
+			out[i] = b64char_order[out[i]];
+		}
+		out.append((3-text.size()%3)%3,'=');
 		return out;
 	}
 	
