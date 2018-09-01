@@ -16,7 +16,11 @@ namespace tobilib::h2ep
 		out += name;
 		
 		std::stringstream ss;
-		boost::property_tree::json_parser::write_json(ss,data,false);
+		try {
+			boost::property_tree::json_parser::write_json(ss,data,false);
+		} catch (boost::property_tree::json_parser_error& err) {
+			throw h2parser_error(err.message());
+		}
 		out += "(";
 		out += std::to_string(ss.str().size());
 		out += ")";

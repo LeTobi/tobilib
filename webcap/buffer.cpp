@@ -7,10 +7,10 @@ namespace tobilib
 {
 	StringPlus basicBuffer::toString() const
 	{
-		StringPlus out;
-		for (int i=0;i<_length;i++)
+		StringPlus out (0,used);
+		for (int i=0;i<used;i++)
 		{
-			out += _start[i];
+			out[i] += _start[i];
 		}
 		return out;
 	}

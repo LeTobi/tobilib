@@ -36,40 +36,21 @@ namespace tobilib::stream
 		virtual void start() = 0;
 		virtual void write(const std::string&) = 0;
 		virtual void close() = 0;
+		virtual bool busy() const = 0;
 		
 		Endpoint(const Endpoint&) = delete;
 		void operator=(const Endpoint&) = delete;
-	};
-	
-	class Endpoint_relay: public Endpoint
-	{
-	private:
-		Endpoint& origin;
-		
-		void intern_receive();
-		void intern_close();
-		void intern_error(const network_error&);
-		
-	public:
-		Endpoint_relay(Endpoint& o);
-		
-		Callback< > master_on_receive;
-		Callback< > master_on_close;
-		Callback<const network_error&> master_on_error;
-		
-		void start(){origin.start();};
-		void write(const std::string& str) {origin.write(str);};
-		void close() {origin.close();};
-		void status_update() { _status = origin.status(); };
 	};
 	
 	class WS_Endpoint: virtual public Endpoint
 	{
 	private:
 		std::string outqueue;
+		std::string writebuffer;
 		boost::asio::streambuf buffer;
 		bool writing = false;
 		bool reading = false;
+		bool closing = false;
 		
 		void intern_on_write(const boost::system::error_code&, size_t);
 		void intern_on_read(const boost::system::error_code&, size_t);
@@ -85,6 +66,7 @@ namespace tobilib::stream
 		void start();
 		void write(const std::string&);
 		void close();
+		bool busy() const;
 	};
 }
 

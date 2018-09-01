@@ -17,14 +17,17 @@ namespace tobilib::stream
 	class WS_Client: public virtual Client, public virtual WS_Endpoint
 	{
 	private:
+		void intern_on_resolve(const boost::system::error_code&, boost::asio::ip::tcp::resolver::results_type);
 		void intern_on_connect(const boost::system::error_code&, const boost::asio::ip::tcp::endpoint&);
 		void intern_on_handshake(boost::system::error_code const&);
 		
 		boost::asio::io_context& ioc;
+		boost::asio::ip::tcp::resolver rslv;
 		std::string host;
+		bool active = false;
 		
 	public:
-		WS_Client(boost::asio::io_context& _ioc): WS_Endpoint(_ioc), ioc(_ioc) {};
+		WS_Client(boost::asio::io_context& _ioc);
 		void connect(const std::string&, int);
 	};
 }

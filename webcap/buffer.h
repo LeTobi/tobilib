@@ -13,6 +13,7 @@ namespace tobilib
 		
 	public:
 		basicBuffer(const basicBuffer&) = delete;
+		basicBuffer& operator=(const basicBuffer&) = delete;
 		basicBuffer() {};
 	
 		StringPlus toString() const;
@@ -34,8 +35,10 @@ namespace tobilib
 	class MappedBuffer: public basicBuffer
 	{
 	public:
+		MappedBuffer() {};
 		void map(int, int, int);
 		void clear();
+		
 		~MappedBuffer();
 	};
 	

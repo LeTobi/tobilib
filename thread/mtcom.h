@@ -21,6 +21,7 @@
 #define MULTITHREADCOMMUNICATION_H
 
 #include <thread>
+#include <atomic>
 #include <mutex>
 #include <map>
 #include <queue>
@@ -51,15 +52,16 @@ namespace tobilib
 		std::mutex context;
 		struct Thread
 		{
-			// Hier könnten noch mehr infos gespeichert werden
+			std::unique_ptr<std::atomic<bool>> ready;
 			std::queue<std::string> eventqueue;
+			
+			Thread(): ready(new std::atomic<bool>(false)) {};
 		};
 		std::map<std::thread::id, Thread> threads;
 		
-		void signup();
+		std::atomic<bool>* signup();
 		void signout();
 		void call(const std::string&);
-		bool pending();
 		std::string nextev();
 		Thread& mydata();
 	};
@@ -84,10 +86,13 @@ namespace tobilib
 		void trydo();
 		void check();
 		void validate();
+		void on_enter();
 		
 		bool shutdown = false;
 		callback onexit;
 		Threadforum* forum = NULL;
+		static std::atomic<bool> dummyready;
+		std::atomic<bool>* eventready = &dummyready;
 		std::thread::id my_id;
 		boost::asio::io_context& ioc;
 		std::map<std::string,callback> handlers;

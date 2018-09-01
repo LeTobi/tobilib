@@ -64,6 +64,11 @@ namespace tobilib::h2ep
 		return stream!=NULL && stream->connected();
 	}
 	
+	bool Endpoint::busy() const
+	{
+		return stream!=NULL && stream->busy();
+	}
+	
 	void Endpoint::send(const Event& ev)
 	{
 		if (stream == NULL)

@@ -22,6 +22,7 @@ namespace tobilib::h2ep
 		
 		void dock(stream::Endpoint*);
 		bool connected() const;
+		bool busy() const;
 		void send(const Event&);
 		Callback_Ticket addEventListener(const std::string&, event_callback, callback_position pos = callback_position::early);
 		void close();

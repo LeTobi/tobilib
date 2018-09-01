@@ -4,11 +4,12 @@
 
 namespace tobilib
 {
-	void Threadforum::signup()
+	std::atomic<bool>* Threadforum::signup()
 	{
 		if (threads.count(std::this_thread::get_id())>0)
 			throw thread_error("Der Thread ist bereits Teil des Forums");
 		threads.emplace(std::this_thread::get_id(),Thread());
+		return mydata().ready.get();
 	}
 	
 	void Threadforum::signout()
@@ -23,18 +24,15 @@ namespace tobilib
 			if (thr.first == std::this_thread::get_id())
 				continue;
 			thr.second.eventqueue.push(name);
+			*thr.second.ready = true;
 		}
-	}
-	
-	bool Threadforum::pending()
-	{
-		return mydata().eventqueue.size()>0;
 	}
 	
 	std::string Threadforum::nextev()
 	{
 		std::string out = mydata().eventqueue.front();
 		mydata().eventqueue.pop();
+		*mydata().ready = mydata().eventqueue.size()>0;
 		return out;
 	}
 	
@@ -42,6 +40,8 @@ namespace tobilib
 	{
 		return threads.at(std::this_thread::get_id());
 	}
+	
+	std::atomic<bool> TForum_access::dummyready (false);
 	
 	TForum_access::~TForum_access()
 	{
@@ -60,11 +60,14 @@ namespace tobilib
 		forum = &f;
 		shutdown = false;
 		my_id = std::this_thread::get_id();
-		
-		excex(std::bind(&Threadforum::signup,forum));
-		excex(std::bind(&TForum_access::check,this));
-		
+		eventready = &dummyready;
+		excex(std::bind(&TForum_access::on_enter,this));
 		ioc.post(std::bind(&TForum_access::trydo,this));
+	}
+	
+	void TForum_access::on_enter()
+	{
+		eventready = forum->signup();
 	}
 	
 	void TForum_access::listen(const std::string& name, callback cb)
@@ -91,36 +94,44 @@ namespace tobilib
 		onexit = cb;
 		excex(std::bind(&Threadforum::signout,forum));
 		shutdown = true;
+		eventready = &dummyready;
 	}
 	
 	void TForum_access::trydo()
 	{
 		validate();
-		if (todo.size()==0)
+		check();
+		if (todo.size()>0 && forum->context.try_lock())
+		{
+			todo.front()();
+			todo.pop();
+			forum->context.unlock();
+		}
+		if (shutdown && todo.size()==0)
 		{
 			forum = NULL;
 			if (onexit)
 				onexit();
 			return;
 		}
-		if (forum->context.try_lock())
-		{
-			todo.front()();
-			todo.pop();
-			forum->context.unlock();
-		}
 		ioc.post(std::bind(&TForum_access::trydo,this));
 	}
 	
 	void TForum_access::check()
 	{
-		while (forum->pending())
+		if (! *eventready)
+			return;
+		if (forum->context.try_lock())
 		{
-			std::string ev = forum->nextev();
-			if (handlers.count(ev)>0)
-				handlers.at(ev)();
+			while (*eventready)
+			{
+				std::string ev = forum->nextev();
+				if (handlers.count(ev)>0)
+					handlers.at(ev)();
+			}
+			*eventready = false;
+			forum->context.unlock();
 		}
-		excex(std::bind(&TForum_access::check,this));
 	}
 	
 	void TForum_access::validate()
