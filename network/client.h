@@ -21,13 +21,12 @@ namespace tobilib::stream
 		void intern_on_connect(const boost::system::error_code&, const boost::asio::ip::tcp::endpoint&);
 		void intern_on_handshake(boost::system::error_code const&);
 		
-		boost::asio::io_context& ioc;
 		boost::asio::ip::tcp::resolver rslv;
 		std::string host;
 		bool active = false;
 		
 	public:
-		WS_Client(boost::asio::io_context& _ioc);
+		WS_Client(Process&);
 		void connect(const std::string&, int);
 	};
 }

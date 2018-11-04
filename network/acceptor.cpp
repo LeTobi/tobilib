@@ -26,7 +26,6 @@ namespace tobilib::stream
 		WS_Endpoint* ep = client;
 		client = NULL;
 		ep->start();
-		ep->on_close.notify([ep](){delete ep;},callback_position::late);
 		on_accept(ep);
 	}
 	
@@ -34,7 +33,7 @@ namespace tobilib::stream
 	{
 		if (client!=NULL)
 			return;
-		client = new WS_Endpoint(ioc);
+		client = new WS_Endpoint(parentproc);
 		accpt.async_accept(client->socket.next_layer(),boost::bind(&WS_Acceptor::intern_on_accept1,this,_1));
 	}
 	

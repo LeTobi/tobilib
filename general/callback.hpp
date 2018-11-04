@@ -12,7 +12,7 @@ namespace tobilib
 	public:
 		std::function<void(unsigned int)> remove;
 		std::function<bool(unsigned int)> is_active;
-		bool valid = true;
+		bool valid = false;
 	};
 	
 	class Callback_Ticket
@@ -22,6 +22,7 @@ namespace tobilib
 		std::shared_ptr<CBLink> link;
 		
 	public:
+		Callback_Ticket(): link(new CBLink()) {};
 		Callback_Ticket(const std::shared_ptr<CBLink>& l, unsigned int i): link(l), index(i) {};
 		
 		bool active() const
@@ -67,6 +68,7 @@ namespace tobilib
 		{
 			link->is_active = std::bind(&Callback<Args...>::is_active,this,std::placeholders::_1);
 			link->remove = std::bind(&Callback<Args...>::remove,this,std::placeholders::_1);
+			link->valid = true;
 		};
 		
 		Callback_Ticket notify(std::function<void(Args...)> f, callback_position p=callback_position::early)

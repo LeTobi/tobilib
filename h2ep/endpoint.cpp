@@ -7,6 +7,12 @@ namespace tobilib::h2ep
 		dock(ep);
 	}
 	
+	Endpoint::~Endpoint()
+	{
+		if (stream!=NULL)
+			delete stream;
+	}
+
 	void Endpoint::intern_on_error(const network_error& err)
 	{
 		on_error(protocol_error(err.what()));

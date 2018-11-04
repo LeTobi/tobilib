@@ -13,6 +13,9 @@ namespace tobilib::h2ep
 	public:
 		Endpoint() {};
 		Endpoint(stream::Endpoint*);
+		~Endpoint();
+		Endpoint(const Endpoint&) = delete;
+		Endpoint& operator=(const Endpoint&) = delete;
 		
 		typedef std::function<void(const JSObject&)> event_callback;
 		

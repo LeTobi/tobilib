@@ -16,9 +16,6 @@ namespace tobilib::h2ep
 	void Acceptor<StrAccpt>::intern_accept(stream::Endpoint* ep)
 	{
 		Endpoint* pep = new Endpoint(ep);
-		pep->on_close.notify([pep](){
-			delete pep;
-		},callback_position::late);
 		on_accept(pep);
 	}
 	

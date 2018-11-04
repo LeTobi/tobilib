@@ -21,14 +21,15 @@ namespace tobilib::stream
 	{
 	private:
 		boost::asio::ip::tcp::acceptor accpt;
-		boost::asio::io_context& ioc;
+		Process& parentproc;
+		Process myprocess;
 		WS_Endpoint* client = NULL;
 		
 		void intern_on_accept1(const boost::system::error_code&);
 		void intern_on_accept2(const boost::system::error_code&);
 		
 	public:
-		WS_Acceptor(boost::asio::io_context& _ioc, int port): ioc(_ioc), accpt(_ioc,boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),port)) {};
+		WS_Acceptor(Process& proc, int port): parentproc(proc), myprocess(proc), accpt(myprocess,boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),port)) {};
 		~WS_Acceptor();
 		
 		void next();

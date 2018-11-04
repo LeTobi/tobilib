@@ -8,7 +8,7 @@ base: stringplus/stringplus.o encoding/utf8.o encoding/url.o encoding/base64.o e
 	ar r libtc.a general/identifier.o
 	ar s libtc.a
 
-networking: base network/endpoint.o network/client.o network/acceptor.o h2ep/event.o h2ep/xendpoint.o h2ep/xclient.o h2ep/xacceptor.o thread/mtcom.o
+networking: base network/endpoint.o network/client.o network/acceptor.o h2ep/event.o h2ep/xendpoint.o h2ep/xclient.o h2ep/xacceptor.o thread/mtcom.o thread/process.o
 	ar r libtc.a network/endpoint.o
 	ar r libtc.a network/client.o
 	ar r libtc.a network/acceptor.o
@@ -17,6 +17,7 @@ networking: base network/endpoint.o network/client.o network/acceptor.o h2ep/eve
 	ar r libtc.a h2ep/xclient.o
 	ar r libtc.a h2ep/xacceptor.o
 	ar r libtc.a thread/mtcom.o
+	ar r libtc.a thread/process.o
 	ar s libtc.a
 	
 webcap: networking webcap/buffer.o webcap/jpeg.o webcap/capture.o
@@ -72,6 +73,8 @@ h2ep/xacceptor.o: h2ep/acceptor.h h2ep/acceptor.cpp
 thread/mtcom.o: thread/mtcom.h thread/mtcom.cpp
 	g++ thread/mtcom.cpp -std=c++11 -c -o thread/mtcom.o
 	
+thread/process.o: thread/process.h thread/process.cpp
+	g++ thread/process.cpp -std=c++11 -c -o thread/process.o
 	
 webcap/buffer.o: webcap/buffer.h webcap/buffer.cpp
 	g++ webcap/buffer.cpp -std=c++11 -c -o webcap/buffer.o

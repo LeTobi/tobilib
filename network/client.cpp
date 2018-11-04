@@ -2,7 +2,7 @@
 
 namespace tobilib::stream
 {
-	WS_Client::WS_Client(boost::asio::io_context& _ioc): WS_Endpoint(_ioc), ioc(_ioc), rslv(_ioc)
+	WS_Client::WS_Client(Process& proc): rslv(myprocess), WS_Endpoint(proc)
 	{
 		on_close.notify([this](){
 			active=false;
