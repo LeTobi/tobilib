@@ -20,9 +20,9 @@ namespace tobilib::stream
 	class WS_Acceptor: public Acceptor
 	{
 	private:
-		boost::asio::ip::tcp::acceptor accpt;
 		Process& parentproc;
 		Process myprocess;
+		boost::asio::ip::tcp::acceptor accpt;
 		WS_Endpoint* client = NULL;
 		
 		void intern_on_accept1(const boost::system::error_code&);

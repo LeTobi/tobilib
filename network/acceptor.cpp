@@ -6,9 +6,9 @@ namespace tobilib::stream
 	{
 		if (ec)
 		{
-			on_error(network_error(std::string("Fehler bei Verbindungsaufbau: ")+ec.message()));
 			delete client;
 			client = NULL;
+			on_error(network_error(std::string("Fehler bei Verbindungsaufbau: ")+ec.message()));
 			return;
 		}
 		client->socket.async_accept(boost::bind(&WS_Acceptor::intern_on_accept2,this,_1));
@@ -18,9 +18,9 @@ namespace tobilib::stream
 	{
 		if (ec)
 		{
-			on_error(network_error(std::string("Fehler bei Handshake: ")+ec.message()));
 			delete client;
 			client = NULL;
+			on_error(network_error(std::string("Fehler bei Handshake: ")+ec.message()));
 			return;
 		}
 		WS_Endpoint* ep = client;
