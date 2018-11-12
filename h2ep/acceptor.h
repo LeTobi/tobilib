@@ -15,7 +15,7 @@ namespace tobilib::h2ep
 		void intern_accept(stream::Endpoint*);
 		
 	public:
-		Acceptor(boost::asio::io_context& ioc,int port);
+		Acceptor(Process& ioc, int port);
 		
 		void next();
 		Callback<Endpoint*> on_accept;

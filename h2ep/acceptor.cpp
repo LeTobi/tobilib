@@ -3,7 +3,7 @@
 namespace tobilib::h2ep
 {
 	template <class StrAccpt>
-	Acceptor<StrAccpt>::Acceptor(boost::asio::io_context& ioc, int port): accpt(ioc,port)
+	Acceptor<StrAccpt>::Acceptor(Process& ioc, int port): accpt(ioc,port)
 	{
 		accpt.on_error.notify([this](const network_error& err)
 		{

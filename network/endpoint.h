@@ -9,7 +9,7 @@
 #include <boost/asio.hpp>
 #include <exception>
 
-namespace tobilib::stream
+namespace tobilib
 {
 	class network_error: public std::exception
 	{
@@ -18,7 +18,10 @@ namespace tobilib::stream
 		std::string msg;
 		const char* what() const noexcept {return msg.c_str();};
 	};
+}
 
+namespace tobilib::stream
+{
 	/** Beschreibt den Status eines Endpunkts. Bestimmt das interne Verhalten */
 	enum class EndpointStatus {
 		/** Lesen und Schreiben aktiv */

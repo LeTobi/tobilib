@@ -3,7 +3,7 @@
 namespace tobilib::h2ep
 {
 	template<class Streamclient>
-	Client<Streamclient>::Client(boost::asio::io_context& ioc): intern_client(ioc)
+	Client<Streamclient>::Client(Process& ioc): intern_client(ioc)
 	{
 		intern_client.on_connect.notify(std::bind(&Client::intern_on_connect,this));
 		dock(&intern_client);

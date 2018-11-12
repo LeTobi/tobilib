@@ -15,7 +15,7 @@ namespace tobilib::h2ep
 		void intern_on_connect();
 		
 	public:
-		Client(boost::asio::io_context&);
+		Client(Process&);
 		~Client(){};
 		
 		void connect(const std::string&, int);
