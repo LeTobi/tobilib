@@ -179,6 +179,6 @@ namespace tobilib::stream
 	
 	bool WS_Endpoint::busy() const
 	{
-		return writing;
+		return _state & EndpointFlags::writing;
 	}
 }
