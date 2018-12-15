@@ -45,9 +45,6 @@ encoding/tcencrypt.o: encoding/tcencrypt.h encoding/tcencrypt.cpp
 general/gpio.o: general/gpio.h general/gpio.cpp
 	g++ general/gpio.cpp -std=c++11 -c -o general/gpio.o
 	
-general/identifier.o: general/identifier.h general/identifier.cpp
-	g++ general/identifier.cpp -std=c++11 -c -o general/identifier.o
-	
 	
 network/endpoint.o: network/endpoint.h network/endpoint.cpp
 	g++ network/endpoint.cpp -std=c++11 -c -o network/endpoint.o

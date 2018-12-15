@@ -12,7 +12,8 @@ namespace tobilib::stream
 		Acceptor(const Acceptor&) = delete;
 		void operator=(const Acceptor&) = delete;
 		
-		virtual void next() = 0;
+		virtual void start() = 0;
+		virtual void stop() = 0;
 		Callback<Endpoint*> on_accept;
 		Callback<const network_error&> on_error;
 	};
@@ -32,7 +33,8 @@ namespace tobilib::stream
 		WS_Acceptor(Process& proc, int port): parentproc(proc), myprocess(proc), accpt(myprocess,boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),port)) {};
 		~WS_Acceptor();
 		
-		void next();
+		void start();
+		void stop();
 	};
 }
 

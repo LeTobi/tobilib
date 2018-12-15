@@ -26,10 +26,11 @@ namespace tobilib::stream
 		WS_Endpoint* ep = client;
 		client = NULL;
 		ep->start();
+		start();
 		on_accept(ep);
 	}
 	
-	void WS_Acceptor::next()
+	void WS_Acceptor::start()
 	{
 		if (client!=NULL)
 			return;
@@ -37,9 +38,15 @@ namespace tobilib::stream
 		accpt.async_accept(client->socket.next_layer(),boost::bind(&WS_Acceptor::intern_on_accept1,this,_1));
 	}
 	
-	WS_Acceptor::~WS_Acceptor()
+	void WS_Acceptor::stop()
 	{
+		myprocess.restart();
 		if (client!=NULL)
 			delete client;
+	}
+
+	WS_Acceptor::~WS_Acceptor()
+	{
+		stop();
 	}
 }

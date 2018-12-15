@@ -3,16 +3,18 @@
 	Wichtiger Hinweis zur Anwendung:
 **************************************************************************
 
-	Die Lebzeiten von Threadforum und TForum_access müssen
+	Die Lebzeiten von Threadforum und TForum_access mï¿½ssen
 	streng eingehalten werden:
 	
 	Threadforum: Muss mindestens solange wie alle entsprechenden
 		TForum_access existieren
 		
 	TForum_access: zwischen enter() und leave() sollte TForum_access
-		nicht zerstört werden. Sollte TForum_access trotzdem zerstört
+		nicht zerstï¿½rt werden. Sollte TForum_access trotzdem zerstï¿½rt
 		werden, wird der angegebene io_context fehlerhaft und muss
-		zurückgesetzt werden.
+		zurï¿½ckgesetzt werden.
+
+	TODO: Umstellen auf Process. Handhabung obiges erÃ¼brigt sich.
 	
 **************************************************************************
 */
