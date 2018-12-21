@@ -20,6 +20,7 @@ namespace tobilib::stream
 		writebuffer.erase(0,s);
 		flush();
 		_state &= ~Flags::idle;
+		_state &= ~Flags::warned;
 	}
 	
 	void WS_Endpoint::intern_on_read(const boost::system::error_code& ec, size_t s)
@@ -37,6 +38,7 @@ namespace tobilib::stream
 			return;
 		}
 		_state &= ~Flags::idle;
+		_state &= ~Flags::warned;
 		int oldlen = received.size();
 		received.resize(oldlen+s);
 		buffer.sgetn(&received.front()+oldlen,s);

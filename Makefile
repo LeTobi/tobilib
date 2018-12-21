@@ -1,14 +1,13 @@
-base: stringplus/stringplus.o encoding/utf8.o encoding/url.o encoding/base64.o encoding/tcencrypt.o general/gpio.o general/identifier.o
+base: stringplus/stringplus.o encoding/utf8.o encoding/url.o encoding/base64.o encoding/tcencrypt.o general/gpio.o
 	ar r libtc.a stringplus/stringplus.o
 	ar r libtc.a encoding/utf8.o
 	ar r libtc.a encoding/url.o
 	ar r libtc.a encoding/base64.o
 	ar r libtc.a encoding/tcencrypt.o
 	ar r libtc.a general/gpio.o
-	ar r libtc.a general/identifier.o
 	ar s libtc.a
 
-networking: base network/endpoint.o network/client.o network/acceptor.o h2ep/event.o h2ep/xendpoint.o h2ep/xclient.o h2ep/xacceptor.o thread/mtcom.o thread/process.o
+networking: base network/endpoint.o network/client.o network/acceptor.o h2ep/event.o h2ep/xendpoint.o h2ep/xclient.o h2ep/xacceptor.o
 	ar r libtc.a network/endpoint.o
 	ar r libtc.a network/client.o
 	ar r libtc.a network/acceptor.o
