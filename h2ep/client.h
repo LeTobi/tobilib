@@ -7,20 +7,20 @@
 namespace tobilib::h2ep
 {
 	template<class Streamclient>
-	class Client: public Endpoint
+	class Client: public Endpoint<typename Streamclient::EndpointType>
 	{
 	private:
 		Streamclient intern_client;
-		
-		void intern_on_connect();
-		
+
 	public:
-		Client(Process&);
-		~Client(){};
+		typedef Streamclient ClientType;
+		typedef Endpoint<typename Streamclient::EndpointType> EndpointType;
+
+		Client();
 		
 		void connect(const std::string&, int);
-		
-		Callback< > on_connect;
+		bool connecting() const;
+		std::string mytrace() const;
 	};
 	
 	typedef Client<stream::WS_Client> WS_Client;

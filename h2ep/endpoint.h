@@ -3,43 +3,43 @@
 
 #include "../network/endpoint.h"
 #include "event.h"
-#include "error.h"
 #include <map>
 
 namespace tobilib::h2ep
 {	
+	typedef stream::EndpointStatus EndpointStatus;
+
+	template <class StrEndp>
 	class Endpoint
 	{
 	public:
-		Endpoint() {};
-		Endpoint(stream::Endpoint*);
+		typedef StrEndp Streamtype;
+
+		Endpoint(StrEndp*, bool _responsable=false);
 		~Endpoint();
 		Endpoint(const Endpoint&) = delete;
 		Endpoint& operator=(const Endpoint&) = delete;
 		
-		typedef std::function<void(const JSObject&)> event_callback;
-		
-		Callback<const Event&> fallback;
-		Callback<const protocol_error&> on_error;
-		Callback< > on_close;
-		
-		void dock(stream::Endpoint*);
-		bool connected() const;
+		EndpointStatus status() const;
+		bool inactive() const;
 		bool busy() const;
 		void send(const Event&);
-		Callback_Ticket addEventListener(const std::string&, event_callback, callback_position pos = callback_position::early);
+		bool readable() const;
+		Event read();
 		void close();
-		
+		void tick();
+		const boost::asio::ip::address& remote_ip() const;
+		std::string mytrace() const;
+
+		Warning_list warnings;
+
 	private:
-		stream::Endpoint* stream = NULL;
-		Event_parser parser;
-		
-		void intern_on_error(const network_error&);
-		void intern_on_receive();
-		void intern_on_close();
-		void call(const Event&);
-		std::map<std::string,Callback<const JSObject&>> callbacks;
+		bool responsable;
+		StrEndp* stream = NULL;
+		Event_parser parser;		
 	};
+
+	typedef Endpoint<stream::WS_Endpoint> WS_Endpoint;
 }
 
 #ifdef TC_AS_HPP

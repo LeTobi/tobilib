@@ -1,10 +1,10 @@
-#ifndef TC_NETWORK_SERVER
-#define TC_NETWORK_SERVER
+#ifndef TC_H2EP_SERVER
+#define TC_H2EP_SERVER
 
 #include "acceptor.h"
 #include <list>
 
-namespace tobilib::stream
+namespace tobilib::h2ep
 {
     template <class X_Acceptor, class DataT>
     class Server
@@ -135,7 +135,7 @@ namespace tobilib::stream
     template <class X_Acceptor, class DataT>
     std::string Server<X_Acceptor,DataT>::mytrace() const
     {
-        return std::string("stream::Server Port ")+std::to_string(accpt.port());
+        return std::string("h2ep::Server Port ")+std::to_string(accpt.port());
     }
 
     template <class X_Acceptor, class DataT>

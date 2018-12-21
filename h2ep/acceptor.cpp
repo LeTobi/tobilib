@@ -3,26 +3,60 @@
 namespace tobilib::h2ep
 {
 	template <class StrAccpt>
-	Acceptor<StrAccpt>::Acceptor(Process& ioc, int port): accpt(ioc,port)
+	Acceptor<StrAccpt>::Acceptor()
+	{ }
+
+	template <class StrAccpt>
+	Acceptor<StrAccpt>::Acceptor(int _port): accpt(_port)
+	{ }
+	
+	template <class StrAccpt>
+	void Acceptor<StrAccpt>::tick()
 	{
-		accpt.on_error.notify([this](const network_error& err)
-		{
-			on_error(protocol_error(err.what()));
-		});
-		accpt.on_accept.notify(std::bind(&Acceptor<StrAccpt>::intern_accept,this,std::placeholders::_1));
+		accpt.tick();
+		warnings.overtake(accpt.warnings,mytrace());
 	}
 	
 	template <class StrAccpt>
-	void Acceptor<StrAccpt>::intern_accept(stream::Endpoint* ep)
+	void Acceptor<StrAccpt>::open(int _port)
 	{
-		Endpoint* pep = new Endpoint(ep);
-		on_accept(pep);
+		accpt.open(_port);
 	}
-	
+
 	template <class StrAccpt>
-	void Acceptor<StrAccpt>::next()
+	void Acceptor<StrAccpt>::close()
 	{
-		accpt.next();
+		accpt.close();
+	}
+
+	template <class StrAccpt>
+	bool Acceptor<StrAccpt>::opened() const
+	{
+		return accpt.opened();
+	}
+
+	template <class StrAccpt>
+	bool Acceptor<StrAccpt>::full() const
+	{
+		return accpt.full();
+	}
+
+	template <class StrAccpt>
+	int Acceptor<StrAccpt>::port() const
+	{
+		return accpt.port();
+	}
+
+	template <class StrAccpt>
+	typename Acceptor<StrAccpt>::EndpointType* Acceptor<StrAccpt>::release()
+	{
+		return new EndpointType(accpt.release(),true);
+	}
+
+	template <class StrAccpt>
+	std::string Acceptor<StrAccpt>::mytrace() const
+	{
+		return std::string("h2ep::Acceptor Port ")+std::to_string(accpt.port());
 	}
 	
 	template class Acceptor<stream::WS_Acceptor>;

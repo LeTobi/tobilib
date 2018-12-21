@@ -2,109 +2,101 @@
 
 namespace tobilib::h2ep
 {
-	Endpoint::Endpoint(stream::Endpoint* ep)
-	{
-		dock(ep);
-	}
+	template <class StrEndp>
+	Endpoint<StrEndp>::Endpoint(StrEndp* ep, bool _responsable): stream(ep), responsable(_responsable)
+	{ }
 	
-	Endpoint::~Endpoint()
+	template <class StrEndp>
+	Endpoint<StrEndp>::~Endpoint()
 	{
-		if (stream!=NULL)
+		if (responsable)
 			delete stream;
 	}
-
-	void Endpoint::intern_on_error(const network_error& err)
-	{
-		on_error(protocol_error(err.what()));
-	}
 	
-	void Endpoint::intern_on_receive()
+	template <class StrEndp>
+	void Endpoint<StrEndp>::tick()
 	{
-		parser.feed(stream->received);
-		stream->received.clear();
+		stream->tick();
 		try
 		{
-			while (parser.ready())
-			{
-				Event ev = parser.next();
-				call(ev);
-			}
+			if (stream->readable())
+				parser.feed(stream->read());
 		}
-		catch (h2parser_error& err)
+		catch (Exception& err)
 		{
-			on_error(protocol_error(std::string("Parsing-Fehler: ")+err.what()));
-			stream->close();
+			err.trace.push_back("h2ep::Event feed()");
+			err.trace.push_back(mytrace());
+			warnings.push_back(err);
+			close();
 		}
+		warnings.overtake(stream->warnings,mytrace());
+	}
+
+	template <class StrEndp>
+	bool Endpoint<StrEndp>::readable() const
+	{
+		return parser.ready();
+	}
+
+	template <class StrEndp>
+	Event Endpoint<StrEndp>::read()
+	{
+		if (parser.ready())
+			return parser.next();
+		return Event();
 	}
 	
-	void Endpoint::intern_on_close()
+	template <class StrEndp>
+	EndpointStatus Endpoint<StrEndp>::status() const
 	{
-		on_close();
+		return stream->status();
 	}
 	
-	void Endpoint::call(const Event& ev)
+	template <class StrEndp>
+	bool Endpoint<StrEndp>::inactive() const
 	{
-		if (callbacks.count(ev.name)>0)
-		{
-			callbacks.at(ev.name)(ev.data);
-			return;
-		}
-		fallback(ev);
+		return stream->inactive();
+	}
+
+	template <class StrEndp>
+	bool Endpoint<StrEndp>::busy() const
+	{
+		return stream->busy();
 	}
 	
-	void Endpoint::dock(stream::Endpoint* str)
+	template <class StrEndp>
+	void Endpoint<StrEndp>::send(const Event& ev)
 	{
-		if (stream != NULL)
-		{
-			throw protocol_error("Ein h2ep::Endpoint kann nur einmal gedockt werden!");
-			return;
-		}
-		str->on_error.notify(std::bind(&Endpoint::intern_on_error,this,std::placeholders::_1));
-		str->on_receive.notify(std::bind(&Endpoint::intern_on_receive,this));
-		str->on_close.notify(std::bind(&Endpoint::intern_on_close,this),callback_position::late);
-		stream = str;
-	}
-	
-	bool Endpoint::connected() const
-	{
-		return stream!=NULL && stream->connected();
-	}
-	
-	bool Endpoint::busy() const
-	{
-		return stream!=NULL && stream->busy();
-	}
-	
-	void Endpoint::send(const Event& ev)
-	{
-		if (stream == NULL)
-		{
-			throw protocol_error("Der h2ep::Endpoint wurde nicht an einen Datenstrom gedockt.");
-			return;
-		}
 		try {
 			stream->write(ev.stringify());
-		} catch (h2parser_error& err) {
-			on_error(protocol_error(err.what()));
+		} catch (Exception& err) {
+			warnings.push_back(err);
 		}
 	}
 	
-	Callback_Ticket Endpoint::addEventListener(const std::string& name, event_callback cb, callback_position pos)
+	template <class StrEndp>
+	void Endpoint<StrEndp>::close()
 	{
-		if (callbacks.count(name)==0)
-		{
-			callbacks.emplace(std::piecewise_construct,std::forward_as_tuple(name),std::forward_as_tuple());
-		}
-		return callbacks[name].notify(cb,pos);
-	}
-	
-	void Endpoint::close()
-	{
-		if (stream==NULL)
-		{
-			throw protocol_error("Der h2ep::Endpoint wurde nicht an einen Datenstrom gedockt.");
-			return;
-		}
 		stream->close();
 	}
+
+	template <class StrEndp>
+	const boost::asio::ip::address& Endpoint<StrEndp>::remote_ip() const
+	{
+		return stream->remote_ip();
+	}
+
+	template<class StrEndp>
+	std::string Endpoint<StrEndp>::mytrace() const
+	{
+		std::string out = "h2ep::Endpoint ";
+		boost::asio::ip::address addr = stream->remote_ip();
+		if (addr.is_unspecified())
+			out+=" nicht verbunden";
+		else
+			out+=addr.to_string();
+		return out;
+	}
+
+	template class Endpoint<stream::WS_Endpoint>;
 }

@@ -11,15 +11,23 @@ namespace tobilib::h2ep
 	{
 	private:
 		StrAccpt accpt;
-		
-		void intern_accept(stream::Endpoint*);
-		
+
 	public:
-		Acceptor(Process& ioc, int port);
-		
-		void next();
-		Callback<Endpoint*> on_accept;
-		Callback<const protocol_error&> on_error;
+		typedef Endpoint<typename StrAccpt::EndpointType> EndpointType;
+
+		Acceptor();
+		Acceptor(int _port);
+
+		void tick();
+		void open(int _port=0);
+		void close();
+		bool opened() const;
+		bool full() const;
+		int port() const;
+		EndpointType* release();
+		std::string mytrace() const;
+
+		Warning_list warnings;
 	};
 	
 	typedef Acceptor<stream::WS_Acceptor> WS_Acceptor;

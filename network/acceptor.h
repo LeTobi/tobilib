@@ -4,37 +4,43 @@
 #include "endpoint.h"
 
 namespace tobilib::stream
-{
-	class Acceptor
-	{
-	public:
-		Acceptor() {};
-		Acceptor(const Acceptor&) = delete;
-		void operator=(const Acceptor&) = delete;
-		
-		virtual void start() = 0;
-		virtual void stop() = 0;
-		Callback<Endpoint*> on_accept;
-		Callback<const network_error&> on_error;
-	};
-	
-	class WS_Acceptor: public Acceptor
+{	
+	class WS_Acceptor
 	{
 	private:
-		Process& parentproc;
-		Process myprocess;
+		boost::asio::io_context ioc;
 		boost::asio::ip::tcp::acceptor accpt;
-		WS_Endpoint* client = NULL;
-		
+		WS_Endpoint* client = new WS_Endpoint();
+		int intern_port = 0;
+		bool running = false;
+		bool waiting = false;
+		time_t connected = 0;
+
+		void accept();
 		void intern_on_accept1(const boost::system::error_code&);
 		void intern_on_accept2(const boost::system::error_code&);
-		
+		void reset();
+		boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard = boost::asio::make_work_guard(ioc);
+
 	public:
-		WS_Acceptor(Process& proc, int port): parentproc(proc), myprocess(proc), accpt(myprocess,boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),port)) {};
+		typedef WS_Endpoint EndpointType;
+
+		WS_Acceptor();
+		WS_Acceptor(int _port);
+		WS_Acceptor(const WS_Acceptor&) = delete;
 		~WS_Acceptor();
+		void operator=(const WS_Acceptor&) = delete;
 		
-		void start();
-		void stop();
+		void tick();
+		void open(int _port = 0);
+		void close();
+		bool opened() const;
+		bool full() const;
+		int port() const;
+		WS_Endpoint* release();
+		std::string mytrace() const;
+
+		Warning_list warnings;
 	};
 }
 

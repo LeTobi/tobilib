@@ -1,24 +1,11 @@
 #ifndef TC_NETWORK_ENDPOINT
 #define TC_NETWORK_ENDPOINT
 
-#include "../general/callback.hpp"
-#include "../thread/process.h"
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
-#include <exception>
-
-namespace tobilib
-{
-	class network_error: public std::exception
-	{
-	public:
-		template<class strT> network_error(strT m): msg(m) {};
-		std::string msg;
-		const char* what() const noexcept {return msg.c_str();};
-	};
-}
+#include "../general/exception.hpp"
 
 namespace tobilib::stream
 {
@@ -36,82 +23,78 @@ namespace tobilib::stream
 		/** Endpunkt geschlossen (on_close bereits ausgeführt) */
 		closed
 	};
-
-	/* Informationen zum Zustand des Endpoints */
-	enum EndpointFlags {
-		writing = 0b000001, /** asynchrones schreiben aktiv **/
-		reading = 0b000010, /** asynchrones lesen aktiv **/
-		closing = 0b000100, /** asynchrones schliessen aktiv **/
-		timing  = 0b001000, /** asynchrones timing aktiv **/
-		breakdown = 0b010000, /** fordert unterbrechung der Verbindung **/
-		ready   = 0b100000, /** Bereit für start **/
-		idle =  0b01000000, /** Beschreibt, ob gerade nichts getan wird **/
-		warned= 0b10000000 /** Beschreibt, ob eine timeoutwarnung aussteht **/
-	};
 	
-	class Endpoint
-	{
-	protected:
-		EndpointStatus _status = EndpointStatus::closed;
-		unsigned int _state = 0;
-
-	public:
-		Endpoint() {};
-		
-		Callback< > on_receive;
-		Callback< > on_close;
-		Callback<const network_error&> on_error;
-		Callback<bool> on_timeout;
-		
-		std::string received;
-		
-		EndpointStatus status() const { return _status; };
-		bool connected() const {return _status == EndpointStatus::open; };
-		
-		virtual void start() = 0;
-		virtual void write(const std::string&) = 0;
-		virtual void close() = 0;
-		virtual bool busy() const = 0;
-		
-		Endpoint(const Endpoint&) = delete;
-		void operator=(const Endpoint&) = delete;
-	};
-	
-	class WS_Endpoint: virtual public Endpoint
+	class WS_Endpoint
 	{
 		friend class WS_Acceptor;
 
 	protected:
-		Process myprocess;
+		boost::asio::io_context ioc;
 		boost::beast::websocket::stream<boost::asio::ip::tcp::socket> socket;
+		
+		/** Signalisiert wenn die Verbindung hergestellt wurde **/
+		void start();
+
+		/** Schliesst die Verbindung direkt und dreckig **/
+		void close_socket();
 
 	private:
+	// Generell
+		/** Zustand von WS_Endpoint **/
+		enum Flags {
+			writing   = 0b000000001, /** asynchrones schreiben aktiv **/
+			reading   = 0b000000010, /** asynchrones lesen aktiv **/
+			closing   = 0b000000100, /** asynchrones schliessen aktiv **/
+			timing    = 0b000001000, /** asynchrones timing aktiv **/
+			breakdown = 0b000010000, /** fordert unterbrechung der Verbindung **/
+			ready     = 0b000100000, /** Bereit für start **/
+			idle      = 0b001000000, /** Beschreibt, ob gerade nichts getan wird **/
+			warned    = 0b010000000, /** Beschreibt, ob eine timeoutwarnung aussteht **/
+		};
+
+		boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard = boost::asio::make_work_guard(ioc);
+		EndpointStatus _status = EndpointStatus::closed;
+		unsigned int _state = 0;
+		boost::asio::ip::address last_ip;
+
+	// Schreiben
 		std::string outqueue;
 		std::string writebuffer;
-		boost::asio::streambuf buffer;
-		boost::asio::system_timer timer;
-
-		void intern_on_write(const boost::system::error_code&, size_t);
-		void intern_on_read(const boost::system::error_code&, size_t);
-		void intern_on_close(const boost::system::error_code&);
-		void intern_on_timeout(const boost::system::error_code&);
-
-		/** Diese Funktion ist zuständig für die Anpassung des Status. NUR diese Funktion!
-		*/
-		void tick();
 
 		void flush();
-		void read();
-		void timerset();
 		void send_close();
+		void intern_on_write(const boost::system::error_code&, size_t);
+		void intern_on_close(const boost::system::error_code&);
+
+	// Lesen
+		boost::asio::streambuf buffer;
+		std::string received;
+
+		void intern_read();
+		void intern_on_read(const boost::system::error_code&, size_t);
+
+	// Zeitmanagement
+		boost::asio::system_timer timer;
+
+		void timerset();
+		void intern_on_timeout(const boost::system::error_code&);
 
 	public:
-		WS_Endpoint (Process&);
+		WS_Endpoint ();
 		
-		void start();
-		void write(const std::string&);
-		void close();
+		void tick();
+		bool readable(unsigned int len=1) const;
+		std::string read(unsigned int len=0);
 		bool busy() const;
+		void write(const std::string&);
+		bool inactive();
+		void close();
+		const boost::asio::ip::address& remote_ip() const;
+		std::string mytrace() const;
+		
+
+		EndpointStatus status() const { return _status; };
+		Warning_list warnings;
 	};
 }
 

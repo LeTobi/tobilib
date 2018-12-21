@@ -30,12 +30,14 @@ namespace tobilib::h2ep
 	
 		std::string data;
 		std::queue<chunk> chunks;
+		std::queue<Event> outqueue;
 		void getchunks();
-		
+		void chunkparse();
+
 	public:
 		const std::string& buffer() const;
 		void feed(const std::string&);
-		bool ready();
+		bool ready() const;
 		Event next();
 	};
 }
