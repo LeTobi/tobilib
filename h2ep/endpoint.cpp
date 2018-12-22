@@ -59,6 +59,12 @@ namespace tobilib::h2ep
 	}
 
 	template <class StrEndp>
+	void Endpoint<StrEndp>::inactive_checked()
+	{
+		return stream->inactive_checked();
+	}
+
+	template <class StrEndp>
 	bool Endpoint<StrEndp>::busy() const
 	{
 		return stream->busy();

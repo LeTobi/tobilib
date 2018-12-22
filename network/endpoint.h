@@ -6,6 +6,7 @@
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
 #include "../general/exception.hpp"
+#include <ctime>
 
 namespace tobilib::stream
 {
@@ -45,17 +46,19 @@ namespace tobilib::stream
 			writing   = 0b000000001, /** asynchrones schreiben aktiv **/
 			reading   = 0b000000010, /** asynchrones lesen aktiv **/
 			closing   = 0b000000100, /** asynchrones schliessen aktiv **/
-			timing    = 0b000001000, /** asynchrones timing aktiv **/
-			breakdown = 0b000010000, /** fordert unterbrechung der Verbindung **/
-			ready     = 0b000100000, /** Bereit für start **/
-			idle      = 0b001000000, /** Beschreibt, ob gerade nichts getan wird **/
-			warned    = 0b010000000, /** Beschreibt, ob eine timeoutwarnung aussteht **/
+			breakdown = 0b000001000, /** fordert unterbrechung der Verbindung **/
+			ready     = 0b000010000, /** Bereit für start **/
+			informed  = 0b000100000  /** Beschreibt, ob ein Timeout-Check ausgeführt wurde. **/
 		};
 
 		boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard = boost::asio::make_work_guard(ioc);
 		EndpointStatus _status = EndpointStatus::closed;
 		unsigned int _state = 0;
 		boost::asio::ip::address last_ip;
+
+	// Timeout-check
+		void timeout_reset();
+		time_t last_interaction = 0;
 
 	// Schreiben
 		std::string outqueue;
@@ -73,12 +76,6 @@ namespace tobilib::stream
 		void intern_read();
 		void intern_on_read(const boost::system::error_code&, size_t);
 
-	// Zeitmanagement
-		boost::asio::system_timer timer;
-
-		void timerset();
-		void intern_on_timeout(const boost::system::error_code&);
-
 	public:
 		WS_Endpoint ();
 		
@@ -87,7 +84,8 @@ namespace tobilib::stream
 		std::string read(unsigned int len=0);
 		bool busy() const;
 		void write(const std::string&);
-		bool inactive();
+		bool inactive() const;
+		void inactive_checked();
 		void close();
 		const boost::asio::ip::address& remote_ip() const;
 		std::string mytrace() const;

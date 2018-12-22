@@ -2,8 +2,14 @@
 
 namespace tobilib::stream
 {
-	WS_Endpoint::WS_Endpoint(): socket(ioc), timer(ioc)
+	WS_Endpoint::WS_Endpoint(): socket(ioc)
 	{}
+
+	void WS_Endpoint::timeout_reset()
+	{
+		time(&last_interaction);
+		_state &= ~Flags::informed;
+	}
 
 	void WS_Endpoint::intern_on_write(const boost::system::error_code& ec, size_t s)
 	{
@@ -19,8 +25,6 @@ namespace tobilib::stream
 		}
 		writebuffer.erase(0,s);
 		flush();
-		_state &= ~Flags::idle;
-		_state &= ~Flags::warned;
 	}
 	
 	void WS_Endpoint::intern_on_read(const boost::system::error_code& ec, size_t s)
@@ -37,8 +41,7 @@ namespace tobilib::stream
 			warnings.push_back(e);
 			return;
 		}
-		_state &= ~Flags::idle;
-		_state &= ~Flags::warned;
+		timeout_reset();
 		int oldlen = received.size();
 		received.resize(oldlen+s);
 		buffer.sgetn(&received.front()+oldlen,s);
@@ -71,47 +74,22 @@ namespace tobilib::stream
 		}
 		socket.next_layer().close();
 	}
-	
-	void WS_Endpoint::intern_on_timeout(const boost::system::error_code& ec)
-	{
-		_state &= ~Flags::timing;
-		if (_status != EndpointStatus::open)
-			return;
-		if (ec)
-		{
-			Exception e ("Fehler in system_timer fuer Timeoutberechnung");
-			e.trace.push_back("intern_on_timeout()");
-			e.trace.push_back(mytrace());
-			throw e;
-		}
-		if (_state & Flags::idle)
-		{
-			if (_state & Flags::warned)
-			{
-				Exception e ("Timeout erreicht");
-				e.trace.push_back(mytrace());
-				warnings.push_back(e);
-				close();
-			}
-			else
-			{
-				_state |= Flags::warned;
-			}
-		}
-		else
-		{
-			_state &= ~Flags::warned;
-		}
-		_state |= Flags::idle;
-		timerset();
-	}
 
 	void WS_Endpoint::tick()
 	{
 		ioc.poll_one();
+		time_t now;
+		time(&now);
 		switch (_status)
 		{
 			case EndpointStatus::open:
+				if (difftime(now,last_interaction)>=20)
+				{
+					Exception e ("Timeout erreicht. Verbindung inaktiv");
+					e.trace.push_back(mytrace());
+					warnings.push_back(e);
+					_state |= Flags::breakdown;
+				}
 				if (_state & Flags::breakdown)
 				{
 					_status = EndpointStatus::shutdown;
@@ -141,10 +119,8 @@ namespace tobilib::stream
 				{
 					_status = EndpointStatus::open;
 					_state &= ~Flags::ready;
-					_state &= ~Flags::idle;
-					_state &= ~Flags::warned;
 					intern_read();
-					timerset();
+					timeout_reset();
 				}
 				break;
 		}
@@ -176,15 +152,6 @@ namespace tobilib::stream
 			return;
 		_state |= Flags::reading;
 		socket.async_read(buffer,boost::bind(&WS_Endpoint::intern_on_read,this,_1,_2));
-	}
-	
-	void WS_Endpoint::timerset()
-	{
-		if (_state & Flags::timing)
-			return;
-		_state |= Flags::timing;
-		timer.expires_after(boost::asio::chrono::seconds(10));
-		timer.async_wait(boost::bind(&WS_Endpoint::intern_on_timeout,this,_1));
 	}
 
 	void WS_Endpoint::start()
@@ -234,9 +201,17 @@ namespace tobilib::stream
 		}
 	}
 
-	bool WS_Endpoint::inactive()
+	bool WS_Endpoint::inactive() const
 	{
-		return (_state & Flags::warned) && !(_state & Flags::writing);
+		time_t now;
+		time(&now);
+		return difftime(now,last_interaction)>=10 && _status==EndpointStatus::open;
+	}
+
+	void WS_Endpoint::inactive_checked()
+	{
+		if (inactive())
+			_state |= Flags::informed;
 	}
 
 	void WS_Endpoint::close()

@@ -22,6 +22,7 @@ namespace tobilib::h2ep
 		
 		EndpointStatus status() const;
 		bool inactive() const;
+		void inactive_checked();
 		bool busy() const;
 		void send(const Event&);
 		bool readable() const;
