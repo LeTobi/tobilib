@@ -86,6 +86,8 @@ namespace tobilib::stream
 	void WS_Acceptor::close()
 	{
 		running = false;
+		connected=0;
+		reset();
 		accpt.close();
 	}
 
