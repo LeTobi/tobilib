@@ -205,7 +205,7 @@ namespace tobilib::stream
 	{
 		time_t now;
 		time(&now);
-		return difftime(now,last_interaction)>=10 && _status==EndpointStatus::open;
+		return difftime(now,last_interaction)>=10 && _status==EndpointStatus::open && (~_state & Flags::informed);
 	}
 
 	void WS_Endpoint::inactive_checked()
