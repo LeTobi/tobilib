@@ -2,7 +2,7 @@
 #include <string>
 #include <exception>
 
-namespace tobilib
+namespace tobilib::utf8
 {
 	
 	int firstLOW (unsigned int byte)
