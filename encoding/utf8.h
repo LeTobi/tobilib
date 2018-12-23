@@ -4,7 +4,7 @@
 #include "../stringplus/stringplus.h"
 #include "error.h"
 
-namespace tobilib
+namespace tobilib::utf8
 {	
 	int firstLOW (unsigned int byte);
 	
