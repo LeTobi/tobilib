@@ -42,9 +42,11 @@ namespace tobilib
 		StringPlus& operator = (const std::string& val) {assign(val);return *this;};
 		StringPlus& operator = (const char * val) {assign(val);return *this;};
 		StringPlus& operator = (const CharPlus& val) {assign(val);return *this;};
+		StringPlus operator + (const StringPlus& val) const {return StringPlus(val).insert(0,*this);}
 		StringPlus operator + (const std::u32string& val) const {return StringPlus(val).insert(0,*this);};
 		StringPlus operator + (const std::string& val) const {return StringPlus(val).insert(0,*this);};
 		StringPlus operator + (const char * val) const {return StringPlus(val).insert(0,*this);};
+		StringPlus& operator += (const StringPlus& val) {append(val);return *this;};
 		StringPlus& operator += (const std::u32string& val) {append(val);return *this;};
 		StringPlus& operator += (const std::string& val) {append(StringPlus(val));return *this;};
 		StringPlus& operator += (const char * val) {append(StringPlus(val));return *this;};
