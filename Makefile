@@ -22,7 +22,24 @@ webcap: networking webcap/buffer.o webcap/jpeg.o webcap/capture.o
 	ar r libtc.a webcap/jpeg.o
 	ar r libtc.a webcap/capture.o
 	ar s libtc.a
-	
+
+undo:
+	rm libtc.a
+	rm stringplus/stringplus.o
+	rm encoding/utf8.o
+	rm encoding/url.o
+	rm encoding/base64.o
+	rm encoding/tcencrypt.o
+	rm general/gpio.o
+	rm network/endpoint.o
+	rm network/client.o
+	rm h2ep/event.o
+	rm h2ep/xendpoint.o
+	rm h2ep/xclient.o
+	rm h2ep/xacceptor.o
+	rm webcap/buffer.o
+	rm webcap/jpeg.o
+	rm webcap/capture.o
 
 stringplus/stringplus.o: stringplus/stringplus.cpp stringplus/stringplus.h
 	g++ stringplus/stringplus.cpp -std=c++11 -c -o stringplus/stringplus.o

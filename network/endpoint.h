@@ -56,25 +56,29 @@ namespace tobilib::stream
 		unsigned int _state = 0;
 		boost::asio::ip::address last_ip;
 
-	// Timeout-check
-		void timeout_reset();
-		time_t last_interaction = 0;
-
 	// Schreiben
 		std::string outqueue;
 		std::string writebuffer;
 
 		void flush();
-		void send_close();
 		void intern_on_write(const boost::system::error_code&, size_t);
 		void intern_on_close(const boost::system::error_code&);
 
 	// Lesen
 		boost::asio::streambuf buffer;
 		std::string received;
+		time_t last_interaction = 0;
 
 		void intern_read();
 		void intern_on_read(const boost::system::error_code&, size_t);
+		void timeout_reset();
+
+	// Schliessen
+		time_t disconnect_time = 0;
+		
+		void send_close();
+		// close_socket() auch
+
 
 	public:
 		WS_Endpoint ();

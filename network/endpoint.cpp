@@ -63,6 +63,7 @@ namespace tobilib::stream
 
 	void WS_Endpoint::close_socket()
 	{
+		disconnect_time = 0;
 		boost::system::error_code err;
 		socket.next_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, err);
 		if (err)
@@ -80,10 +81,17 @@ namespace tobilib::stream
 		ioc.poll_one();
 		time_t now;
 		time(&now);
+		if (disconnect_time>0 && difftime(now,disconnect_time)>5)
+		{
+			Exception e ("Verbindungsabbruch wird erzwungen...");
+			e.trace.push_back(mytrace());
+			warnings.push_back(e);
+			close_socket();
+		}
 		switch (_status)
 		{
 			case EndpointStatus::open:
-				if (difftime(now,last_interaction)>=20)
+				if (difftime(now,last_interaction)>20)
 				{
 					Exception e ("Timeout erreicht. Verbindung inaktiv");
 					e.trace.push_back(mytrace());
@@ -93,6 +101,7 @@ namespace tobilib::stream
 				if (_state & Flags::breakdown)
 				{
 					_status = EndpointStatus::shutdown;
+					time(&disconnect_time);
 					break;
 				}
 				break;
@@ -110,6 +119,7 @@ namespace tobilib::stream
 				{
 					_status = EndpointStatus::closed;
 					_state &= ~Flags::breakdown;
+					timeout_reset();
 					return;
 				}
 				break;
@@ -120,7 +130,6 @@ namespace tobilib::stream
 					_status = EndpointStatus::open;
 					_state &= ~Flags::ready;
 					intern_read();
-					timeout_reset();
 				}
 				break;
 		}
