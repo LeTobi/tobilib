@@ -33,6 +33,7 @@ undo:
 	rm general/gpio.o
 	rm network/endpoint.o
 	rm network/client.o
+	rm network/acceptor.o
 	rm h2ep/event.o
 	rm h2ep/xendpoint.o
 	rm h2ep/xclient.o

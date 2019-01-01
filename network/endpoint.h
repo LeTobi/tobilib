@@ -38,6 +38,8 @@ namespace tobilib::stream
 		boost::asio::ip::address last_ip;
 		Status _status = Status::Closed;
 
+		void reactivate();
+
 	// Schreiben //////////////////////////////////////////////////////////////////////////////////////////////////////
 	private:
 		std::string write_queue;
@@ -63,13 +65,12 @@ namespace tobilib::stream
 		std::string read_data;
 		Timer read_warning_timer = Timer(10);
 		Timer read_shutdown_timer = Timer(20);
-		enum class ReadStatus {Idle,Reading,Uncertain,Error};
+		enum class ReadStatus {Idle,Reading,Error};
 		ReadStatus _readstatus = ReadStatus::Idle;
 
 		void read_begin();
 		void read_end(const boost::system::error_code&, size_t);
 		void read_reset();
-		void read_continue();
 		void read_tick();
 
 	public:

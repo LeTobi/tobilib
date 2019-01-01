@@ -29,12 +29,13 @@ namespace tobilib::stream
 			}
 			return;
 		}
-		else if (_status==Status::Active || _status==Status::Idle)
+		else if (_status==Status::Active)
 		{
-			if (_readstatus==ReadStatus::Reading)
-				_status = Status::Active;
-			else if (_readstatus==ReadStatus::Uncertain)
+			if (read_warning_timer.due())
+			{
+				read_warning_timer.disable();
 				_status = Status::Idle;
+			}
 		}
 		if (_readstatus==ReadStatus::Error || _writestatus==WriteStatus::Error)
 		{
@@ -52,7 +53,7 @@ namespace tobilib::stream
 	{
 		if (_status != Status::Idle)
 			return;
-		_status = Status::Active;
+		reactivate();
 		write(msg);
 	}
 
@@ -104,6 +105,12 @@ namespace tobilib::stream
 			warnings.push_back(e);
 		}
 		socket.next_layer().close();
+	}
+
+	void WS_Endpoint::reactivate()
+	{
+		if (_status == Status::Idle)
+			_status = Status::Active;
 	}
 
 	void WS_Endpoint::write_begin()
@@ -211,6 +218,7 @@ namespace tobilib::stream
 	{
 		read_warning_timer.disable();
 		read_shutdown_timer.disable();
+		reactivate();
 		if (ec)
 		{
 			_readstatus = ReadStatus::Error;
@@ -237,19 +245,8 @@ namespace tobilib::stream
 		read_data.clear();
 	}
 
-	void WS_Endpoint::read_continue()
-	{
-		if (_readstatus == ReadStatus::Uncertain)
-			_readstatus = ReadStatus::Reading;
-	}
-
 	void WS_Endpoint::read_tick()
 	{
-		if (read_warning_timer.due())
-		{
-			read_warning_timer.disable();
-			_readstatus = ReadStatus::Uncertain;
-		}
 		if (read_shutdown_timer.due())
 		{
 			read_shutdown_timer.disable();

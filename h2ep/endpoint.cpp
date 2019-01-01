@@ -23,7 +23,7 @@ namespace tobilib::h2ep
 	void Endpoint<StrEndp>::reactivate(const Event& ev)
 	{
 		try {
-			stream->write(ev.stringify());
+			stream->reactivate(ev.stringify());
 		} catch (Exception& err) {
 			warnings.push_back(err);
 		}
