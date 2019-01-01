@@ -30,15 +30,21 @@ namespace tobilib::h2ep
 	}
 
 	template <class StrAccpt>
-	bool Acceptor<StrAccpt>::opened() const
+	typename Acceptor<StrAccpt>::Status Acceptor<StrAccpt>::status() const
 	{
-		return accpt.opened();
+		return accpt.status();
 	}
 
 	template <class StrAccpt>
-	bool Acceptor<StrAccpt>::full() const
+	bool Acceptor<StrAccpt>::filled() const
 	{
-		return accpt.full();
+		return accpt.filled();
+	}
+
+	template <class StrAccpt>
+	int Acceptor<StrAccpt>::size() const
+	{
+		return accpt.size();
 	}
 
 	template <class StrAccpt>

@@ -6,97 +6,75 @@
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
 #include "../general/exception.hpp"
+#include "../general/timer.hpp"
 #include <ctime>
 
 namespace tobilib::stream
 {
-	/** Beschreibt den Status eines Endpunkts. Bestimmt das interne Verhalten */
-	enum class EndpointStatus {
-		/** Lesen und Schreiben aktiv */
-		open,
-
-		/** Schliessen wird vorbereitet: Schreibbuffer wird gelehrt */
-		shutdown,
-
-		/** Warten auf Antwort der Gegenseite */
-		closing,
-
-		/** Endpunkt geschlossen (on_close bereits ausgeführt) */
-		closed
-	};
-	
 	class WS_Endpoint
 	{
 		friend class WS_Acceptor;
 
+	// Generell //////////////////////////////////////////////////////////////////////////////////////////////////////
+	public:
+		WS_Endpoint ();
+
+		enum class Status {Closed,Active,Idle,Shutdown};
+		void tick();
+		Status status() const;
+		void reactivate(const std::string&);
+		void shutdown();
+		const boost::asio::ip::address& remote_ip() const;
+		std::string mytrace() const;
+
+		Warning_list warnings;
 	protected:
 		boost::asio::io_context ioc;
 		boost::beast::websocket::stream<boost::asio::ip::tcp::socket> socket;
 		
-		/** Signalisiert wenn die Verbindung hergestellt wurde **/
-		void start();
-
-		/** Schliesst die Verbindung direkt und dreckig **/
-		void close_socket();
-
+		void close_tcp();
 	private:
-	// Generell
-		/** Zustand von WS_Endpoint **/
-		enum Flags {
-			writing   = 0b000000001, /** asynchrones schreiben aktiv **/
-			reading   = 0b000000010, /** asynchrones lesen aktiv **/
-			closing   = 0b000000100, /** asynchrones schliessen aktiv **/
-			breakdown = 0b000001000, /** fordert unterbrechung der Verbindung **/
-			ready     = 0b000010000, /** Bereit für start **/
-			informed  = 0b000100000  /** Beschreibt, ob ein Timeout-Check ausgeführt wurde. **/
-		};
-
 		boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard = boost::asio::make_work_guard(ioc);
-		EndpointStatus _status = EndpointStatus::closed;
-		unsigned int _state = 0;
 		boost::asio::ip::address last_ip;
+		Status _status = Status::Closed;
 
-	// Schreiben
-		std::string outqueue;
-		std::string writebuffer;
+	// Schreiben //////////////////////////////////////////////////////////////////////////////////////////////////////
+	private:
+		std::string write_queue;
+		std::string write_buffer;
+		Timer write_close_timeout = Timer(5);
+		enum class WriteStatus {Idle,Msg,Shutdown,Terminated,Error};
+		WriteStatus _writestatus = WriteStatus::Idle;
 
-		void flush();
-		void intern_on_write(const boost::system::error_code&, size_t);
-		void intern_on_close(const boost::system::error_code&);
-
-	// Lesen
-		boost::asio::streambuf buffer;
-		std::string received;
-		time_t last_interaction = 0;
-
-		void intern_read();
-		void intern_on_read(const boost::system::error_code&, size_t);
-		void timeout_reset();
-
-	// Schliessen
-		time_t disconnect_time = 0;
+		void write_begin();
+		void write_end(const boost::system::error_code&, size_t);
+		void write_close_begin();
+		void write_close_end(const boost::system::error_code&);
+		void write_reset();
+		void write_tick();
 		
-		void send_close();
-		// close_socket() auch
+	public:
+		bool write_busy() const;
+		void write(const std::string&);
 
+	// Lesen //////////////////////////////////////////////////////////////////////////////////////////////////////
+	private:
+		boost::asio::streambuf read_buffer;
+		std::string read_data;
+		Timer read_warning_timer = Timer(10);
+		Timer read_shutdown_timer = Timer(20);
+		enum class ReadStatus {Idle,Reading,Uncertain,Error};
+		ReadStatus _readstatus = ReadStatus::Idle;
+
+		void read_begin();
+		void read_end(const boost::system::error_code&, size_t);
+		void read_reset();
+		void read_continue();
+		void read_tick();
 
 	public:
-		WS_Endpoint ();
-		
-		void tick();
-		bool readable(unsigned int len=1) const;
+		int read_size() const;
 		std::string read(unsigned int len=0);
-		bool busy() const;
-		void write(const std::string&);
-		bool inactive() const;
-		void inactive_checked();
-		void close();
-		const boost::asio::ip::address& remote_ip() const;
-		std::string mytrace() const;
-		
-
-		EndpointStatus status() const { return _status; };
-		Warning_list warnings;
 	};
 }
 

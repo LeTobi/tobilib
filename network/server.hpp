@@ -2,7 +2,6 @@
 #define TC_NETWORK_SERVER
 
 #include "acceptor.h"
-#include <list>
 
 namespace tobilib::stream
 {
@@ -20,7 +19,7 @@ namespace tobilib::stream
            DataType data;
         };
 
-        typedef std::list<Connection*> Connection_list;
+        typedef std::set<Connection*> Connection_set;
 
         Server();
         Server(int);
@@ -28,7 +27,7 @@ namespace tobilib::stream
         void operator=(const Server&) = delete;
         ~Server();
 
-        const Connection_list& clients() const;
+        const Connection_set& clients() const;
         void start(int _port=0);
         void stop();
         void tick();
@@ -38,7 +37,7 @@ namespace tobilib::stream
 
         Warning_list warnings;
     private:
-        Connection_list connections;
+        Connection_set connections;
         AcceptorType accpt;
 
         std::string mytrace() const;
@@ -58,7 +57,7 @@ namespace tobilib::stream
     { }
 
     template <class X_Acceptor, class DataT>
-    const typename Server<X_Acceptor,DataT>::Connection_list& Server<X_Acceptor,DataT>::clients() const
+    const typename Server<X_Acceptor,DataT>::Connection_set& Server<X_Acceptor,DataT>::clients() const
     {
         return connections;
     }
@@ -79,11 +78,11 @@ namespace tobilib::stream
     void Server<X_Acceptor,DataT>::tick()
     {
         accpt.tick();
-        while (accpt.full())
+        while (accpt.filled())
         {
             Connection* conn = new Connection();
             conn->endpoint = accpt.release();
-            connections.push_back(conn);
+            connections.insert(conn);
         }
         for (auto& conn: connections)
         {
@@ -96,7 +95,7 @@ namespace tobilib::stream
     template <class X_Acceptor, class DataT>
     bool Server<X_Acceptor,DataT>::running() const
     {
-        return accpt.opened();
+        return accpt.status() == X_Acceptor::Status::Open;
     }
 
     template <class X_Acceptor, class DataT>
@@ -108,28 +107,15 @@ namespace tobilib::stream
     template <class X_Acceptor, class DataT>
     void Server<X_Acceptor,DataT>::remove (typename Server<X_Acceptor,DataT>::Connection* c)
     {
-        typename Server<X_Acceptor,DataT>::Connection_list::iterator toremove;
-        bool exists = false;
-        for (auto _c = connections.begin();_c!=connections.end();_c++)
+        if (connections.count(c)==0)
         {
-            if (*_c==c)
-            {
-                exists=true;
-                toremove = _c;
-                break;
-            }
-        }
-        if (!exists)
-        {
-            Exception err ("Die Angegebene Verbindung ist nicht Teil des Servers");
-            err.trace.push_back("Server::remove()");
-            err.trace.push_back(mytrace());
-            warnings.push_back(err);
+            Exception e ("Die Angegebene Verbindung existiert nicht");
+            e.trace.push_back("remove()");
+            e.trace.push_back(mytrace());
+            warnings.push_back(e);
             return;
         }
-        connections.erase(toremove);
-        delete c->endpoint;
-        delete c;
+        connections.erase(c);
     }
 
     template <class X_Acceptor, class DataT>
@@ -143,7 +129,7 @@ namespace tobilib::stream
     {
         while (!connections.empty())
         {
-            remove(connections.back());
+            connections.erase(connections.begin());
         }
     }
 }

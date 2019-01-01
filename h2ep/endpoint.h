@@ -7,27 +7,25 @@
 
 namespace tobilib::h2ep
 {	
-	typedef stream::EndpointStatus EndpointStatus;
-
 	template <class StrEndp>
 	class Endpoint
 	{
 	public:
 		typedef StrEndp Streamtype;
+		typedef typename Streamtype::Status Status;
 
 		Endpoint(StrEndp*, bool _responsable=false);
 		~Endpoint();
 		Endpoint(const Endpoint&) = delete;
 		Endpoint& operator=(const Endpoint&) = delete;
 		
-		EndpointStatus status() const;
-		bool inactive() const;
-		void inactive_checked();
-		bool busy() const;
+		Status status() const;
+		void reactivate(const Event&);
+		bool write_busy() const;
 		void send(const Event&);
-		bool readable() const;
+		bool read_available() const;
 		Event read();
-		void close();
+		void shutdown();
 		void tick();
 		const boost::asio::ip::address& remote_ip() const;
 		std::string mytrace() const;

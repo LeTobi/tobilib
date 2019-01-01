@@ -14,26 +14,39 @@ namespace tobilib::h2ep
 	}
 	
 	template <class StrEndp>
-	void Endpoint<StrEndp>::tick()
+	typename Endpoint<StrEndp>::Status Endpoint<StrEndp>::status() const
 	{
-		stream->tick();
-		try
-		{
-			if (stream->readable())
-				parser.feed(stream->read());
-		}
-		catch (Exception& err)
-		{
-			err.trace.push_back("h2ep::Event feed()");
-			err.trace.push_back(mytrace());
-			warnings.push_back(err);
-			close();
-		}
-		warnings.overtake(stream->warnings,mytrace());
+		return stream->status();
 	}
 
 	template <class StrEndp>
-	bool Endpoint<StrEndp>::readable() const
+	void Endpoint<StrEndp>::reactivate(const Event& ev)
+	{
+		try {
+			stream->write(ev.stringify());
+		} catch (Exception& err) {
+			warnings.push_back(err);
+		}
+	}
+
+	template <class StrEndp>
+	bool Endpoint<StrEndp>::write_busy() const
+	{
+		return stream->write_busy();
+	}
+
+	template <class StrEndp>
+	void Endpoint<StrEndp>::send(const Event& ev)
+	{
+		try {
+			stream->write(ev.stringify());
+		} catch (Exception& err) {
+			warnings.push_back(err);
+		}
+	}
+
+	template <class StrEndp>
+	bool Endpoint<StrEndp>::read_available() const
 	{
 		return parser.ready();
 	}
@@ -45,45 +58,30 @@ namespace tobilib::h2ep
 			return parser.next();
 		return Event();
 	}
-	
+
 	template <class StrEndp>
-	EndpointStatus Endpoint<StrEndp>::status() const
+	void Endpoint<StrEndp>::shutdown()
 	{
-		return stream->status();
-	}
-	
-	template <class StrEndp>
-	bool Endpoint<StrEndp>::inactive() const
-	{
-		return stream->inactive();
+		stream->shutdown();
 	}
 
 	template <class StrEndp>
-	void Endpoint<StrEndp>::inactive_checked()
+	void Endpoint<StrEndp>::tick()
 	{
-		return stream->inactive_checked();
-	}
-
-	template <class StrEndp>
-	bool Endpoint<StrEndp>::busy() const
-	{
-		return stream->busy();
-	}
-	
-	template <class StrEndp>
-	void Endpoint<StrEndp>::send(const Event& ev)
-	{
-		try {
-			stream->write(ev.stringify());
-		} catch (Exception& err) {
-			warnings.push_back(err);
+		stream->tick();
+		try
+		{
+			if (stream->read_size()>0)
+				parser.feed(stream->read());
 		}
-	}
-	
-	template <class StrEndp>
-	void Endpoint<StrEndp>::close()
-	{
-		stream->close();
+		catch (Exception& err)
+		{
+			err.trace.push_back("h2ep::Event feed()");
+			err.trace.push_back(mytrace());
+			warnings.push_back(err);
+			shutdown();
+		}
+		warnings.overtake(stream->warnings,mytrace());
 	}
 
 	template <class StrEndp>
@@ -98,7 +96,7 @@ namespace tobilib::h2ep
 		std::string out = "h2ep::Endpoint ";
 		boost::asio::ip::address addr = stream->remote_ip();
 		if (addr.is_unspecified())
-			out+=" nicht verbunden";
+			out+="keine ip";
 		else
 			out+=addr.to_string();
 		return out;

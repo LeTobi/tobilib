@@ -13,7 +13,9 @@ namespace tobilib::h2ep
 		StrAccpt accpt;
 
 	public:
+		typedef StrAccpt AcceptorType;
 		typedef Endpoint<typename StrAccpt::EndpointType> EndpointType;
+		typedef typename AcceptorType::Status Status;
 
 		Acceptor();
 		Acceptor(int _port);
@@ -21,8 +23,9 @@ namespace tobilib::h2ep
 		void tick();
 		void open(int _port=0);
 		void close();
-		bool opened() const;
-		bool full() const;
+		Status status() const;
+		bool filled() const;
+		int size() const;
 		int port() const;
 		EndpointType* release();
 		std::string mytrace() const;

@@ -64,8 +64,7 @@ namespace tobilib
             for (auto& err: *this)
             {
                 out += err.what();
-                if (&err != &back())
-                    out += "\n";
+                out += "\n";
             }
             return out;
         }

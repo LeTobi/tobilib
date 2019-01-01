@@ -5,234 +5,61 @@ namespace tobilib::stream
 	WS_Endpoint::WS_Endpoint(): socket(ioc)
 	{}
 
-	void WS_Endpoint::timeout_reset()
-	{
-		time(&last_interaction);
-		_state &= ~Flags::informed;
-	}
-
-	void WS_Endpoint::intern_on_write(const boost::system::error_code& ec, size_t s)
-	{
-		_state &= ~Flags::writing;
-		if (ec)
-		{
-			_state |= Flags::breakdown;
-			Exception e (ec.message());
-			e.trace.push_back("intern_on_write()");
-			e.trace.push_back(mytrace());
-			warnings.push_back(e);
-			return;
-		}
-		writebuffer.erase(0,s);
-		flush();
-	}
-	
-	void WS_Endpoint::intern_on_read(const boost::system::error_code& ec, size_t s)
-	{
-		_state &= ~Flags::reading;
-		if (ec)
-		{
-			close();
-			if (_status == EndpointStatus::closing)
-				return;
-			Exception e (ec.message());
-			e.trace.push_back("intern_on_read()");
-			e.trace.push_back(mytrace());
-			warnings.push_back(e);
-			return;
-		}
-		timeout_reset();
-		int oldlen = received.size();
-		received.resize(oldlen+s);
-		buffer.sgetn(&received.front()+oldlen,s);
-		intern_read();
-	}
-	
-	void WS_Endpoint::intern_on_close(const boost::system::error_code& ec)
-	{
-		_state &= ~Flags::closing;
-		if (ec)
-		{
-			close_socket();
-			Exception e (ec.message());
-			e.trace.push_back("intern_on_close() (Websocket close-Frame)");
-			e.trace.push_back(mytrace());
-			warnings.push_back(e);
-		}
-	}
-
-	void WS_Endpoint::close_socket()
-	{
-		disconnect_time = 0;
-		boost::system::error_code err;
-		socket.next_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, err);
-		if (err)
-		{
-			Exception e (err.message());
-			e.trace.push_back("WS_Endpoint::close_socket()");
-			e.trace.push_back(mytrace());
-			warnings.push_back(e);
-		}
-		socket.next_layer().close();
-	}
-
 	void WS_Endpoint::tick()
 	{
 		ioc.poll_one();
-		time_t now;
-		time(&now);
-		if (disconnect_time>0 && difftime(now,disconnect_time)>5)
+		write_tick();
+		read_tick();
+		if (_status == Status::Closed)
 		{
-			Exception e ("Verbindungsabbruch wird erzwungen...");
-			e.trace.push_back(mytrace());
-			warnings.push_back(e);
-			close_socket();
-		}
-		switch (_status)
-		{
-			case EndpointStatus::open:
-				if (difftime(now,last_interaction)>20)
-				{
-					Exception e ("Timeout erreicht. Verbindung inaktiv");
+			if (socket.is_open())
+			{
+				_status = Status::Active;
+				try {
+					last_ip = socket.next_layer().remote_endpoint().address();
+				} catch (std::exception& err) {
+					Exception e (err.what());
+					e.trace.push_back("tick() - IP auslesen");
 					e.trace.push_back(mytrace());
 					warnings.push_back(e);
-					_state |= Flags::breakdown;
 				}
-				if (_state & Flags::breakdown)
-				{
-					_status = EndpointStatus::shutdown;
-					time(&disconnect_time);
-					break;
-				}
-				break;
-
-			case EndpointStatus::shutdown:
-				if (~_state & Flags::writing)
-				{
-					send_close();
-					_status = EndpointStatus::closing;
-				}
-				break;
-
-			case EndpointStatus::closing:
-				if (~_state & Flags::reading)
-				{
-					_status = EndpointStatus::closed;
-					_state &= ~Flags::breakdown;
-					timeout_reset();
-					return;
-				}
-				break;
-
-			case EndpointStatus::closed:
-				if (_state & Flags::ready)
-				{
-					_status = EndpointStatus::open;
-					_state &= ~Flags::ready;
-					intern_read();
-				}
-				break;
+				read_reset();
+				write_reset();
+				read_begin();
+			}
+			return;
 		}
-	}
-
-	void WS_Endpoint::flush()
-	{
-		if (_status!=EndpointStatus::open && _status!=EndpointStatus::shutdown)
-			return;
-		if (_state & Flags::writing)
-			return;
-		writebuffer+=outqueue;
-		outqueue.clear();
-		if (writebuffer.size()==0)
-			return;
-		_state |= Flags::writing;
-		socket.async_write(boost::asio::buffer(writebuffer),boost::bind(&WS_Endpoint::intern_on_write,this,_1,_2));
-	}
-	
-	void WS_Endpoint::send_close()
-	{
-		_state |= Flags::closing;
-		socket.async_close(boost::beast::websocket::close_reason("WS_Endpoint::close"),boost::bind(&WS_Endpoint::intern_on_close,this,_1));
-	}
-
-	void WS_Endpoint::intern_read()
-	{
-		if (_state & Flags::reading)
-			return;
-		_state |= Flags::reading;
-		socket.async_read(buffer,boost::bind(&WS_Endpoint::intern_on_read,this,_1,_2));
-	}
-
-	void WS_Endpoint::start()
-	{
-		if (_status != EndpointStatus::closed)
-			return;
-		_state |= Flags::ready;
-		try
+		else if (_status==Status::Active || _status==Status::Idle)
 		{
-			last_ip = socket.next_layer().remote_endpoint().address();
+			if (_readstatus==ReadStatus::Reading)
+				_status = Status::Active;
+			else if (_readstatus==ReadStatus::Uncertain)
+				_status = Status::Idle;
 		}
-		catch (std::exception& err)
+		if (_readstatus==ReadStatus::Error || _writestatus==WriteStatus::Error)
 		{
-			Exception e (err.what());
-			e.trace.push_back("WS_Endpoint::start(), Zuweisung von last_ip");
-			e.trace.push_back(mytrace());
-			warnings.push_back(e);
-		}
-	}
-	
-	void WS_Endpoint::write(const std::string& msg)
-	{
-		outqueue+=msg;
-		flush();
-	}
-	
-	bool WS_Endpoint::readable(unsigned int len) const
-	{
-		return received.size()>=len;
-	}
-
-	std::string WS_Endpoint::read(unsigned int len)
-	{
-		if (len==0)
-		{
-			std::string out = received;
-			received.clear();
-			return out;
-		}
-		else
-		{
-			if (received.size()<len)
-				return "";
-			std::string out = received.substr(0,len);
-			received.erase(0,len);
-			return out;
-		}
-	}
-
-	bool WS_Endpoint::inactive() const
-	{
-		time_t now;
-		time(&now);
-		return difftime(now,last_interaction)>=10 && _status==EndpointStatus::open && (~_state & Flags::informed);
-	}
-
-	void WS_Endpoint::inactive_checked()
-	{
-		if (inactive())
-			_state |= Flags::informed;
-	}
-
-	void WS_Endpoint::close()
-	{
-		if (_status != EndpointStatus::open)
+			close_tcp();
 			return;
-		_state |= Flags::breakdown;
+		}
 	}
-	
-	bool WS_Endpoint::busy() const
+
+	WS_Endpoint::Status WS_Endpoint::status() const
 	{
-		return _state & Flags::writing;
+		return _status;
+	}
+
+	void WS_Endpoint::reactivate(const std::string& msg)
+	{
+		if (_status != Status::Idle)
+			return;
+		_status = Status::Active;
+		write(msg);
+	}
+
+	void WS_Endpoint::shutdown()
+	{
+		if (_status != Status::Closed)
+			_status = Status::Shutdown;
 	}
 
 	const boost::asio::ip::address& WS_Endpoint::remote_ip() const
@@ -242,30 +69,217 @@ namespace tobilib::stream
 
 	std::string WS_Endpoint::mytrace() const
 	{
-		std::string out = "WS_Endpoint, ";
+		std::string out = "WS_Endpoint ";
 		switch (_status)
 		{
-			case EndpointStatus::open:
-				out+="connected";
+			case Status::Active:
+				out+="Aktiv";
 				break;
-			case EndpointStatus::shutdown:
-				out+="preparing disconnection";
+			case Status::Idle:
+				out+="Idle";
 				break;
-			case EndpointStatus::closing:
-				out+="disconnecting";
+			case Status::Shutdown:
+				out+="Shutdown";
 				break;
-			case EndpointStatus::closed:
-				out+="disconnected";
+			case Status::Closed:
+				out+="Closed";
 		}
-		if (_status==EndpointStatus::closed)
+		if (!last_ip.is_unspecified())
+			out+=" remote-ip: "+last_ip.to_string();
+		return out;
+	}
+
+	void WS_Endpoint::close_tcp()
+	{
+		_status = Status::Closed;
+		if (!socket.next_layer().is_open())
+			return;
+		boost::system::error_code err;
+		socket.next_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, err);
+		if (err)
 		{
-			if (!last_ip.is_unspecified())
-				out+=", last ip: "+last_ip.to_string();
+			Exception e (err.message());
+			e.trace.push_back("close_tcp()");
+			e.trace.push_back(mytrace());
+			warnings.push_back(e);
+		}
+		socket.next_layer().close();
+	}
+
+	void WS_Endpoint::write_begin()
+	{
+		if (_writestatus != WriteStatus::Idle)
+			return;
+		write_buffer+=write_queue;
+		write_queue.clear();
+		if (write_buffer.size()==0)
+			return;
+		_writestatus = WriteStatus::Msg;
+		socket.async_write(boost::asio::buffer(write_buffer),boost::bind(&WS_Endpoint::write_end,this,_1,_2));
+	}
+
+	void WS_Endpoint::write_end(const boost::system::error_code& ec, size_t s)
+	{
+		if (ec)
+		{
+			_writestatus = WriteStatus::Error;
+			if (_status != Status::Closed)
+			{
+				Exception e (ec.message());
+				e.trace.push_back("write_end()");
+				e.trace.push_back(mytrace());
+				warnings.push_back(e);
+			}
+			close_tcp();
+			return;
+		}
+		_writestatus = WriteStatus::Idle;
+		write_buffer.erase(0,s);
+		write_begin();
+	}
+
+	void WS_Endpoint::write_close_begin()
+	{
+		if (_writestatus != WriteStatus::Idle)
+			return;
+		_writestatus = WriteStatus::Shutdown;
+		write_close_timeout.set();
+		socket.async_close(boost::beast::websocket::close_reason("WS_Endpoint::close"),boost::bind(&WS_Endpoint::write_close_end,this,_1));
+	}
+
+	void WS_Endpoint::write_close_end(const boost::system::error_code& ec)
+	{
+		write_close_timeout.disable();
+		if (ec)
+		{
+			_writestatus = WriteStatus::Error;
+			if (_status != Status::Closed)
+			{
+				Exception e (ec.message());
+				e.trace.push_back("intern_on_close() (Websocket close-Frame)");
+				e.trace.push_back(mytrace());
+				warnings.push_back(e);
+			}
+			return;
+		}
+		_writestatus = WriteStatus::Terminated;
+	}
+
+	void WS_Endpoint::write_reset()
+	{
+		if (_writestatus == WriteStatus::Error || _writestatus == WriteStatus::Terminated)
+			_writestatus = WriteStatus::Idle;
+		write_queue.clear();	
+	}
+
+	void WS_Endpoint::write_tick()
+	{
+		if (write_close_timeout.due())
+		{
+			write_close_timeout.disable();
+			_writestatus = WriteStatus::Error;
+		}
+		if (_writestatus == WriteStatus::Idle)
+		{
+			if (_status == Status::Shutdown)
+				write_close_begin();
+		}
+	}
+
+	bool WS_Endpoint::write_busy() const
+	{
+		return _writestatus != WriteStatus::Idle;
+	}
+
+	void WS_Endpoint::write(const std::string& msg)
+	{
+		write_queue+=msg;
+		write_begin();
+	}
+
+	void WS_Endpoint::read_begin()
+	{
+		if (_readstatus != ReadStatus::Idle)
+			return;
+		read_warning_timer.set();
+		read_shutdown_timer.set();
+		_readstatus = ReadStatus::Reading;
+		socket.async_read(read_buffer,boost::bind(&WS_Endpoint::read_end,this,_1,_2));
+	}
+
+	void WS_Endpoint::read_end(const boost::system::error_code& ec, size_t s)
+	{
+		read_warning_timer.disable();
+		read_shutdown_timer.disable();
+		if (ec)
+		{
+			_readstatus = ReadStatus::Error;
+			if (_status!=Status::Closed && _writestatus!=WriteStatus::Terminated && ec.value()!=(int)boost::beast::websocket::error::closed)
+			{
+				Exception e (ec.message());
+				e.trace.push_back("intern_on_read()");
+				e.trace.push_back(mytrace());
+				warnings.push_back(e);
+			}
+			return;
+		}
+		_readstatus = ReadStatus::Idle;
+		int oldlen = read_data.size();
+		read_data.resize(oldlen+s);
+		read_buffer.sgetn(&read_data.front()+oldlen,s);
+		read_begin();
+	}
+
+	void WS_Endpoint::read_reset()
+	{
+		if (_readstatus == ReadStatus::Error)
+			_readstatus = ReadStatus::Idle;
+		read_data.clear();
+	}
+
+	void WS_Endpoint::read_continue()
+	{
+		if (_readstatus == ReadStatus::Uncertain)
+			_readstatus = ReadStatus::Reading;
+	}
+
+	void WS_Endpoint::read_tick()
+	{
+		if (read_warning_timer.due())
+		{
+			read_warning_timer.disable();
+			_readstatus = ReadStatus::Uncertain;
+		}
+		if (read_shutdown_timer.due())
+		{
+			read_shutdown_timer.disable();
+			Exception e ("Endpunkt inaktiv: Verbindung abbrechen");
+			e.trace.push_back(mytrace());
+			warnings.push_back(e);
+			_readstatus = ReadStatus::Error;
+		}
+	}
+
+	int WS_Endpoint::read_size() const
+	{
+		return read_data.size();
+	}
+
+	std::string WS_Endpoint::read(unsigned int len)
+	{
+		if (len==0)
+		{
+			std::string out = read_data;
+			read_data.clear();
+			return out;
 		}
 		else
 		{
-			out+=" "+last_ip.to_string();
+			if (read_data.size()<len)
+				return "";
+			std::string out = read_data.substr(0,len);
+			read_data.erase(0,len);
+			return out;
 		}
-		return out;
 	}
 }

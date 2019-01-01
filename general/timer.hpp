@@ -22,19 +22,23 @@ namespace tobilib
             return set();
         };
 
+        bool is_enabled() const {
+            return start==0;
+        }
+
         void disable() {
             start = 0;
         };
 
         double left() const {
-            if (start==0) return 0;
+            if (!is_enabled()) return 0;
             time_t now;
             time(&now);
             return limit - difftime(now,start);
         }
 
         bool due() const {
-            if (start==0) return false;
+            if (!is_enabled()) return false;
             return left()<=0;
         };
 

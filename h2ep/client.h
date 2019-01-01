@@ -15,11 +15,13 @@ namespace tobilib::h2ep
 	public:
 		typedef Streamclient ClientType;
 		typedef Endpoint<typename Streamclient::EndpointType> EndpointType;
+		typedef typename ClientType::Status Status;
 
 		Client();
 		
 		void connect(const std::string&, int);
-		bool connecting() const;
+		void tick();
+		Status status() const;
 		std::string mytrace() const;
 	};
 	
