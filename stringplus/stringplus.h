@@ -56,7 +56,9 @@ namespace tobilib
 		
 		const static StringPlus NO_CONTENT;
 		const static StringPlus ENDLINE;
+		const static StringPlus DEFAULT_CHARSET;
 		
+		static StringPlus random(int len=10, const StringPlus& charset=DEFAULT_CHARSET);
 		static int parseHex(const StringPlus&);
 		static StringPlus toHex(int);
 		static bool nameCompare(const StringPlus&, const StringPlus&, const StringPlus& conversion_table = NO_CONTENT);

@@ -1,11 +1,13 @@
 ﻿#include "stringplus.h"
 #include <cctype>
 #include <fstream>
+#include <random>
 
 
 namespace tobilib
 {
 	const StringPlus StringPlus::NO_CONTENT = "\0";
+	const StringPlus StringPlus::DEFAULT_CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
 	#ifdef ENDLINE
 		const StringPlus StringPlus::ENDLINE = ENDLINE;
@@ -150,6 +152,18 @@ namespace tobilib
 				out.push_back(lastpos);
 			}
 		}
+	}
+
+	StringPlus StringPlus::random(int len, const StringPlus& charset)
+	{
+		std::random_device rd;
+		StringPlus out;
+		out.resize(len);
+		for (auto& c: out)
+		{
+			c = charset[rd()%charset.size()];
+		}
+		return out;
 	}
 
 	int StringPlus::parseHex(const StringPlus& hex)
