@@ -1,8 +1,9 @@
-base: stringplus/stringplus.o encoding/utf8.o encoding/url.o encoding/base64.o encoding/tcencrypt.o general/gpio.o
+base: stringplus/stringplus.o encoding/utf8.o encoding/url.o encoding/base64.o encoding/html.o encoding/tcencrypt.o general/gpio.o
 	ar r libtc.a stringplus/stringplus.o
 	ar r libtc.a encoding/utf8.o
 	ar r libtc.a encoding/url.o
 	ar r libtc.a encoding/base64.o
+	ar r libtc.a encoding/html.o
 	ar r libtc.a encoding/tcencrypt.o
 	ar r libtc.a general/gpio.o
 	ar s libtc.a
@@ -29,6 +30,7 @@ undo:
 	rm encoding/utf8.o
 	rm encoding/url.o
 	rm encoding/base64.o
+	rm encoding/html.o
 	rm encoding/tcencrypt.o
 	rm general/gpio.o
 	rm network/endpoint.o
@@ -53,6 +55,9 @@ encoding/url.o: encoding/url.h encoding/url.cpp
 	
 encoding/base64.o: encoding/base64.h encoding/base64.cpp
 	g++ encoding/base64.cpp -std=c++11 -c -o encoding/base64.o
+
+encoding/html.o: encoding/html.h encoding/html.cpp
+	g++ encoding/html.cpp -std=c++11 -c -o encoding/html.o
 
 encoding/tcencrypt.o: encoding/tcencrypt.h encoding/tcencrypt.cpp
 	g++ encoding/tcencrypt.cpp -std=c++11 -c -o encoding/tcencrypt.o
