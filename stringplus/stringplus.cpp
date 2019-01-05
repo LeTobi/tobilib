@@ -1,4 +1,5 @@
 ﻿#include "stringplus.h"
+#include "../general/exception.hpp"
 #include <cctype>
 #include <fstream>
 #include <random>
@@ -76,7 +77,12 @@ namespace tobilib
 		for (int i=0;i<val.size();i++)
 		{
 			if (val[i]<'0' || val[i]>'9')
-				throw StringPlus_error(StringPlus("Fehler beim Parsen von Int \"")+val+"\"");
+			{
+				Exception e ("Fehler beim Parsen von Ziffer \"");
+				e += val + "\"";
+				e.trace.push_back("StringPlus::toInt()");
+				throw e;
+			}
 		}
 		int ival = atoi(val.toString().c_str());
 		return negative?-ival:ival;
@@ -351,7 +357,10 @@ namespace tobilib
 		if (!fs.good())
 		{
 			fs.close();
-			throw StringPlus_error(StringPlus("Datei konnte nicht gelesen werden: ")+fname);
+			Exception e ("Datei konnte nicht gelesen werden: ");
+			e+=fname;
+			e.trace.push_back("StringPlus::fromFile()");
+			throw e;
 		}
 		StringPlus out;
 		while (fs.good())
@@ -368,10 +377,20 @@ namespace tobilib
 	{
 		std::fstream fs(fname.toString().c_str(),std::fstream::out | std::fstream::binary);
 		if (!fs.good())
-			throw StringPlus_error(StringPlus("Datei konnte nicht geoeffnet werden: ")+fname);
+		{
+			Exception e ("Datei konnte nicht geoeffnet werden: ");
+			e+=fname;
+			e.trace.push_back("StringPlus::toFile()");
+			throw e;
+		}
 		std::string block = content.toString();
 		fs.write(block.c_str(),block.size());
 		if (!fs.good())
-			throw StringPlus_error(StringPlus("Datei konnte nicht bearbeitet werden: ")+fname);
+		{
+			Exception e ("Datei konnte nicht bearbeitet werden: ");
+			e+=fname;
+			e.trace.push_back("StringPlus::toFile()");
+			throw e;
+		}
 	}
 }

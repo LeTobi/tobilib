@@ -65,14 +65,6 @@ namespace tobilib
 		static StringPlus fromFile(const StringPlus&);
 		static void toFile(const StringPlus&, const StringPlus&);
 	};
-
-	class StringPlus_error : public std::exception
-	{
-	public:
-		StringPlus_error(const StringPlus& message): msg(message) {};
-		StringPlus msg;
-		const char* what() const noexcept {return msg.toString().c_str();};
-	};
 }
 
 #ifdef TC_AS_HPP
