@@ -55,15 +55,20 @@ namespace tobilib::h2ep
 			if (data.size()<=start)
 				return;
 			if (data[start] != '(')
-				throw Exception("Fehlformattierung: '(' erwartet.");
+			{
+				Exception err ("Fehlformattierung: '(' erwartet.");
+				err.trace.push_back("Event_parser::getchunks()");
+				throw err;
+			}
 			int end = data.find(')',start);
 			if (end == std::string::npos)
 				return;
 			c.start = end+1;
 			try {
 				c.size = StringPlus(data.substr(start+1,end-start-1)).toInt();
-			} catch (StringPlus_error& e) {
-				throw Exception("Fehlformattierung: ungueltige Zahl zwischen Klammern");
+			} catch (Exception& e) {
+				e.trace.push_back("Event_parser::getchunks()");
+				throw e;
 			}
 			chunks.push(c);
 		}
