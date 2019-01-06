@@ -1,7 +1,7 @@
 #include "event.h"
 #include "../general/exception.hpp"
-#include <sstream>
 #include <boost/property_tree/json_parser.hpp>
+#include <sstream>
 
 // Integer-Parsing:
 #include "../stringplus/stringplus.h"
@@ -19,8 +19,10 @@ namespace tobilib::h2ep
 		std::stringstream ss;
 		try {
 			boost::property_tree::json_parser::write_json(ss,data,false);
-		} catch (boost::property_tree::json_parser_error& err) {
-			throw Exception(err.message());
+		} catch (boost::property_tree::json_parser_error& e) {
+			Exception err (e.message());
+			err.trace.push_back("h2ep::Event::stringify()");
+			throw err;
 		}
 		out += "(";
 		out += std::to_string(ss.str().size());
@@ -29,82 +31,109 @@ namespace tobilib::h2ep
 		return out;
 	}
 	
-	const std::string& Event_parser::buffer() const
+	void Event_parser::chunk_feed(const char c)
 	{
-		return data;
-	}
-	
-	void Event_parser::feed(const std::string& val)
-	{
-		data += val;
-		getchunks();
-		chunkparse();
-	}
-	
-	void Event_parser::getchunks()
-	{
-		while (true)
+		switch (chunk_status)
 		{
-			int start = 0;
-			chunk c;
-			if (chunks.size()>0)
+		case ChunkStatus::Void:
+			if (c!='(')
 			{
-				chunk last = chunks.back();
-				start = last.start+last.size;
-			}
-			if (data.size()<=start)
-				return;
-			if (data[start] != '(')
-			{
-				Exception err ("Fehlformattierung: '(' erwartet.");
-				err.trace.push_back("Event_parser::getchunks()");
+				Exception err ("Das H2-Event-Protokoll erwartet ein '('");
+				err.trace.push_back("Event_parser::chunk_feed()");
+				clear();
 				throw err;
 			}
-			int end = data.find(')',start);
-			if (end == std::string::npos)
-				return;
-			c.start = end+1;
-			try {
-				c.size = StringPlus(data.substr(start+1,end-start-1)).toInt();
-			} catch (Exception& e) {
-				e.trace.push_back("Event_parser::getchunks()");
-				throw e;
+			chunk_status = ChunkStatus::Int;
+			break;
+		
+		case ChunkStatus::Int:
+			if (c==')')
+			{
+				try {
+					chunk_dataleft = StringPlus(chunk_buffer).toInt();
+				} catch (Exception& err) {
+					err.trace.push_back("Event_parser::chunk_feed()");
+					clear();
+					throw err;
+				}
+				chunk_buffer.clear();
+				chunk_status = ChunkStatus::Data;
 			}
-			chunks.push(c);
+			else
+			{
+				chunk_buffer+=c;
+			}
+			break;
+		
+		case ChunkStatus::Data:
+			chunk_buffer += c;
+			chunk_dataleft--;
+			if (chunk_dataleft<=0)
+			{
+				chunk_output.push(chunk_buffer);
+				chunk_buffer.clear();
+				chunk_status = ChunkStatus::Void;
+			}
+			break;
 		}
 	}
-	
-	void Event_parser::chunkparse()
+
+	void Event_parser::event_feed(const char c)
 	{
-		while (chunks.size()>=2)
+		chunk_feed(c);
+		while (chunk_output.size()>=2)
 		{
 			Event ev;
-			ev.name = data.substr(chunks.front().start,chunks.front().size);
-			chunks.pop();
-			std::stringstream ss;
-			ss << data.substr(chunks.front().start,chunks.front().size);
+			ev.name = chunk_output.front();
+			chunk_output.pop();
+			std::stringstream ss (chunk_output.front());
+			chunk_output.pop();
 			try {
 				boost::property_tree::json_parser::read_json(ss,ev.data);
 			} catch (boost::property_tree::json_parser_error& e) {
-				throw Exception("Das Objekt konnte nicht JSON geparst werden.");
+				clear();
+				Exception err("Das Objekt konnte nicht JSON geparst werden.");
+				err.trace.push_back("Event_parser::event_feed()");
+				throw err;
 			}
-			data.erase(0,chunks.front().start+chunks.front().size);
-			chunks.pop();
-			outqueue.push(ev);
+			event_output.push(ev);
 		}
+	}
+
+	void Event_parser::feed(const std::string& val)
+	{
+		for (auto& c: val)
+		{
+			event_feed(c);
+		}
+	}
+
+	void Event_parser::clear()
+	{
+		chunk_dataleft = 0;
+		chunk_buffer.clear();
+		while (!chunk_output.empty())
+			chunk_output.pop();
+		chunk_status = ChunkStatus::Void;
+		while (!event_output.empty())
+			event_output.pop();
 	}
 
 	bool Event_parser::ready() const
 	{
-		return !outqueue.empty();
+		return !event_output.empty();
 	}
 	
 	Event Event_parser::next()
 	{
 		if (!ready())
-			throw Exception("Daten sind nicht vollstaendig.");
-		Event out = outqueue.front();
-		outqueue.pop();
+		{
+			Exception err ("Keine Daten vorhanden");
+			err.trace.push_back("Event_parser::next()");
+			throw err;
+		}
+		Event out = event_output.front();
+		event_output.pop();
 		return out;
 	}
 }
