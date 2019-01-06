@@ -32,6 +32,7 @@ namespace tobilib::stream
 		boost::asio::io_context ioc;
 		boost::beast::websocket::stream<boost::asio::ip::tcp::socket> socket;
 		
+		void begin();
 		void close_tcp();
 	private:
 		boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard = boost::asio::make_work_guard(ioc);

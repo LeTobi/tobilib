@@ -78,8 +78,8 @@ namespace tobilib
 		{
 			if (val[i]<'0' || val[i]>'9')
 			{
-				Exception e ("Fehler beim Parsen von Ziffer \"");
-				e += val + "\"";
+				Exception e ("Fehler beim Parsen von ganzer Zahl '");
+				e += val + "'";
 				e.trace.push_back("StringPlus::toInt()");
 				throw e;
 			}

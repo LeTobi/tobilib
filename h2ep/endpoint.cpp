@@ -68,7 +68,11 @@ namespace tobilib::h2ep
 	template <class StrEndp>
 	void Endpoint<StrEndp>::tick()
 	{
+		// Das parser.clear() ist extrem hässlich :/
+		bool is_closed = stream->status()==StrEndp::Status::Closed;
 		stream->tick();
+		if (is_closed && stream->status()!=StrEndp::Status::Closed)
+			parser.clear();
 		try
 		{
 			if (stream->read_size()>0)

@@ -13,20 +13,7 @@ namespace tobilib::stream
 		if (_status == Status::Closed)
 		{
 			if (socket.is_open())
-			{
-				_status = Status::Active;
-				try {
-					last_ip = socket.next_layer().remote_endpoint().address();
-				} catch (std::exception& err) {
-					Exception e (err.what());
-					e.trace.push_back("tick() - IP auslesen");
-					e.trace.push_back(mytrace());
-					warnings.push_back(e);
-				}
-				read_reset();
-				write_reset();
-				read_begin();
-			}
+				begin();
 			return;
 		}
 		else if (_status==Status::Active)
@@ -88,6 +75,28 @@ namespace tobilib::stream
 		if (!last_ip.is_unspecified())
 			out+=" remote-ip: "+last_ip.to_string();
 		return out;
+	}
+
+	void WS_Endpoint::begin()
+	{
+		// clear
+		write_buffer.clear();
+		write_queue.clear();
+		read_data.clear();
+
+		// setup
+		_status = Status::Active;
+		try {
+			last_ip = socket.next_layer().remote_endpoint().address();
+		} catch (std::exception& err) {
+			Exception e (err.what());
+			e.trace.push_back("tick() - IP auslesen");
+			e.trace.push_back(mytrace());
+			warnings.push_back(e);
+		}
+		read_reset();
+		write_reset();
+		read_begin();
 	}
 
 	void WS_Endpoint::close_tcp()
