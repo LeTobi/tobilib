@@ -2,7 +2,6 @@
 #define TC_UTF8
 
 #include "../stringplus/stringplus.h"
-#include "error.h"
 
 namespace tobilib::utf8
 {	

@@ -1,6 +1,6 @@
 #include "buffer.h"
 #include "../stringplus/stringplus.h"
-#include "error.h"
+#include "../general/exception.hpp"
 #include <sys/mman.h> // mmap
 
 namespace tobilib
@@ -42,7 +42,11 @@ namespace tobilib
 		clear();
 		_start = static_cast<char*>(mmap(NULL,len,PROT_READ | PROT_WRITE, MAP_SHARED, device, offset));
 		if (_start == NULL)
-			throw buffer_error("Fehler beim Mapping des Device-Buffers");
+		{
+			Exception err ("Fehler beim Mapping des Device-Buffers");
+			err.trace.push_back("MappedBuffer::map()");
+			throw err;
+		}
 		_length = len;
 		used = 0;
 	}
@@ -70,7 +74,11 @@ namespace tobilib
 		}
 		_file = fmemopen(start(),size,"w");
 		if (_file == NULL)
-			throw buffer_error("Fehler beim erstellen der Speicherdatei");
+		{
+			Exception err ("Fehler beim erstellen der Speicherdatei");
+			err.trace.push_back("BufferFile::open()");
+			throw err;
+		}
 	}
 	
 	void BufferFile::close()
