@@ -23,7 +23,7 @@ namespace tobilib
         };
 
         bool is_enabled() const {
-            return start==0;
+            return start!=0;
         }
 
         void disable() {
@@ -32,9 +32,7 @@ namespace tobilib
 
         double left() const {
             if (!is_enabled()) return 0;
-            time_t now;
-            time(&now);
-            return limit - difftime(now,start);
+            return limit - difftime(time(NULL),start);
         }
 
         bool due() const {
