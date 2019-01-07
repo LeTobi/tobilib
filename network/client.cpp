@@ -23,8 +23,6 @@ namespace tobilib::stream
 	
 	void WS_Client::intern_on_connect(const boost::system::error_code& ec, const boost::asio::ip::tcp::endpoint& ep)
 	{
-		if (!_connecting)
-			return;
 		if (ec)
 		{
 			Exception e (ec.message());
@@ -34,21 +32,24 @@ namespace tobilib::stream
 			_connecting = false;
 			return;
 		}
+		timeout.set();
 		socket.async_handshake(host,"/",boost::bind(&WS_Client::intern_on_handshake,this,_1));
 	}
 	
 	void WS_Client::intern_on_handshake(boost::system::error_code const& ec)
 	{
-		if (!_connecting)
-			return;
 		if (ec)
 		{
-			Exception e (ec.message());
-			e.trace.push_back("WS_Client::intern_on_handshake()");
-			e.trace.push_back(mytrace());
-			warnings.push_back(e);
+			if (timeout.is_enabled())
+			{
+				timeout.disable();
+				Exception e (ec.message());
+				e.trace.push_back("WS_Client::intern_on_handshake()");
+				e.trace.push_back(mytrace());
+				warnings.push_back(e);
+				close_tcp();
+			}
 			_connecting = false;
-			close_tcp();
 			return;
 		}
 		timeout.disable();
@@ -66,7 +67,6 @@ namespace tobilib::stream
 			warnings.push_back(e);
 			return;
 		}
-		timeout.set();
 		host = _host;
 		port = _port;
 		boost::system::error_code err;
@@ -79,11 +79,11 @@ namespace tobilib::stream
 		WS_Endpoint::tick();
 		if (timeout.due())
 		{
+			// Dieses Feature ist ungetestet. Ziel: keine doppelte Fehlermeldung siehe on_handshake
 			timeout.disable();
 			Exception e ("Verbindungstimeout");
 			e.trace.push_back(mytrace());
 			warnings.push_back(e);
-			_connecting = false;
 			close_tcp();
 			return;
 		}

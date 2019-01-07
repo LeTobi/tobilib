@@ -172,7 +172,7 @@ namespace tobilib::stream
 			e.trace.push_back(mytrace());
 			warnings.push_back(e);
 			endpoint->close_tcp();
-			_status == Status::Cancel;
+			_status = Status::Cancel;
 		}
 	}
 
