@@ -16,18 +16,49 @@ namespace tobilib::stream
 				begin();
 			return;
 		}
-		else if (_status==Status::Active)
+		if (_status==Status::Active)
 		{
-			if (read_warning_timer.due())
+			if (timeout_warning.due())
 			{
-				read_warning_timer.disable();
 				_status = Status::Idle;
 			}
 		}
-		if (_readstatus==ReadStatus::Error || _writestatus==WriteStatus::Error)
+		if (_status==Status::Idle)
 		{
+			if (!timeout_warning.due())
+			{
+				_status = Status::Active;
+			}
+		}
+		if (_status==Status::Active || _status==Status::Idle)
+		{
+			if (_readstatus==ReadStatus::Terminated || _writestatus== WriteStatus::Terminated)
+			{
+				_status = Status::Shutdown;
+			}
+		}
+		if (_status==Status::Shutdown)
+		{
+			if (_readstatus==ReadStatus::Terminated && _writestatus==WriteStatus::Terminated)
+			{
+				_status = Status::Closed;
+			}
+		}
+		if (timeout_read.due())
+		{
+			timeout_read.disable();
+			Exception err ("Endpunkt inaktiv: Verbindung abbrechen");
+			err.trace.push_back(mytrace());
+			warnings.push_back(err);
 			close_tcp();
-			return;
+		}
+		if (timeout_close.due())
+		{
+			timeout_close.disable();
+			Exception err ("Timeout bei Schliessvorgang");
+			err.trace.push_back(mytrace());
+			warnings.push_back(err);
+			close_tcp();
 		}
 	}
 
@@ -40,7 +71,7 @@ namespace tobilib::stream
 	{
 		if (_status != Status::Idle)
 			return;
-		reactivate();
+		timeout_warning.disable();
 		write(msg);
 	}
 
@@ -80,9 +111,11 @@ namespace tobilib::stream
 	void WS_Endpoint::begin()
 	{
 		// clear
-		write_buffer.clear();
-		write_queue.clear();
-		read_data.clear();
+		timeout_warning.disable();
+		timeout_close.disable();
+		timeout_read.disable();
+		read_reset();
+		write_reset();
 
 		// setup
 		_status = Status::Active;
@@ -94,14 +127,12 @@ namespace tobilib::stream
 			e.trace.push_back(mytrace());
 			warnings.push_back(e);
 		}
-		read_reset();
-		write_reset();
-		read_begin();
 	}
 
 	void WS_Endpoint::close_tcp()
 	{
-		_status = Status::Closed;
+		if (_status != Status::Closed)
+			_status = Status::Shutdown;
 		if (!socket.next_layer().is_open())
 			return;
 		boost::system::error_code err;
@@ -116,20 +147,10 @@ namespace tobilib::stream
 		socket.next_layer().close();
 	}
 
-	void WS_Endpoint::reactivate()
-	{
-		if (_status == Status::Idle)
-			_status = Status::Active;
-	}
-
 	void WS_Endpoint::write_begin()
 	{
-		if (_writestatus != WriteStatus::Idle)
-			return;
 		write_buffer+=write_queue;
 		write_queue.clear();
-		if (write_buffer.size()==0)
-			return;
 		_writestatus = WriteStatus::Msg;
 		socket.async_write(boost::asio::buffer(write_buffer),boost::bind(&WS_Endpoint::write_end,this,_1,_2));
 	}
@@ -138,20 +159,15 @@ namespace tobilib::stream
 	{
 		if (ec)
 		{
-			_writestatus = WriteStatus::Error;
-			if (_status != Status::Closed)
-			{
-				Exception e (ec.message());
-				e.trace.push_back("write_end()");
-				e.trace.push_back(mytrace());
-				warnings.push_back(e);
-			}
-			close_tcp();
+			_writestatus = WriteStatus::Terminated;
+			Exception e (ec.message());
+			e.trace.push_back("write_end()");
+			e.trace.push_back(mytrace());
+			warnings.push_back(e);
 			return;
 		}
 		_writestatus = WriteStatus::Idle;
 		write_buffer.erase(0,s);
-		write_begin();
 	}
 
 	void WS_Endpoint::write_close_begin()
@@ -159,23 +175,20 @@ namespace tobilib::stream
 		if (_writestatus != WriteStatus::Idle)
 			return;
 		_writestatus = WriteStatus::Shutdown;
-		write_close_timeout.set();
+		timeout_close.set();
 		socket.async_close(boost::beast::websocket::close_reason("WS_Endpoint::close"),boost::bind(&WS_Endpoint::write_close_end,this,_1));
 	}
 
 	void WS_Endpoint::write_close_end(const boost::system::error_code& ec)
 	{
-		write_close_timeout.disable();
+		timeout_close.disable();
 		if (ec)
 		{
-			_writestatus = WriteStatus::Error;
-			if (_status != Status::Closed)
-			{
-				Exception e (ec.message());
-				e.trace.push_back("intern_on_close() (Websocket close-Frame)");
-				e.trace.push_back(mytrace());
-				warnings.push_back(e);
-			}
+			_writestatus = WriteStatus::Terminated;
+			Exception e (ec.message());
+			e.trace.push_back("intern_on_close() (Websocket close-Frame)");
+			e.trace.push_back(mytrace());
+			warnings.push_back(e);
 			return;
 		}
 		_writestatus = WriteStatus::Terminated;
@@ -183,21 +196,22 @@ namespace tobilib::stream
 
 	void WS_Endpoint::write_reset()
 	{
-		if (_writestatus == WriteStatus::Error || _writestatus == WriteStatus::Terminated)
-			_writestatus = WriteStatus::Idle;
-		write_queue.clear();	
+		if (_writestatus == WriteStatus::Msg || _writestatus == WriteStatus::Shutdown)
+			return;
+		_writestatus = WriteStatus::Idle;
+		write_queue.clear();
+		write_buffer.clear();
 	}
 
 	void WS_Endpoint::write_tick()
 	{
-		if (write_close_timeout.due())
-		{
-			write_close_timeout.disable();
-			_writestatus = WriteStatus::Error;
-		}
+		if (_status==Status::Closed)
+			return;
 		if (_writestatus == WriteStatus::Idle)
 		{
-			if (_status == Status::Shutdown)
+			if (write_queue.size()>0)
+				write_begin();
+			else if (_status == Status::Shutdown)
 				write_close_begin();
 		}
 	}
@@ -210,28 +224,24 @@ namespace tobilib::stream
 	void WS_Endpoint::write(const std::string& msg)
 	{
 		write_queue+=msg;
-		write_begin();
 	}
 
 	void WS_Endpoint::read_begin()
 	{
-		if (_readstatus != ReadStatus::Idle)
-			return;
-		read_warning_timer.set();
-		read_shutdown_timer.set();
+		timeout_warning.set();
+		timeout_read.set();
 		_readstatus = ReadStatus::Reading;
 		socket.async_read(read_buffer,boost::bind(&WS_Endpoint::read_end,this,_1,_2));
 	}
 
 	void WS_Endpoint::read_end(const boost::system::error_code& ec, size_t s)
 	{
-		read_warning_timer.disable();
-		read_shutdown_timer.disable();
-		reactivate();
+		timeout_warning.disable();
+		timeout_read.disable();
 		if (ec)
 		{
-			_readstatus = ReadStatus::Error;
-			if (_status!=Status::Closed && _writestatus!=WriteStatus::Terminated && ec.value()!=(int)boost::beast::websocket::error::closed)
+			_readstatus = ReadStatus::Terminated;
+			if (ec.value()!=(int)boost::beast::websocket::error::closed)
 			{
 				Exception e (ec.message());
 				e.trace.push_back("intern_on_read()");
@@ -244,25 +254,23 @@ namespace tobilib::stream
 		int oldlen = read_data.size();
 		read_data.resize(oldlen+s);
 		read_buffer.sgetn(&read_data.front()+oldlen,s);
-		read_begin();
 	}
 
 	void WS_Endpoint::read_reset()
 	{
-		if (_readstatus == ReadStatus::Error)
-			_readstatus = ReadStatus::Idle;
+		if (_readstatus == ReadStatus::Reading)
+			return;
+		_readstatus = ReadStatus::Idle;
 		read_data.clear();
 	}
 
 	void WS_Endpoint::read_tick()
 	{
-		if (read_shutdown_timer.due())
+		if (_status==Status::Closed)
+			return;
+		if (_readstatus == ReadStatus::Idle)
 		{
-			read_shutdown_timer.disable();
-			Exception e ("Endpunkt inaktiv: Verbindung abbrechen");
-			e.trace.push_back(mytrace());
-			warnings.push_back(e);
-			_readstatus = ReadStatus::Error;
+			read_begin();
 		}
 	}
 

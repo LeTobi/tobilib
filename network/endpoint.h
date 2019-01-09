@@ -39,14 +39,12 @@ namespace tobilib::stream
 		boost::asio::ip::address last_ip;
 		Status _status = Status::Closed;
 
-		void reactivate();
-
 	// Schreiben //////////////////////////////////////////////////////////////////////////////////////////////////////
 	private:
 		std::string write_queue;
 		std::string write_buffer;
-		Timer write_close_timeout = Timer(5);
-		enum class WriteStatus {Idle,Msg,Shutdown,Terminated,Error};
+		
+		enum class WriteStatus {Idle,Msg,Shutdown,Terminated};
 		WriteStatus _writestatus = WriteStatus::Idle;
 
 		void write_begin();
@@ -64,9 +62,7 @@ namespace tobilib::stream
 	private:
 		boost::asio::streambuf read_buffer;
 		std::string read_data;
-		Timer read_warning_timer = Timer(10);
-		Timer read_shutdown_timer = Timer(20);
-		enum class ReadStatus {Idle,Reading,Error};
+		enum class ReadStatus {Idle,Reading,Terminated};
 		ReadStatus _readstatus = ReadStatus::Idle;
 
 		void read_begin();
@@ -77,6 +73,12 @@ namespace tobilib::stream
 	public:
 		int read_size() const;
 		std::string read(unsigned int len=0);
+
+	// Timeout //////////////////////////////////////////////////////////////////////////////////////////////////////
+	private:
+		Timer timeout_warning = Timer(10);
+		Timer timeout_read = Timer(20);
+		Timer timeout_close = Timer(5);
 	};
 }
 
