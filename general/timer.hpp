@@ -1,47 +1,52 @@
 #ifndef TC_TIMER_H
 #define TC_TIMER_H
 
-#include <ctime>
+#include <chrono>
 
 namespace tobilib
 {
     class Timer
     {
     private:
-        double limit = 0;
-        time_t start = 0;
+        int limit = 0;
+        std::chrono::system_clock::time_point start;
+        bool _enabled = false;
 
     public:
         Timer& set() {
-            time(&start);
+            start = std::chrono::system_clock::now();
+            _enabled = true;
             return *this;
         };
 
+        /** aktiviert den Timer
+         * @param t Zeit in sekunden
+         */
         Timer& set(double t) {
-            limit=t;
+            limit=t*1000;
             return set();
         };
 
         bool is_enabled() const {
-            return start!=0;
+            return _enabled;
         }
 
         void disable() {
-            start = 0;
+            _enabled = false;
         };
 
         double left() const {
-            if (!is_enabled()) return 0;
-            return limit - difftime(time(NULL),start);
+            if (!_enabled) return 0;
+            return (double)(limit - std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()-start).count()) / 1000;
         }
 
         bool due() const {
-            if (!is_enabled()) return false;
+            if (!_enabled) return false;
             return left()<=0;
         };
 
         Timer() {};
-        Timer(double _limit): limit(_limit) {};
+        Timer(double _limit): limit(1000*_limit) {};
     };
 }
 
