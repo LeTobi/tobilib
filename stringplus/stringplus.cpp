@@ -349,6 +349,7 @@ namespace tobilib
 			if (!found)
 				return false;
 		}
+		return true;
 	}
 
 	StringPlus StringPlus::fromFile (const StringPlus& fname)
