@@ -1,14 +1,14 @@
-base: stringplus/stringplus.o encoding/utf8.o encoding/url.o encoding/base64.o encoding/tcencrypt.o general/gpio.o general/identifier.o
+base: stringplus/stringplus.o encoding/utf8.o encoding/url.o encoding/base64.o encoding/html.o encoding/tcencrypt.o general/gpio.o
 	ar r libtc.a stringplus/stringplus.o
 	ar r libtc.a encoding/utf8.o
 	ar r libtc.a encoding/url.o
 	ar r libtc.a encoding/base64.o
+	ar r libtc.a encoding/html.o
 	ar r libtc.a encoding/tcencrypt.o
 	ar r libtc.a general/gpio.o
-	ar r libtc.a general/identifier.o
 	ar s libtc.a
 
-networking: base network/endpoint.o network/client.o network/acceptor.o h2ep/event.o h2ep/xendpoint.o h2ep/xclient.o h2ep/xacceptor.o thread/mtcom.o
+networking: base network/endpoint.o network/client.o network/acceptor.o h2ep/event.o h2ep/xendpoint.o h2ep/xclient.o h2ep/xacceptor.o
 	ar r libtc.a network/endpoint.o
 	ar r libtc.a network/client.o
 	ar r libtc.a network/acceptor.o
@@ -16,7 +16,6 @@ networking: base network/endpoint.o network/client.o network/acceptor.o h2ep/eve
 	ar r libtc.a h2ep/xendpoint.o
 	ar r libtc.a h2ep/xclient.o
 	ar r libtc.a h2ep/xacceptor.o
-	ar r libtc.a thread/mtcom.o
 	ar s libtc.a
 	
 webcap: networking webcap/buffer.o webcap/jpeg.o webcap/capture.o
@@ -24,7 +23,26 @@ webcap: networking webcap/buffer.o webcap/jpeg.o webcap/capture.o
 	ar r libtc.a webcap/jpeg.o
 	ar r libtc.a webcap/capture.o
 	ar s libtc.a
-	
+
+undo:
+	rm libtc.a
+	rm stringplus/stringplus.o
+	rm encoding/utf8.o
+	rm encoding/url.o
+	rm encoding/base64.o
+	rm encoding/html.o
+	rm encoding/tcencrypt.o
+	rm general/gpio.o
+	rm network/endpoint.o
+	rm network/client.o
+	rm network/acceptor.o
+	rm h2ep/event.o
+	rm h2ep/xendpoint.o
+	rm h2ep/xclient.o
+	rm h2ep/xacceptor.o
+	rm webcap/buffer.o
+	rm webcap/jpeg.o
+	rm webcap/capture.o
 
 stringplus/stringplus.o: stringplus/stringplus.cpp stringplus/stringplus.h
 	g++ stringplus/stringplus.cpp -std=c++11 -c -o stringplus/stringplus.o
@@ -38,14 +56,14 @@ encoding/url.o: encoding/url.h encoding/url.cpp
 encoding/base64.o: encoding/base64.h encoding/base64.cpp
 	g++ encoding/base64.cpp -std=c++11 -c -o encoding/base64.o
 
+encoding/html.o: encoding/html.h encoding/html.cpp
+	g++ encoding/html.cpp -std=c++11 -c -o encoding/html.o
+
 encoding/tcencrypt.o: encoding/tcencrypt.h encoding/tcencrypt.cpp
 	g++ encoding/tcencrypt.cpp -std=c++11 -c -o encoding/tcencrypt.o
 	
 general/gpio.o: general/gpio.h general/gpio.cpp
 	g++ general/gpio.cpp -std=c++11 -c -o general/gpio.o
-	
-general/identifier.o: general/identifier.h general/identifier.cpp
-	g++ general/identifier.cpp -std=c++11 -c -o general/identifier.o
 	
 	
 network/endpoint.o: network/endpoint.h network/endpoint.cpp
@@ -68,10 +86,6 @@ h2ep/xclient.o: h2ep/client.h h2ep/client.cpp
 	
 h2ep/xacceptor.o: h2ep/acceptor.h h2ep/acceptor.cpp
 	g++ h2ep/acceptor.cpp -std=c++11 -c -o h2ep/xacceptor.o
-	
-thread/mtcom.o: thread/mtcom.h thread/mtcom.cpp
-	g++ thread/mtcom.cpp -std=c++11 -c -o thread/mtcom.o
-	
 	
 webcap/buffer.o: webcap/buffer.h webcap/buffer.cpp
 	g++ webcap/buffer.cpp -std=c++11 -c -o webcap/buffer.o

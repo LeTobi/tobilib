@@ -9,7 +9,6 @@ Verwendet boost::asio
 * __Networking:__ Endpoints für TCP (ToDo) und WebSockets mit Verbindungsmöglichkeit als Client oder Acceptor
 * __H2-Event-Protokoll__: Eigenes Protokoll für Eventaustausch mit JSON. Erweiterung für _Networking_
 * __Webcap__: jpeg-Kameraaufnahmen mit video4linux-api und libjpeg (sehr eingeschränkt)
-* __Threadforum__: Eventgesteuerte Kommunikation zwischen Threads mit boost::asio::io_context
 
 ### Makefile
 * base

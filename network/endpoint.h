@@ -1,72 +1,84 @@
 #ifndef TC_NETWORK_ENDPOINT
 #define TC_NETWORK_ENDPOINT
 
-#include "error.h"
-#include "../general/callback.hpp"
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
+#include "../general/exception.hpp"
+#include "../general/timer.hpp"
+#include <ctime>
 
 namespace tobilib::stream
 {
-	enum class EndpointState {
-		closed,
-		shutdown,
-		open
-	};
-	
-	class Endpoint
+	class WS_Endpoint
 	{
+		friend class WS_Acceptor;
+
+	// Generell //////////////////////////////////////////////////////////////////////////////////////////////////////
+	public:
+		WS_Endpoint ();
+
+		enum class Status {Closed,Active,Idle,Shutdown};
+		void tick();
+		Status status() const;
+		void reactivate(const std::string&);
+		void shutdown();
+		const boost::asio::ip::address& remote_ip() const;
+		std::string mytrace() const;
+
+		Warning_list warnings;
 	protected:
-		EndpointState _status = EndpointState::closed;
-		
-	public:
-		Endpoint() {};
-		
-		Callback< > on_receive;
-		Callback< > on_close;
-		Callback<const network_error&> on_error;
-		
-		std::string received;
-		
-		EndpointState status() const { return _status; };
-		bool connected() const {return _status == EndpointState::open; };
-		
-		virtual void start() = 0;
-		virtual void write(const std::string&) = 0;
-		virtual void close() = 0;
-		virtual bool busy() const = 0;
-		
-		Endpoint(const Endpoint&) = delete;
-		void operator=(const Endpoint&) = delete;
-	};
-	
-	class WS_Endpoint: virtual public Endpoint
-	{
-	private:
-		std::string outqueue;
-		std::string writebuffer;
-		boost::asio::streambuf buffer;
-		bool writing = false;
-		bool reading = false;
-		bool closing = false;
-		
-		void intern_on_write(const boost::system::error_code&, size_t);
-		void intern_on_read(const boost::system::error_code&, size_t);
-		void intern_on_close(const boost::system::error_code&);
-		void flush();
-		void read();
-		
-	public:
+		boost::asio::io_context ioc;
 		boost::beast::websocket::stream<boost::asio::ip::tcp::socket> socket;
 		
-		WS_Endpoint (boost::asio::io_context& _ioc): socket(_ioc) {};
+		void begin();
+		void close_tcp();
+	private:
+		boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard = boost::asio::make_work_guard(ioc);
+		boost::asio::ip::address last_ip;
+		Status _status = Status::Closed;
+
+	// Schreiben //////////////////////////////////////////////////////////////////////////////////////////////////////
+	private:
+		std::string write_queue;
+		std::string write_buffer;
 		
-		void start();
+		enum class WriteStatus {Idle,Msg,Shutdown,Terminated};
+		WriteStatus _writestatus = WriteStatus::Idle;
+
+		void write_begin();
+		void write_end(const boost::system::error_code&, size_t);
+		void write_close_begin();
+		void write_close_end(const boost::system::error_code&);
+		void write_reset();
+		void write_tick();
+		
+	public:
+		bool write_busy() const;
 		void write(const std::string&);
-		void close();
-		bool busy() const;
+
+	// Lesen //////////////////////////////////////////////////////////////////////////////////////////////////////
+	private:
+		boost::asio::streambuf read_buffer;
+		std::string read_data;
+		enum class ReadStatus {Idle,Reading,Terminated};
+		ReadStatus _readstatus = ReadStatus::Idle;
+
+		void read_begin();
+		void read_end(const boost::system::error_code&, size_t);
+		void read_reset();
+		void read_tick();
+
+	public:
+		int read_size() const;
+		std::string read(unsigned int len=0);
+
+	// Timeout //////////////////////////////////////////////////////////////////////////////////////////////////////
+	private:
+		Timer timeout_warning = Timer(10);
+		Timer timeout_read = Timer(20);
+		Timer timeout_close = Timer(5);
 	};
 }
 

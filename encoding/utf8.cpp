@@ -1,8 +1,8 @@
 #include "utf8.h"
 #include <string>
-#include <exception>
+#include "../general/exception.hpp"
 
-namespace tobilib
+namespace tobilib::utf8
 {
 	
 	int firstLOW (unsigned int byte)
@@ -43,7 +43,11 @@ namespace tobilib
 		if (byte<0x80)
 			return 1;
 		else if (byte>0x800000000)
-			throw encoding_error("Das Byte ist zu gross, um kodiert zu werden.");
+		{
+			Exception err ("Ein Byte ist zu gross, um kodiert zu werden.");
+			err.trace.push_back("utf8::getRequiredLength()");
+			throw err;
+		}
 		int required = lastHIGH(byte);
 		int give = 1;
 		while (give*5+1<required)
@@ -84,10 +88,19 @@ namespace tobilib
 			unsigned int newbyte = 0;
 			int len = firstLOW(code[pos]);
 			if (len==1)
-				throw encoding_error(std::string("ungueltiges Startbyte an der stelle ")+std::to_string(pos));
+			{
+				Exception err ("ungueltiges Startbyte an der stelle ");
+				err+=std::to_string(pos);
+				err.trace.push_back("utf8::decode()");
+				throw err;
+			}
 			len = len==0?0:len-1;
 			if (code.size()<=pos+len)
-				throw encoding_error("Der Code endet unerwartet");
+			{
+				Exception err ("Der Code endet unerwartet");
+				err.trace.push_back("utf8::decode()");
+				throw err;
+			}
 			int off = 0;
 			for (int i=len;i>=0;i--)
 			{

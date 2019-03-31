@@ -3,25 +3,35 @@
 namespace tobilib::h2ep
 {
 	template<class Streamclient>
-	Client<Streamclient>::Client(boost::asio::io_context& ioc): intern_client(ioc)
-	{
-		intern_client.on_connect.notify(std::bind(&Client::intern_on_connect,this));
-		dock(&intern_client);
-	}
+	Client<Streamclient>::Client(): intern_client(), EndpointType(&intern_client)
+	{ }
 	
 	template<class Streamclient>
 	void Client<Streamclient>::connect(const std::string& host, int port)
 	{
 		intern_client.connect(host,port);
 	}
-	
+
 	template<class Streamclient>
-	void Client<Streamclient>::intern_on_connect()
+	void Client<Streamclient>::tick()
 	{
-		on_connect();
+		intern_client.tick();
+		EndpointType::tick();
 	}
-	
+
+	template<class Streamclient>
+	typename Client<Streamclient>::Status Client<Streamclient>::status() const
+	{
+		return intern_client.status();
+	}
+
+	template<class Streamclient>
+	std::string Client<Streamclient>::mytrace() const
+	{
+		std::string out = "h2ep::Client (";
+		out += EndpointType::mytrace() +")";
+		return out;
+	}
+
 	template class Client<stream::WS_Client>;
-	// TODO
-	// template class Client<stream::TCP_Client>;
 }

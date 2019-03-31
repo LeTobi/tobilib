@@ -42,9 +42,11 @@ namespace tobilib
 		StringPlus& operator = (const std::string& val) {assign(val);return *this;};
 		StringPlus& operator = (const char * val) {assign(val);return *this;};
 		StringPlus& operator = (const CharPlus& val) {assign(val);return *this;};
+		StringPlus operator + (const StringPlus& val) const {return StringPlus(val).insert(0,*this);}
 		StringPlus operator + (const std::u32string& val) const {return StringPlus(val).insert(0,*this);};
 		StringPlus operator + (const std::string& val) const {return StringPlus(val).insert(0,*this);};
 		StringPlus operator + (const char * val) const {return StringPlus(val).insert(0,*this);};
+		StringPlus& operator += (const StringPlus& val) {append(val);return *this;};
 		StringPlus& operator += (const std::u32string& val) {append(val);return *this;};
 		StringPlus& operator += (const std::string& val) {append(StringPlus(val));return *this;};
 		StringPlus& operator += (const char * val) {append(StringPlus(val));return *this;};
@@ -54,20 +56,14 @@ namespace tobilib
 		
 		const static StringPlus NO_CONTENT;
 		const static StringPlus ENDLINE;
+		const static StringPlus DEFAULT_CHARSET;
 		
+		static StringPlus random(int len=10, const StringPlus& charset=DEFAULT_CHARSET);
 		static int parseHex(const StringPlus&);
 		static StringPlus toHex(int);
 		static bool nameCompare(const StringPlus&, const StringPlus&, const StringPlus& conversion_table = NO_CONTENT);
 		static StringPlus fromFile(const StringPlus&);
 		static void toFile(const StringPlus&, const StringPlus&);
-	};
-
-	class StringPlus_error : public std::exception
-	{
-	public:
-		StringPlus_error(const StringPlus& message): msg(message) {};
-		StringPlus msg;
-		const char* what() const noexcept {return msg.toString().c_str();};
 	};
 }
 

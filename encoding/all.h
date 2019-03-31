@@ -1,5 +1,6 @@
 #include "base64.h"
 #include "utf8.h"
 #include "url.h"
+#include "html.h"
 #include "tcencrypt.h"
 #include "error.h"

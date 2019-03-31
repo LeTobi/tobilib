@@ -23,19 +23,22 @@ namespace tobilib::h2ep
 	class Event_parser
 	{
 	private:
-		struct chunk {
-			int start;
-			int size;
-		};
-	
-		std::string data;
-		std::queue<chunk> chunks;
-		void getchunks();
-		
+		enum class ChunkStatus {Void,Int,Data};
+
+		ChunkStatus chunk_status = ChunkStatus::Void;
+		int chunk_dataleft = 0;
+		std::string chunk_buffer;
+		std::queue<std::string> chunk_output;
+
+		void chunk_feed(const char);
+
+		std::queue<Event> event_output;
+		void event_feed(const char);
+
 	public:
-		const std::string& buffer() const;
 		void feed(const std::string&);
-		bool ready();
+		void clear();
+		bool ready() const;
 		Event next();
 	};
 }

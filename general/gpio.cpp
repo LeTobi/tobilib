@@ -1,4 +1,5 @@
 #include "gpio.h"
+#include "exception.hpp"
 
 namespace tobilib
 {
@@ -21,17 +22,29 @@ namespace tobilib
 		std::fstream fs;
 		fs.open("/sys/class/gpio/export", std::fstream::out);
 		if (!fs.good())
-			throw GPIO_error("Fehler beim Exportieren des Pins (Adminrechte?)");
+		{
+			Exception err ("Fehler beim Exportieren des Pins (Adminrechte?)");
+			err.trace.push_back("GPO::open()");
+			throw err;
+		}
 		fs << pin;
 		fs.close();
 		fs.open((std::string("/sys/class/gpio/gpio")+std::to_string(pin)+"/direction").c_str(),std::fstream::out);
 		if (!fs.good())
-			throw GPIO_error("Der Pin konnte nicht aufgesetzt werden. (Adminrechte?)");
+		{
+			Exception err ("Der Pin konnte nicht aufgesetzt werden. (Adminrechte?)");
+			err.trace.push_back("GPO::open()");
+			throw err;
+		}
 		fs << "out";
 		fs.close();
 		valstream.open((std::string("/sys/class/gpio/gpio")+std::to_string(pin)+"/value").c_str(),std::fstream::out);
 		if (!valstream.good())
-			throw GPIO_error("Es kann nicht auf den Pin zugegriffen werden. (Adminrechte?)");
+		{
+			Exception err ("Es kann nicht auf den Pin zugegriffen werden. (Adminrechte?)");
+			err.trace.push_back("GPO::open()");
+			throw err;
+		}
 	}
 
 	void GPO::set(GPIO_value val)
@@ -46,12 +59,18 @@ namespace tobilib
 				msg = "0";
 				break;
 			default:
-				throw GPIO_error("Ungueltiger Wert");
+				Exception err ("Ungueltiger Wert");
+				err.trace.push_back("GPO::set()");
+				throw err;
 		}
 		valstream << msg;
 		valstream.flush();
 		if (!valstream.good())
-			throw GPIO_error("Fehler beim Bearbeiten des Pins");
+		{
+			Exception err ("Fehler beim Bearbeiten des Pins");
+			err.trace.push_back("GPO::set()");
+			throw err;
+		}
 		lastset = val;
 	}
 
