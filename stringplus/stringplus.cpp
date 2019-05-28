@@ -393,5 +393,6 @@ namespace tobilib
 			e.trace.push_back("StringPlus::toFile()");
 			throw e;
 		}
+		fs.close();
 	}
 }
