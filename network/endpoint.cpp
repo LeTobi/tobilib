@@ -216,6 +216,25 @@ namespace tobilib::stream
 		}
 	}
 
+	void WS_Endpoint::write_setmode(WriteMode m)
+	{
+		_writemode = m;
+		switch (m)
+		{
+		case WriteMode::Text:
+			socket.text(true);
+			break;
+		case WriteMode::Binary:
+			socket.binary(true);
+			break;
+		}
+	}
+
+	WS_Endpoint::WriteMode WS_Endpoint::write_getmode()
+	{
+		return _writemode;
+	}
+
 	bool WS_Endpoint::write_busy() const
 	{
 		return _writestatus != WriteStatus::Idle;
