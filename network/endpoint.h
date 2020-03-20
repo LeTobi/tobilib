@@ -40,12 +40,16 @@ namespace tobilib::stream
 		Status _status = Status::Closed;
 
 	// Schreiben //////////////////////////////////////////////////////////////////////////////////////////////////////
+	public:
+		enum class WriteMode {Binary,Text};
 	private:
 		std::string write_queue;
 		std::string write_buffer;
 		
 		enum class WriteStatus {Idle,Msg,Shutdown,Terminated};
 		WriteStatus _writestatus = WriteStatus::Idle;
+		
+		WriteMode _writemode = WriteMode::Text;
 
 		void write_begin();
 		void write_end(const boost::system::error_code&, size_t);
@@ -55,6 +59,8 @@ namespace tobilib::stream
 		void write_tick();
 		
 	public:
+		void write_setmode(WriteMode);
+		WriteMode write_getmode();
 		bool write_busy() const;
 		void write(const std::string&);
 
