@@ -2,7 +2,7 @@
 #include <string>
 #include "../general/exception.hpp"
 
-namespace tobilib::utf8
+namespace tobilib { namespace utf8
 {
 	
 	int firstLOW (unsigned int byte)
@@ -112,4 +112,4 @@ namespace tobilib::utf8
 		}
 		return out;
 	}
-}
+}}

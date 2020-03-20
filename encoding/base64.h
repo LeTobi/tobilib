@@ -3,11 +3,11 @@
 
 #include "../stringplus/stringplus.h"
 
-namespace tobilib::base64
+namespace tobilib { namespace base64
 {
 	StringPlus encode (const StringPlus&);
 	StringPlus decode (const StringPlus&);
-}
+}}
 
 #ifdef TC_AS_HPP
 	#include "base64.cpp"

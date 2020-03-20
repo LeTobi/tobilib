@@ -1,7 +1,7 @@
 #include "base64.h"
 #include "../general/exception.hpp"
 
-namespace tobilib::base64
+namespace tobilib{ namespace base64
 {
 	const StringPlus b64char_order = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 	
@@ -59,4 +59,4 @@ namespace tobilib::base64
 		}
 		return out.substr(0,out.size()-added);
 	}
-}
+}}

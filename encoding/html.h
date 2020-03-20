@@ -3,10 +3,10 @@
 
 #include "../stringplus/stringplus.h"
 
-namespace tobilib::html
+namespace tobilib{ namespace html
 {
     StringPlus toTextContent(const StringPlus&);
-}
+}}
 
 #ifdef TC_AS_HPP
     #include "html.cpp"

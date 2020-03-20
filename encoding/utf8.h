@@ -3,7 +3,7 @@
 
 #include "../stringplus/stringplus.h"
 
-namespace tobilib::utf8
+namespace tobilib { namespace utf8
 {	
 	int firstLOW (unsigned int byte);
 	
@@ -16,7 +16,7 @@ namespace tobilib::utf8
 	StringPlus encode(const StringPlus& txt);
 	
 	StringPlus decode(const StringPlus& code);
-}
+}}
 
 #ifdef TC_AS_HPP
 	#include "utf8.cpp"
