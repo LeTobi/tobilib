@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <exception>
+#include <ostream>
 
 namespace tobilib
 {
@@ -24,16 +25,19 @@ namespace tobilib
 		std::string toString () const;
 		int toInt() const;
 		
-		std::vector<StringPlus> split(const StringPlus&) const;
 		int find(const StringPlus&, int start=0) const;
 		int rfind(const StringPlus&, int start=-1) const;
 		std::vector<int> find_all(const StringPlus&) const;
 		std::vector<int> find_all_of(const StringPlus&) const;
+		std::vector<StringPlus> split(const StringPlus&) const;
+		std::vector<StringPlus> split_all_of(const StringPlus&) const;
 		StringPlus toLowerCase() const;
 		StringPlus shrink() const;
 		StringPlus normalize(const StringPlus&) const;
 		StringPlus replace_all(const StringPlus&, const StringPlus&) const;
 		StringPlus replace_all_of(const StringPlus&, const StringPlus&) const;
+		StringPlus substr(int, int) const;
+		StringPlus interval(int, int) const;
 		bool endsWith(const StringPlus&) const;
 		bool beginsWith(const StringPlus&) const;
 		int count_all(const StringPlus&) const;
@@ -52,7 +56,11 @@ namespace tobilib
 		StringPlus& operator += (const char * val) {append(StringPlus(val));return *this;};
 		StringPlus& operator += (const CharPlus& val) {append(1,val); return *this;};
 		
+		bool operator == (const char* val) const {return *this==StringPlus(val);};
+		bool operator != (const char* val) const {return *this!=StringPlus(val);};
+		
 		operator std::string() const {return toString();};
+		friend std::ostream& operator<<(std::ostream&, const StringPlus&);
 		
 		const static StringPlus NO_CONTENT;
 		const static StringPlus ENDLINE;

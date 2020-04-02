@@ -1,5 +1,6 @@
-base: stringplus/stringplus.o encoding/utf8.o encoding/url.o encoding/base64.o encoding/html.o encoding/tcencrypt.o general/gpio.o
+base: stringplus/stringplus.o stringplus/filename.o encoding/utf8.o encoding/url.o encoding/base64.o encoding/html.o encoding/tcencrypt.o general/gpio.o
 	ar r libtc.a stringplus/stringplus.o
+	ar r libtc.a stringplus/filename.o
 	ar r libtc.a encoding/utf8.o
 	ar r libtc.a encoding/url.o
 	ar r libtc.a encoding/base64.o
@@ -27,6 +28,7 @@ webcap: networking webcap/buffer.o webcap/jpeg.o webcap/capture.o
 undo:
 	rm libtc.a
 	rm stringplus/stringplus.o
+	rm stringplus/filename.o
 	rm encoding/utf8.o
 	rm encoding/url.o
 	rm encoding/base64.o
@@ -46,6 +48,9 @@ undo:
 
 stringplus/stringplus.o: stringplus/stringplus.cpp stringplus/stringplus.h
 	g++ stringplus/stringplus.cpp -std=c++11 -c -o stringplus/stringplus.o
+
+stringplus/filename.o: stringplus/filename.cpp stringplus/filename.h
+	g++ stringplus/filename.cpp -std=c++11 -c -o stringplus/filename.o
 	
 encoding/utf8.o: encoding/utf8.h encoding/utf8.cpp
 	g++ encoding/utf8.cpp -std=c++11 -c -o encoding/utf8.o

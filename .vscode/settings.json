@@ -81,6 +81,15 @@
         "xstddef": "cpp",
         "xtr1common": "cpp",
         "xutility": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "clocale": "cpp",
+        "cuchar": "cpp",
+        "forward_list": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp",
+        "numeric": "cpp",
+        "regex": "cpp",
+        "scoped_allocator": "cpp",
+        "shared_mutex": "cpp"
     }
 }

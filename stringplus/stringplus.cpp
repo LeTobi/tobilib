@@ -18,46 +18,38 @@ namespace tobilib
 
 	StringPlus::StringPlus(): std::u32string() {}
 
-	StringPlus::StringPlus(const char * val)
-	{
+	StringPlus::StringPlus(const char * val) {
 		assign(val);
 	}
 
-	StringPlus::StringPlus(const CharPlus& val, int count)
-	{
+	StringPlus::StringPlus(const CharPlus& val, int count) {
 		assign(val,count);
 	}
 
-	StringPlus::StringPlus(const std::string& val)
-	{
+	StringPlus::StringPlus(const std::string& val) {
 		assign(val);
 	}
 
-	StringPlus::StringPlus(const std::u32string& val) : std::u32string(val)
-	{
+	StringPlus::StringPlus(const std::u32string& val) : std::u32string(val) {
 	}
 
-	void StringPlus::assign(const std::string& str)
-	{
-		for (int i=0;i<str.size();i++)
-		{
-			append(1,str.at(i));
-		}
+	void StringPlus::assign(const char * str) {
+		resize(0);
+		int i=-1;
+		while (str[++i]!='\0')
+			append(1,str[i]);
 	}
 
-	void StringPlus::assign(const char * str)
-	{
-		assign(std::string(str));
+	void StringPlus::assign(const std::string& str) {
+		assign(str.c_str());
 	}
 
-	void StringPlus::assign(const CharPlus& val, int count)
-	{
-		assign("");
+	void StringPlus::assign(const CharPlus& val, int count) {
+		resize(0);
 		append(count,val);
 	}
 
-	std::string StringPlus::toString() const
-	{
+	std::string StringPlus::toString() const {
 		std::string out;
 		for (int i=0;i<size();i++)
 		{
@@ -71,7 +63,7 @@ namespace tobilib
 		StringPlus val;
 		bool negative = beginsWith('-');
 		if (negative)
-			val = substr(1);
+			val = std::u32string::substr(1);
 		else
 			val = *this;
 		for (int i=0;i<val.size();i++)
@@ -86,30 +78,6 @@ namespace tobilib
 		}
 		int ival = atoi(val.toString().c_str());
 		return negative?-ival:ival;
-	}
-
-	std::vector<StringPlus> StringPlus::split(const StringPlus& delim) const
-	{
-		std::vector<StringPlus> out;
-		out.emplace_back();
-		for (int i=0;i<size();i++)
-		{
-			if (i+delim.size()<=size() && substr(i,delim.size())==delim)
-			{
-				out.emplace_back();
-				i+=delim.size()-1;
-			}
-			else
-			{
-				out.back() += at(i);
-			}
-		}
-		for (int i=out.size()-1;i>=0;i--)
-		{
-			if (out[i].size()<1)
-				out.erase(out.begin()+i);
-		}
-		return out;
 	}
 	
 	int StringPlus::find(const StringPlus& val, int start) const
@@ -128,17 +96,12 @@ namespace tobilib
 	{
 		std::vector<int> out;
 		int lastpos = -1;
-		while (true)
-		{
+		while (true) {
 			lastpos = find(val,lastpos+1);
 			if (lastpos==std::string::npos)
-			{
 				return out;
-			}
 			else
-			{
 				out.push_back(lastpos);
-			}
 		}
 	}
 
@@ -146,34 +109,54 @@ namespace tobilib
 	{
 		std::vector<int> out;
 		int lastpos = -1;
-		while (true)
-		{
+		while (true) {
 			lastpos = find_first_of(val,lastpos+1);
 			if (lastpos==std::string::npos)
-			{
 				return out;
-			}
 			else
-			{
 				out.push_back(lastpos);
-			}
 		}
 	}
 
-	StringPlus StringPlus::random(int len, const StringPlus& charset)
+	std::vector<StringPlus> StringPlus::split(const StringPlus& delim) const
 	{
-		std::random_device rd;
-		StringPlus out;
-		out.resize(len);
-		for (auto& c: out)
-		{
-			c = charset[rd()%charset.size()];
+		std::vector<StringPlus> out;
+		auto borders = find_all(delim);
+		borders.insert(borders.begin(),-1);
+		borders.push_back(size());
+		for (int i=1;i<borders.size();i++) {
+			int len = borders[i]-borders[i-1]-1;
+			out.push_back(std::u32string::substr(borders[i-1]+1,len));
 		}
 		return out;
 	}
 
-	int StringPlus::parseHex(const StringPlus& hex)
-	{
+	std::vector<StringPlus> StringPlus::split_all_of(const StringPlus& delim) const {
+		std::vector<StringPlus> out;
+		auto borders = find_all_of(delim);
+		borders.insert(borders.begin(),-1);
+		borders.push_back(size());
+		for (int i=1;i<borders.size();i++) {
+			int len = borders[i]-borders[i-1]-1;
+			out.push_back(std::u32string::substr(borders[i-1]+1,len));
+		}
+		return out;
+	}
+
+	::std::ostream& operator<<(std::ostream& out, const StringPlus& str) {
+		return out << str.toString();
+	}
+
+	StringPlus StringPlus::random(int len, const StringPlus& charset) {
+		std::random_device rd;
+		StringPlus out;
+		out.resize(len);
+		for (auto& c: out)
+			c = charset[rd()%charset.size()];
+		return out;
+	}
+
+	int StringPlus::parseHex(const StringPlus& hex) {
 		std::string ziffern = "0123456789ABCDEF";
 		int factor = 1;
 		int out = 0;
@@ -188,8 +171,7 @@ namespace tobilib
 		return out;
 	}
 
-	StringPlus StringPlus::toHex(int c)
-	{
+	StringPlus StringPlus::toHex(int c) {
 		if (c<1)
 			return "0";
 		int factor = 1;
@@ -211,45 +193,33 @@ namespace tobilib
 		return out;
 	}
 
-	StringPlus StringPlus::toLowerCase() const
-	{
+	StringPlus StringPlus::toLowerCase() const {
 		StringPlus out;
 		for (int i=0;i<size();i++)
-		{
 			out += tolower(at(i));
-		}
 		return out;
 	}
 
-	StringPlus StringPlus::shrink() const
-	{
+	StringPlus StringPlus::shrink() const {
 		StringPlus out (*this);
 		while (out.size()>0 && out.at(0)==' ')
-		{
 			out.erase(0,1);
-		}
-		while (out.size()>0 && out.at(out.size()-1)==' ')
-		{
-			out.erase(out.size()-1,1);
-		}
+		while (out.size()>0 && out.back()==' ')
+			out.pop_back();
 		return out;
 	}
 
-	StringPlus StringPlus::normalize(const StringPlus& fname) const
-	{
+	StringPlus StringPlus::normalize(const StringPlus& fname) const {
 		StringPlus table = StringPlus::fromFile(fname);
 		if (table == NO_CONTENT)
 			return NO_CONTENT;
 		StringPlus out = *this;
 		std::vector<StringPlus> lines = table.split(ENDLINE);
-		for (auto& line: lines)
-		{
+		for (auto& line: lines) {
 			std::vector<StringPlus> chars = line.split(" ");
-			for (auto& c: chars)
-			{
+			for (auto& c: chars) {
 				std::vector<int> indexes = out.find_all(c);
-				for (auto pos=indexes.rbegin(); pos!=indexes.rend(); pos++)
-				{
+				for (auto pos=indexes.rbegin(); pos!=indexes.rend(); pos++) {
 					out.erase(*pos,c.size());
 					out.insert(*pos,chars[0]);
 				}
@@ -258,65 +228,59 @@ namespace tobilib
 		return out;
 	}
 
-	StringPlus StringPlus::replace_all(const StringPlus& trigger, const StringPlus& subst) const
-	{
+	StringPlus StringPlus::replace_all(const StringPlus& trigger, const StringPlus& subst) const {
 		StringPlus out = *this;
-		std::vector<int> poses = out.find_all(trigger);
-		for (int i=poses.size()-1;i>=0;i--)
-		{
-			out.replace(poses[i],trigger.size(),subst);
-		}
+		std::vector<int> triggers = out.find_all(trigger);
+		for (auto pos=triggers.rbegin();pos!=triggers.rend();pos++)
+			out.replace(*pos,trigger.size(),subst);
 		return out;
 	}
 
-	StringPlus StringPlus::replace_all_of(const StringPlus& trigger, const StringPlus& subst) const
-	{
+	StringPlus StringPlus::replace_all_of(const StringPlus& trigger, const StringPlus& subst) const {
 		StringPlus out = *this;
-		std::vector<int> poses = out.find_all_of(trigger);
-		for (int i=poses.size()-1;i>=0;i--)
-		{
-			out.replace(poses[i],1,subst);
-		}
+		std::vector<int> triggers = out.find_all_of(trigger);
+		for (auto pos=triggers.rbegin();pos!=triggers.rend();pos++)
+			out.replace(*pos,1,subst);
 		return out;
 	}
 
-	bool StringPlus::endsWith(const StringPlus& txt) const
-	{
-		return substr(size()-txt.size()) == txt;
+	StringPlus StringPlus::substr(int start, int len) const {
+		if (empty())
+			return StringPlus();
+		while (start<0)
+			start+=size();
+		return std::u32string::substr(start, len);
 	}
 
-	bool StringPlus::beginsWith(const StringPlus& txt) const
-	{
-		return substr(0,txt.size()) == txt;
+	StringPlus StringPlus::interval(int start, int end) const {
+		if (empty())
+			return StringPlus();
+		while (start<0)
+			start+=size();
+		while (end<0)
+			end+=size();
+		if (end<start)
+			return StringPlus();
+		return std::u32string::substr(start,end-start);
 	}
 
-	int StringPlus::count_all(const StringPlus& needle) const
-	{
-		int out = 0;
-		for (int i=0;i<=size()-needle.size();i++)
-		{
-			if (substr(i,needle.size()) == needle)
-			{
-				out++;
-				i+=needle.size()-1;
-			}
-		}
-		return out;
+	bool StringPlus::endsWith(const StringPlus& txt) const {
+		return std::u32string::substr(size()-txt.size()) == txt;
+	}
+
+	bool StringPlus::beginsWith(const StringPlus& txt) const {
+		return std::u32string::substr(0,txt.size()) == txt;
+	}
+
+	int StringPlus::count_all(const StringPlus& needle) const {
+		return find_all(needle).size();
 	}
 	
-	int StringPlus::count_all_of(const StringPlus& targets) const
-	{
-		int out = 0;
-		for (int i=0;i<size();i++)
-		{
-			if (targets.find(at(i)) != std::string::npos)
-				out++;
-		}
-		return out;
+	int StringPlus::count_all_of(const StringPlus& targets) const {
+		return find_all_of(targets).size();
 	}
 	
-	bool StringPlus::nameCompare (const StringPlus& a, const StringPlus& b, const StringPlus& conversion_table)
-	{
+	bool StringPlus::nameCompare (const StringPlus& a, const StringPlus& b, const StringPlus& conversion_table) {
 		StringPlus strA = a;
 		StringPlus strB = b;
 		if (conversion_table!=NO_CONTENT)
@@ -352,11 +316,9 @@ namespace tobilib
 		return true;
 	}
 
-	StringPlus StringPlus::fromFile (const StringPlus& fname)
-	{
+	StringPlus StringPlus::fromFile (const StringPlus& fname) {
 		std::fstream fs (fname.toString().c_str(),std::fstream::in | std::fstream::binary);
-		if (!fs.good())
-		{
+		if (!fs.good()) {
 			fs.close();
 			Exception e ("Datei konnte nicht gelesen werden: ");
 			e+=fname;
@@ -364,8 +326,7 @@ namespace tobilib
 			throw e;
 		}
 		StringPlus out;
-		while (fs.good())
-		{
+		while (fs.good()) {
 			int c = fs.get();
 			if (c!=EOF)
 				out += c;
@@ -374,11 +335,9 @@ namespace tobilib
 		return out;
 	}
 
-	void StringPlus::toFile(const StringPlus& content, const StringPlus& fname)
-	{
+	void StringPlus::toFile(const StringPlus& content, const StringPlus& fname) {
 		std::fstream fs(fname.toString().c_str(),std::fstream::out | std::fstream::binary);
-		if (!fs.good())
-		{
+		if (!fs.good()) {
 			Exception e ("Datei konnte nicht geoeffnet werden: ");
 			e+=fname;
 			e.trace.push_back("StringPlus::toFile()");
@@ -386,8 +345,7 @@ namespace tobilib
 		}
 		std::string block = content.toString();
 		fs.write(block.c_str(),block.size());
-		if (!fs.good())
-		{
+		if (!fs.good()) {
 			Exception e ("Datei konnte nicht bearbeitet werden: ");
 			e+=fname;
 			e.trace.push_back("StringPlus::toFile()");
