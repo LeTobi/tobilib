@@ -35,6 +35,7 @@ namespace tobilib
         friend std::ostream& operator<< (std::ostream&, const tobilib::FileName&);
 
         bool operator== (const FileName&) const;
+        bool contains (const FileName&) const;
 
         const char* c_str() const {return fullName().toString().c_str();};
         operator StringPlus () const {return fullName();};

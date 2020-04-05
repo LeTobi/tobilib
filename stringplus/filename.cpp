@@ -103,6 +103,10 @@ namespace tobilib {
         return fullName() == other.fullName();
     }
 
+    bool FileName::contains(const FileName& child) const {
+        return child.fullName().beginsWith(fullName());
+    }
+
     void FileName::optimize() {
         auto frag=path.begin();
         while (frag!=path.end()) {
