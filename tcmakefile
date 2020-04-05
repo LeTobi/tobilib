@@ -1,9 +1,9 @@
 selection windows
 	lib libtc.a
 	add stringplus/
-	add encoding
-	add general
+	add encoding/
+	add general/
 
 selection linux
 	lib libtc.a 
-	add /
+	add ./
