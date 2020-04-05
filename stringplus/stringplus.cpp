@@ -316,6 +316,13 @@ namespace tobilib
 		return true;
 	}
 
+	std::istream& operator>>(std::istream& in, StringPlus& string) {
+		std::string str;
+		in >> str;
+		string.assign(str);
+		return in;
+	}
+
 	StringPlus StringPlus::fromFile (const StringPlus& fname) {
 		std::fstream fs (fname.toString().c_str(),std::fstream::in | std::fstream::binary);
 		if (!fs.good()) {

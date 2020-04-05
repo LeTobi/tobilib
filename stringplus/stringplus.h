@@ -55,7 +55,8 @@ namespace tobilib
 		StringPlus& operator += (const std::string& val) {append(StringPlus(val));return *this;};
 		StringPlus& operator += (const char * val) {append(StringPlus(val));return *this;};
 		StringPlus& operator += (const CharPlus& val) {append(1,val); return *this;};
-		
+		friend std::istream& operator>>(std::istream&, StringPlus&);
+
 		bool operator == (const char* val) const {return *this==StringPlus(val);};
 		bool operator != (const char* val) const {return *this!=StringPlus(val);};
 		
