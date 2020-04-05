@@ -19,7 +19,7 @@ namespace tobilib
         FileName(const char*);
 
         void assign(const StringPlus&);
-        operator= (StringPlus& other){assign(other);};
+        FileName& operator= (StringPlus& other){assign(other);return *this;};
         friend std::istream& operator>> (std::istream&, tobilib::FileName&);
 
         void extend(const FileName&);
