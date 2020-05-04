@@ -90,6 +90,13 @@
         "numeric": "cpp",
         "regex": "cpp",
         "scoped_allocator": "cpp",
-        "shared_mutex": "cpp"
+        "shared_mutex": "cpp",
+        "*.tcc": "cpp",
+        "memory_resource": "cpp",
+        "optional": "cpp",
+        "string_view": "cpp",
+        "cinttypes": "cpp",
+        "variant": "cpp",
+        "bit": "cpp"
     }
 }

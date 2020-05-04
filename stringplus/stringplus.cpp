@@ -3,12 +3,14 @@
 #include <cctype>
 #include <fstream>
 #include <random>
+#include <cstdlib>
 
 
 namespace tobilib
 {
 	const StringPlus StringPlus::NO_CONTENT = "\0";
 	const StringPlus StringPlus::DEFAULT_CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	const StringPlus StringPlus::HEX_SYMBOLS = "0123456789abcdef";
 
 	#ifdef ENDLINE
 		const StringPlus StringPlus::ENDLINE = ENDLINE;
@@ -49,6 +51,11 @@ namespace tobilib
 		append(count,val);
 	}
 
+	StringPlus& StringPlus::insert(int pos, const StringPlus& val) {
+		std::u32string::insert(pos,val);
+		return *this;
+	}
+
 	std::string StringPlus::toString() const {
 		std::string out;
 		for (int i=0;i<size();i++)
@@ -58,26 +65,132 @@ namespace tobilib
 		return out;
 	}
 
+	StringPlus StringPlus::numeric_sign() const 
+	{
+		if (beginsWith("-"))
+			return "-";
+		if (beginsWith("+"))
+			return "+";
+		return "";
+	}
+
+	StringPlus StringPlus::numeric_prefix() const
+	{
+		StringPlus x = substr(numeric_sign().size());
+		if (x.beginsWith("0x"))
+			return "0x";
+		if (x.beginsWith("0b"))
+			return "0b";
+		return "";
+	}
+
+	StringPlus StringPlus::numeric_body() const
+	{
+		return substr(numeric_sign().size()+numeric_prefix().size());
+	}
+
+	bool StringPlus::isInt() const
+	{
+		return isDecimal() ||
+			(numeric_prefix()=="0x"&&isHex()) ||
+			(numeric_prefix()=="0b"&&isBinary());
+	}
+
+	bool StringPlus::isDecimal() const
+	{
+		if (numeric_prefix()!="")
+			return false;
+		for (auto& c: numeric_body())
+			if (c<'0' || c>'9')
+				return false;
+		return true;
+	}
+
+	bool StringPlus::isHex() const
+	{
+		if (!StringPlus("0x").beginsWith(numeric_prefix()))
+			return false;
+		for (auto& c: numeric_body())
+			if (HEX_SYMBOLS.find(tolower(c))==npos)
+				return false;
+		return true;
+	}
+
+	bool StringPlus::isBinary() const
+	{
+		if (!StringPlus("0b").beginsWith(numeric_prefix()))
+			return false;
+		for (auto& c: numeric_body())
+			if (c!='0' && c!='1')
+				return false;
+		return true;
+	}
+
 	int StringPlus::toInt() const
 	{
-		StringPlus val;
-		bool negative = beginsWith('-');
-		if (negative)
-			val = std::u32string::substr(1);
-		else
-			val = *this;
-		for (int i=0;i<val.size();i++)
-		{
-			if (val[i]<'0' || val[i]>'9')
-			{
-				Exception e ("Fehler beim Parsen von ganzer Zahl '");
-				e += val + "'";
-				e.trace.push_back("StringPlus::toInt()");
-				throw e;
-			}
+		if (numeric_prefix()=="0b")
+			return toBinary();
+		if (numeric_prefix()=="0x")
+			return toHex();
+		return toDecimal();
+	}
+
+	int StringPlus::toBinary() const
+	{
+		int out = stoi(numeric_body(),0,2);
+		if (numeric_sign()=="-")
+			return -out;
+		return out;
+	}
+
+	int StringPlus::toHex() const
+	{
+		int out = stoi(numeric_body(),0,16);
+		if (numeric_sign()=="-")
+			return -out;
+		return out;
+	}
+
+	int StringPlus::toDecimal() const
+	{
+		return std::stoi(*this);
+	}
+
+	StringPlus StringPlus::make_hex(int n)
+	{
+		StringPlus out;
+		int z = abs(n);
+		if (z==0)
+			out="0";
+		while (z>0) {
+			out.insert(0,HEX_SYMBOLS[z%16]);
+			z/=16;
 		}
-		int ival = atoi(val.toString().c_str());
-		return negative?-ival:ival;
+		out.insert(0,"0x");
+		if (n<0)
+			out.insert(0,'-');
+		return out;
+	}
+
+	StringPlus StringPlus::make_binary(int n)
+	{
+		StringPlus out;
+		int z = abs(n);
+		if (z==0)
+			out="0";
+		while (z>0) {
+			out.insert(0,z%2==0?'0':'1');
+			z/=2;
+		}
+		out.insert(0,"0b");
+		if (n<0)
+			out.insert(0,'-');
+		return out;
+	}
+
+	StringPlus StringPlus::make_decimal(int n)
+	{
+		return std::to_string(n);
 	}
 	
 	int StringPlus::find(const StringPlus& val, int start) const
@@ -156,43 +269,6 @@ namespace tobilib
 		return out;
 	}
 
-	int StringPlus::parseHex(const StringPlus& hex) {
-		std::string ziffern = "0123456789ABCDEF";
-		int factor = 1;
-		int out = 0;
-		for (int i=hex.size()-1;i>=0;i--)
-		{
-			int index = ziffern.find(hex.at(i));
-			if (index==std::string::npos)
-				return 0;
-			out += factor*index;
-			factor*=16;
-		}
-		return out;
-	}
-
-	StringPlus StringPlus::toHex(int c) {
-		if (c<1)
-			return "0";
-		int factor = 1;
-		while (16*factor<=c)
-			factor*=16;
-		std::string ziffern = "0123456789ABCDEF";
-		StringPlus out;
-		while (factor>0)
-		{
-			int count = 0;
-			while (c>=factor)
-			{
-				c-=factor;
-				count++;
-			}
-			out.append(1,ziffern[count]);
-			factor/=16;
-		}
-		return out;
-	}
-
 	StringPlus StringPlus::toLowerCase() const {
 		StringPlus out;
 		for (int i=0;i<size();i++)
@@ -244,7 +320,7 @@ namespace tobilib
 		return out;
 	}
 
-	StringPlus StringPlus::substr(int start, int len) const {
+	StringPlus StringPlus::substr(int start, size_t len) const {
 		if (empty())
 			return StringPlus();
 		while (start<0)

@@ -114,7 +114,13 @@ namespace tobilib {
                 frag = path.erase(frag);
             }
             else if (*frag==".." && frag!=path.begin()) {
-                frag = path.erase(--frag);
+                frag--;
+                if (*frag==".." || *frag==".") {
+                    frag++;
+                    frag++;
+                    continue;
+                }
+                frag = path.erase(frag);
                 frag = path.erase(frag);
             }
             else {

@@ -7,3 +7,8 @@ selection windows
 selection linux
 	lib libtc.a 
 	add ./
+
+selection test
+	exe database-test ./testing/database/dbtest.cpp
+	exe filename-test ./testing/stringplus/filenametest.cpp
+	exe number-test ./testing/stringplus/numbers.cpp

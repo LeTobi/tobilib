@@ -1,0 +1,13 @@
+type User
+	char 40 name
+	Tipp [] tipps
+
+type Tipp
+	int goals
+	char 40 sieger
+	Game game
+	User user
+
+type Game
+	char 40 name
+	Tipp [] tipps
