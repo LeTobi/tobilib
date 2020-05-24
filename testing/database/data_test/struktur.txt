@@ -1,9 +1,11 @@
 type A
     char 50 name
     int zahl
-    decimal kommazahl
+    double kommazahl
     bool test
     B referenz
 
 type B
     char 30 name
+    A [] liste
+    int 10 zahlen
