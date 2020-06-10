@@ -1,21 +1,22 @@
 #include "jpeg.h"
 #include <jpeglib.h>
-#include "error.h"
+#include "../general/exception.hpp"
 
 namespace tobilib
 {
 	void jpeg_encoder::encode_yuv (const basicBuffer& rawdata, int width, int height)
 	{
-		// Hier fehlt eine Exception-Implementierung für libjpeg
-		// BETE DAFÜR, DASS KEIN FEHLER PASSIERT
+		// Hier fehlt eine Exception-Implementierung fï¿½r libjpeg
+		// BETE DAFï¿½R, DASS KEIN FEHLER PASSIERT
 		jpeg_compress_struct compression;
 		jpeg_error_mgr error;
 		compression.err = jpeg_std_error(&error);
 		jpeg_create_compress(&compression);
 		try {
 			buffer.open(rawdata.used);
-		} catch (buffer_error& e) {
-			throw jpeg_error(std::string("Interner Fehler: ")+e.what());
+		} catch (Exception& e) {
+			e.trace.push_back("jpeg_encoder::encode_yuv()");
+			throw e;
 		}
 		jpeg_stdio_dest(&compression,buffer.file());
 		compression.image_width = width;
@@ -26,7 +27,7 @@ namespace tobilib
 		jpeg_start_compress(&compression,true);
 		for (int i=0;i<rawdata.used;i+=3*width)
 		{
-			// ACHTUNG: Hier wird const weggecastet, weil libjpeg zu blöd für const qualifiers ist.
+			// ACHTUNG: Hier wird const weggecastet, weil libjpeg zu blï¿½d fï¿½r const qualifiers ist.
 			unsigned char * offset = reinterpret_cast<unsigned char*>(const_cast<char*>(rawdata.start()+i));
 			jpeg_write_scanlines(&compression,&offset,1);
 		}

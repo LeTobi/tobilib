@@ -1,18 +1,22 @@
 #include "base64.h"
-#include "error.h"
+#include "../general/exception.hpp"
 
-namespace tobilib
+namespace tobilib{ namespace base64
 {
 	const StringPlus b64char_order = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 	
-	StringPlus encode64(const StringPlus& text)
+	StringPlus encode(const StringPlus& text)
 	{
 		StringPlus out (0,(text.size()*4+2)/3);
 		int overflow = 0;
 		for (int i=0;i<text.size();i++)
 		{
 			if (text[i]>0xFF)
-				throw encoding_error("Ein Byte ist laenger als 8 bit");
+			{
+				Exception err ("Ein Byte hat mehr als 8 bit");
+				err.trace.push_back("base64::encode()");
+				throw err;
+			}
 			int codei = i*4/3;
 			out[codei] |= text[i]>>(2+overflow);
 			out[codei+1] |= 0x3F & (text[i]<<(4-overflow));
@@ -26,10 +30,14 @@ namespace tobilib
 		return out;
 	}
 	
-	StringPlus decode64(const StringPlus& code)
+	StringPlus decode(const StringPlus& code)
 	{
 		if (code.size()%4 != 0)
-			throw encoding_error("Der Base64-String ist kein Vielfaches von 4");
+		{
+			Exception err ("Der Base64-String ist kein Vielfaches von 4");
+			err.trace.push_back("base64::decode()");
+			throw err;
+		}
 		StringPlus out;
 		int added = code.count_all('=');
 		StringPlus c = code.replace_all("=","A");
@@ -40,11 +48,15 @@ namespace tobilib
 			int b3 = b64char_order.find(c[i+2]);
 			int b4 = b64char_order.find(c[i+3]);
 			if (b1==std::string::npos || b2==std::string::npos || b3==std::string::npos || b4==std::string::npos)
-				throw encoding_error("Es befindet sich ein ungueltiges Zeichen im Code");
+			{
+				Exception err ("Es befindet sich ein ungueltiges Zeichen im Code");
+				err.trace.push_back("base64::decode()");
+				throw err;
+			}
 			out += (b1<<2) | b2>>4;
 			out += 0xFF & (b2<<4) | (b3>>2);
 			out += 0xFF & (b3<<6) | b4;
 		}
 		return out.substr(0,out.size()-added);
 	}
-}
+}}

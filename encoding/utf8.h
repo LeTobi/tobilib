@@ -2,9 +2,8 @@
 #define TC_UTF8
 
 #include "../stringplus/stringplus.h"
-#include "error.h"
 
-namespace tobilib
+namespace tobilib { namespace utf8
 {	
 	int firstLOW (unsigned int byte);
 	
@@ -17,7 +16,7 @@ namespace tobilib
 	StringPlus encode(const StringPlus& txt);
 	
 	StringPlus decode(const StringPlus& code);
-}
+}}
 
 #ifdef TC_AS_HPP
 	#include "utf8.cpp"

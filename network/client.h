@@ -2,19 +2,11 @@
 #define NETWORK_CLIENT_H
 
 #include "endpoint.h"
+#include "../general/timer.hpp"
 
 namespace tobilib::stream
 {
-	class Client: public virtual Endpoint
-	{
-	public:
-		Callback< > on_connect;
-		virtual void connect(const std::string&, int) = 0;
-		
-		~Client(){};
-	};
-	
-	class WS_Client: public virtual Client, public virtual WS_Endpoint
+	class WS_Client: public WS_Endpoint
 	{
 	private:
 		void intern_on_resolve(const boost::system::error_code&, boost::asio::ip::tcp::resolver::results_type);
@@ -23,11 +15,19 @@ namespace tobilib::stream
 		
 		boost::asio::ip::tcp::resolver rslv;
 		std::string host;
-		bool active = false;
+		int port;
+		bool _connecting = false;
+		Timer timeout = Timer(10);
 		
 	public:
-		WS_Client(Process&);
+		enum class Status {Closed, Connecting, Active, Idle, Shutdown};
+		typedef WS_Endpoint EndpointType;
+
+		WS_Client();
 		void connect(const std::string&, int);
+		void tick();
+		Status status() const;
+		std::string mytrace() const;
 	};
 }
 

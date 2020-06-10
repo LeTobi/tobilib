@@ -2,21 +2,12 @@
 #define tc_gpio_h
 
 #include <fstream>
-#include <exception>
 
 namespace tobilib
 {
 	enum GPIO_value {
 		LOW = 0,
 		HIGH = 1
-	};
-
-	class GPIO_error: public std::exception
-	{
-	public:
-		std::string message;
-		template<class Text> GPIO_error(Text txt): message(txt) {}
-		const char* what() const noexcept {return message.c_str();}
 	};
 
 	class GPO

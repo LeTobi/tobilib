@@ -2,39 +2,72 @@
 #define TC_ACCEPTOR_H
 
 #include "endpoint.h"
+#include <set>
 
 namespace tobilib::stream
-{
-	class Acceptor
+{	
+	class WS_Acceptor
 	{
+	// DUMP //////////////////////////////////////////////////////////////////
 	public:
-		Acceptor() {};
-		Acceptor(const Acceptor&) = delete;
-		void operator=(const Acceptor&) = delete;
+		typedef WS_Endpoint EndpointType;
 		
-		virtual void start() = 0;
-		virtual void stop() = 0;
-		Callback<Endpoint*> on_accept;
-		Callback<const network_error&> on_error;
-	};
-	
-	class WS_Acceptor: public Acceptor
-	{
+		WS_Acceptor();
+		WS_Acceptor(int _port);
+		WS_Acceptor(const WS_Acceptor&) = delete;
+		~WS_Acceptor();
+		void operator=(const WS_Acceptor&) = delete;
+
+		WS_Endpoint* release();
+		bool filled() const;
+		int size() const;
+		void tick();
+		std::string mytrace() const;
+
+		Warning_list warnings;
+
 	private:
-		Process& parentproc;
-		Process myprocess;
+		std::set<WS_Endpoint*> available;
+		
+		boost::asio::io_context ioc;
+		boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard = boost::asio::make_work_guard(ioc);
+		
+	// LISTEN ////////////////////////////////////////////////////////////////
+	public:
+		enum class Status {Closed, Flush, Open};
+		int intern_port;
+		
+		Status status() const;
+		int port() const;
+		void open(int _port = 0);
+		void close();
+
+	private:
 		boost::asio::ip::tcp::acceptor accpt;
 		WS_Endpoint* client = NULL;
-		
-		void intern_on_accept1(const boost::system::error_code&);
-		void intern_on_accept2(const boost::system::error_code&);
-		
-	public:
-		WS_Acceptor(Process& proc, int port): parentproc(proc), myprocess(proc), accpt(myprocess,boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),port)) {};
-		~WS_Acceptor();
-		
-		void start();
-		void stop();
+		Status _status = Status::Closed;
+
+		void accept();
+		void on_accept(const boost::system::error_code&);
+
+	// HANDSHAKE /////////////////////////////////////////////////////////////
+	private:
+		struct Connection
+		{
+			WS_Endpoint* endpoint;
+			Timer timeout = Timer(10).set();
+			enum class Status {Idle, Open, Cancel, Closed};
+			Status _status = Status::Idle;
+			boost::asio::ip::address remote_ip;
+
+			Warning_list warnings;
+
+			void tick();
+			void on_handshake(const boost::system::error_code&);
+			std::string mytrace() const;
+		};
+		std::set<Connection*> connections;
+		int handshake_pendings() const;
 	};
 }
 

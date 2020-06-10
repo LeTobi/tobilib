@@ -1,0 +1,17 @@
+Direkter Zugriff:
+    Bekannte Datenbankelemente sollen ohne Iteration
+    und ohne Callback aufgerufen und bearbeitet werden.
+
+Fehlerresistenz:
+    Bei Lesefehlern soll die API nicht ungültig werden.
+    Eine Fehlerindikation wird gesetzt, die abgerufen werden
+    kann / muss.
+
+Skalierbarkeit:
+    Bei Grossen Datenmengen müssen Elemente schnell
+    hinzugefügt und entfernt werden können (ohne Iteration)
+
+Vernetzung:
+    Elemente können in gegenseitiger Abhängigkeit sein.
+    Diese muss in beide Richtungen direkt erkennbar sein.
+
