@@ -234,12 +234,16 @@ namespace tobilib
 	std::vector<StringPlus> StringPlus::split(const StringPlus& delim) const
 	{
 		std::vector<StringPlus> out;
+		if (delim.empty()) {
+			out.push_back(*this);
+			return out;
+		}
 		auto borders = find_all(delim);
-		borders.insert(borders.begin(),-1);
+		borders.insert(borders.begin(),-delim.size());
 		borders.push_back(size());
 		for (int i=1;i<borders.size();i++) {
-			int len = borders[i]-borders[i-1]-1;
-			out.push_back(std::u32string::substr(borders[i-1]+1,len));
+			int len = borders[i]-borders[i-1]-delim.size();
+			out.push_back(std::u32string::substr(borders[i-1]+delim.size(),len));
 		}
 		return out;
 	}
