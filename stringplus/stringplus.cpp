@@ -129,13 +129,13 @@ namespace tobilib
 	int StringPlus::toInt() const
 	{
 		if (numeric_prefix()=="0b")
-			return toBinary();
+			return toInt_Binary();
 		if (numeric_prefix()=="0x")
-			return toHex();
-		return toDecimal();
+			return toInt_Hex();
+		return toInt_Decimal();
 	}
 
-	int StringPlus::toBinary() const
+	int StringPlus::toInt_Binary() const
 	{
 		int out = stoi(numeric_body(),0,2);
 		if (numeric_sign()=="-")
@@ -143,7 +143,7 @@ namespace tobilib
 		return out;
 	}
 
-	int StringPlus::toHex() const
+	int StringPlus::toInt_Hex() const
 	{
 		int out = stoi(numeric_body(),0,16);
 		if (numeric_sign()=="-")
@@ -151,7 +151,7 @@ namespace tobilib
 		return out;
 	}
 
-	int StringPlus::toDecimal() const
+	int StringPlus::toInt_Decimal() const
 	{
 		return std::stoi(*this);
 	}

@@ -36,9 +36,9 @@ namespace tobilib
 		bool isHex() const;
 		bool isBinary() const;
 		int toInt() const;
-		int toDecimal() const;
-		int toHex() const;
-		int toBinary() const;
+		int toInt_Decimal() const;
+		int toInt_Hex() const;
+		int toInt_Binary() const;
 
 		static StringPlus make_hex(int);
 		static StringPlus make_binary(int);
