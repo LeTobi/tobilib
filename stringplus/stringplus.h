@@ -38,6 +38,7 @@ namespace tobilib
 		bool beginsWith(const StringPlus&) const;
 		int count_all(const StringPlus&) const;
 		int count_all_of(const StringPlus&) const;
+		bool consists_of(const StringPlus&) const;
 		
 		StringPlus& operator = (const std::string& val) {assign(val);return *this;};
 		StringPlus& operator = (const char * val) {assign(val);return *this;};

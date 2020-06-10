@@ -294,6 +294,13 @@ namespace tobilib
 		}
 		return out;
 	}
+
+	bool StringPlus::consists_of(const StringPlus& chars) const {
+		for (auto& c: *this)
+			if (chars.find(c)==npos)
+				return false;
+		return true;
+	}
 	
 	bool StringPlus::nameCompare (const StringPlus& a, const StringPlus& b, const StringPlus& conversion_table)
 	{
