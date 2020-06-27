@@ -36,9 +36,9 @@ namespace tobilib
 		bool isHex() const;
 		bool isBinary() const;
 		int toInt() const;
-		int toDecimal() const;
-		int toHex() const;
-		int toBinary() const;
+		int toInt_Decimal() const;
+		int toInt_Hex() const;
+		int toInt_Binary() const;
 
 		static StringPlus make_hex(int);
 		static StringPlus make_binary(int);
@@ -62,6 +62,7 @@ namespace tobilib
 		bool beginsWith(const StringPlus&) const;
 		int count_all(const StringPlus&) const;
 		int count_all_of(const StringPlus&) const;
+		bool consists_of(const StringPlus&) const;
 		
 		StringPlus& operator = (const std::string& val) {assign(val);return *this;};
 		StringPlus& operator = (const char * val) {assign(val);return *this;};

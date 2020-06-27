@@ -129,13 +129,13 @@ namespace tobilib
 	int StringPlus::toInt() const
 	{
 		if (numeric_prefix()=="0b")
-			return toBinary();
+			return toInt_Binary();
 		if (numeric_prefix()=="0x")
-			return toHex();
-		return toDecimal();
+			return toInt_Hex();
+		return toInt_Decimal();
 	}
 
-	int StringPlus::toBinary() const
+	int StringPlus::toInt_Binary() const
 	{
 		int out = stoi(numeric_body(),0,2);
 		if (numeric_sign()=="-")
@@ -143,7 +143,7 @@ namespace tobilib
 		return out;
 	}
 
-	int StringPlus::toHex() const
+	int StringPlus::toInt_Hex() const
 	{
 		int out = stoi(numeric_body(),0,16);
 		if (numeric_sign()=="-")
@@ -151,7 +151,7 @@ namespace tobilib
 		return out;
 	}
 
-	int StringPlus::toDecimal() const
+	int StringPlus::toInt_Decimal() const
 	{
 		return std::stoi(*this);
 	}
@@ -234,12 +234,16 @@ namespace tobilib
 	std::vector<StringPlus> StringPlus::split(const StringPlus& delim) const
 	{
 		std::vector<StringPlus> out;
+		if (delim.empty()) {
+			out.push_back(*this);
+			return out;
+		}
 		auto borders = find_all(delim);
-		borders.insert(borders.begin(),-1);
+		borders.insert(borders.begin(),-delim.size());
 		borders.push_back(size());
 		for (int i=1;i<borders.size();i++) {
-			int len = borders[i]-borders[i-1]-1;
-			out.push_back(std::u32string::substr(borders[i-1]+1,len));
+			int len = borders[i]-borders[i-1]-delim.size();
+			out.push_back(std::u32string::substr(borders[i-1]+delim.size(),len));
 		}
 		return out;
 	}
@@ -354,6 +358,13 @@ namespace tobilib
 	
 	int StringPlus::count_all_of(const StringPlus& targets) const {
 		return find_all_of(targets).size();
+	}
+
+	bool StringPlus::consists_of(const StringPlus& chars) const {
+		for (auto& c: *this)
+			if (chars.find(c)==npos)
+				return false;
+		return true;
 	}
 	
 	bool StringPlus::nameCompare (const StringPlus& a, const StringPlus& b, const StringPlus& conversion_table) {
