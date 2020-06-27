@@ -12,3 +12,4 @@ selection test
 	exe database-test ./testing/database/dbtest.cpp
 	exe filename-test ./testing/stringplus/filenametest.cpp
 	exe number-test ./testing/stringplus/numbers.cpp
+	exe ws-echoserver ./testing/network/ws_echoserver.cpp

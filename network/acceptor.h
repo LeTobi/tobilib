@@ -1,78 +1,28 @@
-#ifndef TC_ACCEPTOR_H
-#define TC_ACCEPTOR_H
+#ifndef TC_NETWORK_ACCEPTOR
+#define TC_NETWORK_ACCEPTOR
 
-#include "endpoint.h"
-#include <set>
+#include <boost/asio.hpp>
 
-namespace tobilib::stream
-{	
-	class WS_Acceptor
-	{
-	// DUMP //////////////////////////////////////////////////////////////////
-	public:
-		typedef WS_Endpoint EndpointType;
-		
-		WS_Acceptor();
-		WS_Acceptor(int _port);
-		WS_Acceptor(const WS_Acceptor&) = delete;
-		~WS_Acceptor();
-		void operator=(const WS_Acceptor&) = delete;
+namespace tobilib {
+namespace network {
 
-		WS_Endpoint* release();
-		bool filled() const;
-		int size() const;
-		void tick();
-		std::string mytrace() const;
+    class Server_Endpoint;
+    class WS_Server_Endpoint;
 
-		Warning_list warnings;
+    class Acceptor {
+    public:
+        Acceptor(unsigned int);
 
-	private:
-		std::set<WS_Endpoint*> available;
-		
-		boost::asio::io_context ioc;
-		boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard = boost::asio::make_work_guard(ioc);
-		
-	// LISTEN ////////////////////////////////////////////////////////////////
-	public:
-		enum class Status {Closed, Flush, Open};
-		int intern_port;
-		
-		Status status() const;
-		int port() const;
-		void open(int _port = 0);
-		void close();
+    private:
+        friend class Server_Endpoint;
 
-	private:
-		boost::asio::ip::tcp::acceptor accpt;
-		WS_Endpoint* client = NULL;
-		Status _status = Status::Closed;
+        boost::asio::io_context ioc;
+        boost::asio::ip::tcp::acceptor acceptor;
+        unsigned int _port;
+        bool occupied = false;
+    };
 
-		void accept();
-		void on_accept(const boost::system::error_code&);
-
-	// HANDSHAKE /////////////////////////////////////////////////////////////
-	private:
-		struct Connection
-		{
-			WS_Endpoint* endpoint;
-			Timer timeout = Timer(10).set();
-			enum class Status {Idle, Open, Cancel, Closed};
-			Status _status = Status::Idle;
-			boost::asio::ip::address remote_ip;
-
-			Warning_list warnings;
-
-			void tick();
-			void on_handshake(const boost::system::error_code&);
-			std::string mytrace() const;
-		};
-		std::set<Connection*> connections;
-		int handshake_pendings() const;
-	};
-}
-
-#ifdef TC_AS_HPP
-	#include "acceptor.cpp"
-#endif
+} // namespace network
+} // namespace tobilib
 
 #endif
