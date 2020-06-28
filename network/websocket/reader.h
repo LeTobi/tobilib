@@ -2,6 +2,8 @@
 #define TC_WEBSOCKET_READER_H
 
 #include <boost/beast.hpp>
+#include <boost/asio.hpp>
+#include "../../general/queue.hpp"
 #include "../../general/timer.hpp"
 
 namespace tobilib {
@@ -25,7 +27,7 @@ namespace detail {
     class WS_Reader
     {
     public:
-        WS_Reader(boost::beast::websocket::stream<boost::asio::ip::tcp::socket>&, WS_reader_options*);
+        WS_Reader(boost::beast::websocket::stream<boost::asio::ip::tcp::socket>&, WS_reader_options&);
 
         void tick();
         bool is_inactive() const;
@@ -33,17 +35,17 @@ namespace detail {
         void start_reading();
         void reset();
         std::string data;
-        std::queue<WS_reader_event> events;
+        Queue<WS_reader_event> events;
 
     private:
         boost::beast::websocket::stream<boost::asio::ip::tcp::socket>& socket;
-        WS_reader_options* options;
+        WS_reader_options& options;
         boost::asio::streambuf buffer;
         Timer inactive_timer;
         Timer deadline_timer;
         bool reading = false;
         bool inactive = false;
-        void on_data_read(const boost::system::error_code&, size_t);
+        void on_data_read(const boost::system::error_code&, std::size_t);
     };
 
 } // namespace detail

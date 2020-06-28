@@ -10,10 +10,10 @@ namespace network {
 
 class WS_Endpoint;
 
-struct WS_Options: public details::WS_writer_options, public details::WS_reader_options
+struct WS_Options: public detail::WS_writer_options, public detail::WS_reader_options
 {
     double connection_timeout = 0;
-}
+};
 
 class WS_Endpoint : public virtual Endpoint
 {

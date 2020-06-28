@@ -21,6 +21,11 @@ void WS_Server_Endpoint::tick()
     if (tcp_connected)
     {
         tcp_connected = false;
+        if (tcp_result)
+        {
+            fail(tcp_result.message());
+            return;
+        }
         socket.async_accept(boost::bind(&WS_Server_Endpoint::on_handshake,this,_1));
     }
 }
@@ -30,14 +35,17 @@ void WS_Server_Endpoint::connect()
     if (status()!=Status::unused)
         throw Exception("Implementierungsfehler: connect() mit falschem status","WS_Server_Endpoint::connect()");
     set_connecting();
+    if (options.connection_timeout>0)
+        timeout.set(options.connection_timeout);
     tcp_connect(socket.next_layer());
 }
 
 void WS_Server_Endpoint::on_handshake(const boost::system::error_code& ec)
 {
+    timeout.disable();
     if (ec)
     {
-        fail("Handshake error");
+        fail("WS-Handshake error");
         return;
     }
     start_reading();

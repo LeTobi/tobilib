@@ -4,7 +4,7 @@
 #include <string>
 #include <sstream>
 #include <boost/asio.hpp>
-#include <queue>
+#include "../general/queue.hpp"
 #include "../general/exception.hpp"
 #include "acceptor.h"
 
@@ -49,8 +49,7 @@ public:
     virtual void abort() = 0;
     virtual void reset() = 0;
     
-    std::queue<Event> events;
-
+    Queue<Event> events;
 protected:
     void fail(const std::string&);
     void set_unused();
@@ -65,8 +64,8 @@ protected:
 
 private:
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard = boost::asio::make_work_guard(ioc);
-    Status _status = Status::closed;
-
+    Status _status = Status::unused;
+    
 };
 
 class Server_Endpoint : public virtual Endpoint
@@ -82,7 +81,8 @@ protected:
     boost::system::error_code tcp_result;
 
 private:
-    void on_connect(const boost::system::error_code&, boost::asio::ip::tcp::socket&);
+    void on_connect(const boost::system::error_code&, boost::asio::ip::tcp::socket*);
+    bool tcp_connecting = false;
 };
 
 class Client_Endpoint : public virtual Endpoint

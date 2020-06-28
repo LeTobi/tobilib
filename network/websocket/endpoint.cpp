@@ -3,8 +3,10 @@
 
 using namespace tobilib;
 using namespace network;
+using namespace detail;
 
 WS_Endpoint::WS_Endpoint():
+    socket(ioc),
     reader(socket,options),
     writer(socket,options)
 { }
@@ -21,6 +23,8 @@ void WS_Endpoint::tick()
 
 void WS_Endpoint::write(const std::string& msg)
 {
+    if (!is_connected())
+        throw Exception("Implementierungsfehler: write() ohne Verbindung","WS_Endpoint::write()");
     writer.send_data(msg);
 }
 
@@ -43,16 +47,19 @@ unsigned int WS_Endpoint::recv_size() const
 
 void WS_Endpoint::close()
 {
+    if (!is_connected())
+        throw Exception("Implementierungsfehler: close() ohne Verbindung","WS_Endpoint::close()");
     set_closing();
     writer.send_close();
 }
 
 void WS_Endpoint::abort()
 {
-    // TODO testen welche errorcodes entstehen
+    socket.next_layer().close();
     ioc.stop();
     ioc.run();
-    set_closed();
+    if (is_good())
+        set_closed();
 }
 
 void WS_Endpoint::reset()
@@ -60,8 +67,9 @@ void WS_Endpoint::reset()
     abort();
     reader.reset();
     writer.reset();
-    while (!events.empty())
-        events.pop();
+    ioc.restart();
+    events.clear();
+    set_unused();
 }
 
 void WS_Endpoint::ws_endpoint_tick()
@@ -69,9 +77,10 @@ void WS_Endpoint::ws_endpoint_tick()
     ioc.poll_one();
     writer.tick();
     reader.tick();
+    if (!is_good())
+        return;
     while (!writer.events.empty())
-    {
-        switch(writer.events.front())
+        switch(writer.events.next())
         {
         case WS_writer_event::send_timeout:
             log << "send_timeout" << std::endl;
@@ -85,11 +94,8 @@ void WS_Endpoint::ws_endpoint_tick()
             fail("error sending data");
             break;
         }
-        writer.events.pop();
-    }
     while (!reader.events.empty())
-    {
-        switch(reader.events.front())
+        switch(reader.events.next())
         {
         case WS_reader_event::data_arrived:
             events.push(Event::read);
@@ -105,15 +111,20 @@ void WS_Endpoint::ws_endpoint_tick()
             fail("reading error");
             break;
         case WS_reader_event::shutdown:
+            {
+            boost::system::error_code ec;
+            socket.next_layer().shutdown(boost::asio::socket_base::shutdown_type::shutdown_both, ec);
+            socket.next_layer().close();
             set_closed();
+            }
             break;
         }
-        reader.events.pop();
-    }
 }
 
 void WS_Endpoint::start_reading()
 {
+    if (status() != Status::connecting)
+        throw Exception("Implementierungsfehler: start_reading()","WS_Endpoint::start_reading()");
     set_connected();
     reader.start_reading();
 }

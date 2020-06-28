@@ -2,6 +2,7 @@
 #define TC_WEBSOCKET_WRITER_H
 
 #include <boost/beast.hpp>
+#include "../../general/queue.hpp"
 #include "../../general/timer.hpp"
 
 namespace tobilib {
@@ -23,7 +24,7 @@ namespace detail {
     class WS_Writer
     {
     public:
-        WS_Writer(boost::beast::websocket::stream<boost::asio::ip::tcp::socket>&, WS_writer_options*);
+        WS_Writer(boost::beast::websocket::stream<boost::asio::ip::tcp::socket>&, WS_writer_options&);
 
         void tick();
         void send_data(const std::string&);
@@ -31,10 +32,10 @@ namespace detail {
         bool is_busy() const;
         void reset();
 
-        std::queue<WS_writer_event> events;
+        Queue<WS_writer_event> events;
     private:
         boost::beast::websocket::stream<boost::asio::ip::tcp::socket>& socket;
-        WS_writer_options* options;
+        WS_writer_options& options;
         std::string data_queue;
         std::string data_sending;
         bool writing = false;

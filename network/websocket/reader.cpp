@@ -1,10 +1,16 @@
 #include "reader.h"
+#include "../../general/exception.hpp"
+#include <boost/bind.hpp>
+#include <boost/bind/placeholders.hpp>
 
 using namespace tobilib;
-using namespace network;
 using namespace detail;
+using boost::placeholders::_1;
+using boost::placeholders::_2;
 
-WS_Reader::WS_Reader(WS_Endpoint* wse): parent(wse)
+WS_Reader::WS_Reader(boost::beast::websocket::stream<boost::asio::ip::tcp::socket>& _socket, WS_reader_options& _options):
+    socket(_socket),
+    options(_options)
 { }
 
 void WS_Reader::tick()
@@ -13,12 +19,12 @@ void WS_Reader::tick()
     {
         inactive_timer.disable();
         inactive = true;
-        events.push(WS_reader_event::inactive_warning)
+        events.push(WS_reader_event::inactive_warning);
     }
     if (deadline_timer.due())
     {
         deadline_timer.disable();
-        events.push(WS_reader_event::inactive_shutdown)
+        events.push(WS_reader_event::inactive_shutdown);
         return;
     }
 }
@@ -33,12 +39,13 @@ void WS_Reader::start_reading()
     if (reading)
         return;
     if (options.inactive_warning>0)
-        inactive_timer.set(options.inactive_timeout);
+        inactive_timer.set(options.inactive_warning);
     if (options.inactive_shutdown>0)
         deadline_timer.set(options.inactive_shutdown);
-    parent->socket.async_read(
+    reading = true;
+    socket.async_read(
         buffer,
-        boost::bind(&on_data_read,this,_1)
+        boost::bind(&WS_Reader::on_data_read,this,_1,_2)
     );
 }
 
@@ -51,11 +58,10 @@ void WS_Reader::reset()
     inactive_timer.disable();
     deadline_timer.disable();
     inactive=false;
-    while (!events.empty())
-        events.pop();
+    events.clear();
 }
 
-void WS_Reader::on_data_read(const boost::system::error_code& ec, size_t read)
+void WS_Reader::on_data_read(const boost::system::error_code& ec, std::size_t read)
 {
     reading = false;
     inactive = false;
@@ -64,12 +70,13 @@ void WS_Reader::on_data_read(const boost::system::error_code& ec, size_t read)
     if (ec)
     {
         if (ec.value() == (int)boost::beast::websocket::error::closed) {
-            events.push(WS_reader_event::shutdown)
+            events.push(WS_reader_event::shutdown);
             return;
         }
-        events.push(WS_reader_event::read_error)
+        events.push(WS_reader_event::read_error);
         return;
     }
+    events.push(WS_reader_event::data_arrived);
     unsigned int oldlen = data.size();
     data.resize(oldlen+read);
     buffer.sgetn(&data.front()+oldlen,read);
