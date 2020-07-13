@@ -16,11 +16,6 @@ bool WS_Endpoint::is_inactive() const
     return reader.is_inactive();
 }
 
-void WS_Endpoint::tick()
-{
-    ws_endpoint_tick();
-}
-
 void WS_Endpoint::write(const std::string& msg)
 {
     if (!is_connected())
@@ -30,6 +25,8 @@ void WS_Endpoint::write(const std::string& msg)
 
 std::string WS_Endpoint::read(unsigned int len)
 {
+    if (len==0)
+        len = reader.data.size();
     std::string out = reader.data.substr(0,len);
     reader.data = reader.data.substr(len);
     return out;
@@ -37,6 +34,8 @@ std::string WS_Endpoint::read(unsigned int len)
 
 std::string WS_Endpoint::peek(unsigned int len) const
 {
+    if (len==0)
+        len = reader.data.size();
     return reader.data.substr(0,len);
 }
 
@@ -51,25 +50,6 @@ void WS_Endpoint::close()
         throw Exception("Implementierungsfehler: close() ohne Verbindung","WS_Endpoint::close()");
     set_closing();
     writer.send_close();
-}
-
-void WS_Endpoint::abort()
-{
-    socket.next_layer().close();
-    ioc.stop();
-    ioc.run();
-    if (is_good())
-        set_closed();
-}
-
-void WS_Endpoint::reset()
-{
-    abort();
-    reader.reset();
-    writer.reset();
-    ioc.restart();
-    events.clear();
-    set_unused();
 }
 
 void WS_Endpoint::ws_endpoint_tick()
@@ -108,17 +88,32 @@ void WS_Endpoint::ws_endpoint_tick()
             close();
             break;
         case WS_reader_event::read_error:
-            fail("reading error");
+            socket.next_layer().close();
+            if (status()==Status::closing)
+                set_closed();
+            else
+                fail("reading error");
             break;
         case WS_reader_event::shutdown:
-            {
-            boost::system::error_code ec;
-            socket.next_layer().shutdown(boost::asio::socket_base::shutdown_type::shutdown_both, ec);
             socket.next_layer().close();
             set_closed();
-            }
             break;
         }
+}
+
+void WS_Endpoint::ws_endpoint_abort()
+{
+    socket.next_layer().close();
+    while (reader.is_reading() || writer.is_busy())
+        ioc.poll_one();
+    reader.events.clear();
+    writer.events.clear();
+}
+
+void WS_Endpoint::ws_endpoint_reset()
+{
+    reader.reset();
+    writer.reset();
 }
 
 void WS_Endpoint::start_reading()

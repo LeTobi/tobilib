@@ -21,19 +21,18 @@ public:
     WS_Endpoint();
 
     bool is_inactive() const;
-    virtual void tick();
     void write(const std::string&);
     std::string read(unsigned int len=0);
     std::string peek(unsigned int len=0) const;
     unsigned int recv_size() const;
     void close();
-    void abort();
-    void reset();
 
     WS_Options options;
 
 protected:
     void ws_endpoint_tick();
+    void ws_endpoint_abort();
+    void ws_endpoint_reset();
     void start_reading();
 
     boost::beast::websocket::stream<boost::asio::ip::tcp::socket> socket;

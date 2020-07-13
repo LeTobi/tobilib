@@ -31,6 +31,7 @@ namespace detail {
 
         void tick();
         bool is_inactive() const;
+        bool is_reading() const;
         
         void start_reading();
         void reset();

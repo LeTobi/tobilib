@@ -1,16 +1,15 @@
-#ifndef TC_WEBSOCKET_SERVERENDPOINT_H
-#define TC_WEBSOCKET_SERVERENDPOINT_H
+#ifndef TC_NETWORK_WSCLIENT
+#define TC_NETWORK_WSCLIENT
 
-#include "../interface.h"
 #include "endpoint.h"
 
 namespace tobilib {
 namespace network {
 
-    class WS_Server_Endpoint: public Server_Endpoint, public WS_Endpoint
+    class WS_Client_Endpoint: public Client_Endpoint, public WS_Endpoint
     {
     public:
-        WS_Server_Endpoint(Acceptor&);
+        WS_Client_Endpoint(const std::string&, unsigned int);
 
         void tick();
         void connect();
@@ -20,7 +19,6 @@ namespace network {
     private:
         Timer timeout;
         bool handshaking = false;
-
         void on_handshake(const boost::system::error_code&);
     };
 

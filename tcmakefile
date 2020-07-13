@@ -13,6 +13,10 @@ selection test
 	exe filename-test ./testing/stringplus/filenametest.cpp
 	exe number-test ./testing/stringplus/numbers.cpp
 	exe ws-echoserver ./testing/network/ws_echoserver.cpp
-	link pthread
-	link boost_system
-	link boost_thread
+		link pthread
+		link boost_system
+		link boost_thread
+	exe ws-client ./testing/network/ws_client.cpp
+		link pthread
+		link boost_system
+		link boost_thread

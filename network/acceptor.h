@@ -18,6 +18,7 @@ namespace network {
 
         boost::asio::io_context ioc;
         boost::asio::ip::tcp::acceptor acceptor;
+        boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard = boost::asio::make_work_guard(ioc);
         unsigned int _port;
         bool occupied = false;
     };

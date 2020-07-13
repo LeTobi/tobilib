@@ -34,6 +34,11 @@ bool WS_Reader::is_inactive() const
     return inactive;
 }
 
+bool WS_Reader::is_reading() const
+{
+    return reading;
+}
+
 void WS_Reader::start_reading()
 {
     if (reading)
