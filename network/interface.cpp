@@ -6,183 +6,243 @@
 
 using namespace tobilib;
 using namespace network;
+using namespace detail;
 using boost::placeholders::_1;
 using boost::placeholders::_2;
 
-Endpoint::Status Endpoint::status() const
+template<class StackConfig>
+Endpoint<StackConfig>::Endpoint(Acceptor& _acceptor):
+    socket(ioc),
+    reader(options,socket),
+    writer(options,socket),
+    closer(socket,ioc,log)
+{
+    connector = new typename StackConfig::ServerConnector(_acceptor,socket,ioc,options);
+}
+
+template<class StackConfig>
+Endpoint<StackConfig>::Endpoint(const std::string& _address, unsigned int _port):
+    socket(ioc),
+    reader(options,socket),
+    writer(options,socket),
+    closer(socket,ioc,log)
+{
+    connector = new typename StackConfig::ClientConnector(_address,_port,socket,ioc,options);
+}
+
+template<class StackConfig>
+Endpoint<StackConfig>::~Endpoint()
+{
+    delete connector;
+}
+
+template<class StackConfig>
+EndpointStatus Endpoint<StackConfig>::status() const
 {
     return _status;
 }
 
-bool Endpoint::is_good() const
+template<class StackConfig>
+bool Endpoint<StackConfig>::is_connected() const
 {
-    return _status != Status::error;
+    return _status == EndpointStatus::connected;
 }
 
-bool Endpoint::is_connected() const
+template<class StackConfig>
+bool Endpoint<StackConfig>::is_closed() const
 {
-    return _status == Status::connected;
+    return _status == EndpointStatus::closed;
 }
 
-bool Endpoint::is_closed() const
-{
-    return _status == Status::closed;
-}
-
-boost::asio::ip::address Endpoint::remote_ip() const
+template<class StackConfig>
+boost::asio::ip::address Endpoint<StackConfig>::remote_ip() const
 {
     return _remote_ip;
 }
 
-void Endpoint::fail(const std::string& msg)
+template<class StackConfig>
+void Endpoint<StackConfig>::tick()
 {
-    if (_status != Status::error)
-        events.push(Event::failed);
-    _status = Status::error;
-    log << msg << std::endl;
-}
+    ioc.poll_one();
 
-void Endpoint::set_connecting()
-{
-    _status = Status::connecting;
-}
-
-void Endpoint::set_connected()
-{
-    if (_status != Status::connected)
-        events.push(Event::connected);
-    _status = Status::connected;
-}
-
-void Endpoint::set_closing()
-{
-    _status = Status::closing;
-}
-
-void Endpoint::set_closed()
-{
-    if (_status != Status::closed)
-        events.push(Event::closed);
-    _status = Status::closed;
-}
-
-void Endpoint::endpoint_abort()
-{ }
-
-void Endpoint::endpoint_reset()
-{
-    ioc.restart();
-    events.clear();
-    _status = Status::unused;
-}
-
-Server_Endpoint::Server_Endpoint(Acceptor& acceptor): _acceptor(acceptor)
-{  
-    _port = _acceptor._port;
-}
-
-Server_Endpoint::~Server_Endpoint()
-{
-    server_endpoint_abort();
-}
-
-void Server_Endpoint::server_endpoint_tick()
-{
-    if (true)
-        _acceptor.ioc.poll_one();
-}
-
-void Server_Endpoint::tcp_connect(boost::asio::ip::tcp::socket& socket)
-{
-    if (_acceptor.occupied)
-        throw Exception("Implementierungsfehler: Maximal 1 Endpoint in der Warteschlange","Server_Endpoint::tcp_connect()");
-    tcp_connected = false;
-    _acceptor.occupied = true;
-    tcp_connecting = true;
-    _acceptor.acceptor.async_accept(socket,boost::bind(&Server_Endpoint::on_connect,this,_1,&socket));
-}
-
-void Server_Endpoint::server_endpoint_abort()
-{
-    if (tcp_connecting)
+    reader.tick();
+    if (reader.warning)
     {
-        _acceptor.acceptor.cancel();
-        while (tcp_connecting)
-            _acceptor.ioc.poll_one();
-        _acceptor.acceptor.listen();
+        reader.warning = false;
+        events.push(EndpointEvent::inactive);
+    }
+    if (reader.inactive)
+    {
+        reader.inactive = false;
+        log << "Inaktiver Endpunkt" << std::endl;
+        close();
+    }
+    if (reader.error)
+    {
+        reader.error.clear();
+        reset();
+    }
+    if (reader.received)
+    {
+        reader.received = false;
+        events.push(EndpointEvent::received);
+    }
+
+    writer.tick();
+    if (writer.timed_out)
+    {
+        writer.timed_out = false;
+        log << "Zeitueberschreitung beim Schreibvorgang" << std::endl;
+        close();
+    }
+    if (writer.error)
+    {
+        log << "Schreibfehler: " << writer.error.message() << std::endl;
+        writer.error.clear();
+        close();
+    }
+    if (writer.written)
+    {
+        writer.written=false;
+        if (_status==EndpointStatus::closing)
+            closer.close();
+    }
+
+    connector->tick();
+    if (connector->finished)
+    {
+        connector->finished = false;
+        connect_timer.disable();
+        if (connector->error)
+        {
+            log << connector->error.message() << std::endl;
+            reset();
+        }
+        else
+        {
+            set_connected();
+            _remote_ip = connector->remote_ip;
+            reader.start_reading();
+        }
+    }
+    
+    if (connect_timer.due())
+    {
+        connect_timer.disable();
+        log << "Zeitueberschreitung bei Verbindungsvorgang" << std::endl;
+        close();
+    }
+    if (close_timer.due())
+    {
+        close_timer.disable();
+        log << "Zeitueberschreitung bei Schliessvorgang" << std::endl;
+        reset();
     }
 }
 
-void Server_Endpoint::server_endpoint_reset()
-{ 
-    tcp_connected = false;
+template<class StackConfig>
+void Endpoint<StackConfig>::connect()
+{
+    if (_status != EndpointStatus::closed)
+        throw Exception("connect() in falschem Zustand","Endpoint::connect()");
+    if (options.connect_timeout>0)
+        connect_timer.set(options.connect_timeout);
+    connector->connect();
+    set_connecting();
 }
 
-void Server_Endpoint::on_connect(const boost::system::error_code& ec, boost::asio::ip::tcp::socket* socket)
+template<class StackConfig>
+void Endpoint<StackConfig>::write(const std::string& msg)
 {
-    _acceptor.occupied=false;
-    tcp_connecting = false;
-    tcp_connected = true;
-    tcp_result = ec;
-    if (ec)
+    if (_status != EndpointStatus::connected)
+        throw Exception("Schreiben in ungueltigem Zustand","Endpoint::write()");
+    writer.send_data(msg);
+}
+
+template<class StackConfig>
+std::string Endpoint<StackConfig>::read(unsigned int len)
+{
+    if (len==0)
+        len = reader.data.size();
+    std::string out = reader.data.substr(0,len);
+    reader.data = reader.data.substr(len);
+    return out;
+}
+
+template<class StackConfig>
+std::string Endpoint<StackConfig>::peek(unsigned int len) const
+{
+    if (len==0)
+        len = reader.data.size();
+    return reader.data.substr(0,len);
+}
+
+template<class StackConfig>
+unsigned int Endpoint<StackConfig>::recv_size() const
+{
+    return reader.data.size();
+}
+
+template<class StackConfig>
+void Endpoint<StackConfig>::close()
+{
+    if (_status==EndpointStatus::closing)
         return;
-    try {
-        _remote_ip = socket->remote_endpoint().address();
-    } catch (boost::system::system_error& err) {
-        log << err.what() << std::endl;
-    }
-}
-
-Client_Endpoint::Client_Endpoint(const std::string& host, unsigned int port): resolver(ioc)
-{
-    _host = host;
-    _port = port;
-}
-
-void Client_Endpoint::tcp_connect(boost::asio::ip::tcp::socket& socket)
-{
-    tcp_connecting = true;
-    socket_to_connect = &socket;
-    resolver.async_resolve(_host,std::to_string(_port),boost::bind(&Client_Endpoint::on_resolve,this,_1,_2));
-}
-
-void Client_Endpoint::client_endpoint_tick()
-{ }
-
-void Client_Endpoint::client_endpoint_abort()
-{
-    if (tcp_connecting)
+    if (_status!=EndpointStatus::connected)
     {
-        resolver.cancel();
-        socket_to_connect->close();
-        while (tcp_connecting)
-            ioc.poll_one();
-    }
-}
-
-void Client_Endpoint::client_endpoint_reset()
-{
-    tcp_connected = false;
-}
-
-void Client_Endpoint::on_resolve(
-    const boost::system::error_code& ec,
-    boost::asio::ip::tcp::resolver::results_type results)
-{
-    if (ec)
-    {
-        tcp_result = ec;
-        tcp_connecting = false;
-        tcp_connected = true;
+        reset();
         return;
     }
-    boost::asio::async_connect(*socket_to_connect,results,boost::bind(&Client_Endpoint::on_connect,this,_1,_2));
+    if (options.close_timeout>0)
+        close_timer.set(options.close_timeout);
+    set_closing();
+    if (!writer.is_busy())
+        closer.close();
 }
 
-void Client_Endpoint::on_connect(const boost::system::error_code& ec, const boost::asio::ip::tcp::endpoint& endpoint)
+template<class StackConfig>
+void Endpoint<StackConfig>::reset()
 {
-    _remote_ip = endpoint.address();
-    tcp_result = ec;
-    tcp_connecting = false;
-    tcp_connected = true;
+    if (_status==EndpointStatus::closed)
+        return;
+    connector->reset();
+    connect_timer.disable();
+    close_timer.disable();
+    closer.reset();
+    while (reader.is_reading() || writer.is_busy())
+        ioc.poll_one();
+    reader.reset();
+    writer.reset();
+    set_closed();
 }
+
+template<class StackConfig>
+void Endpoint<StackConfig>::set_connecting()
+{
+    _status = EndpointStatus::connecting;
+}
+
+template<class StackConfig>
+void Endpoint<StackConfig>::set_connected()
+{
+    if (_status != EndpointStatus::connected)
+        events.push(EndpointEvent::connected);
+    _status = EndpointStatus::connected;
+}
+
+template<class StackConfig>
+void Endpoint<StackConfig>::set_closing()
+{
+    _status = EndpointStatus::closing;
+}
+
+template<class StackConfig>
+void Endpoint<StackConfig>::set_closed()
+{
+    if (_status != EndpointStatus::closed)
+        events.push(EndpointEvent::closed);
+    _status = EndpointStatus::closed;
+}
+
+template class Endpoint<Config_TCP>;
+template class Endpoint<Config_WS>;

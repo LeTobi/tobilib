@@ -12,6 +12,14 @@ selection test
 	exe database-test ./testing/database/dbtest.cpp
 	exe filename-test ./testing/stringplus/filenametest.cpp
 	exe number-test ./testing/stringplus/numbers.cpp
+	exe tcp-echoserver ./testing/network/tcp_echoserver.cpp
+		link pthread
+		link boost_system
+		link boost_thread
+	exe tcp-client ./testing/network/tcp_client.cpp
+		link pthread
+		link boost_system
+		link boost_thread
 	exe ws-echoserver ./testing/network/ws_echoserver.cpp
 		link pthread
 		link boost_system

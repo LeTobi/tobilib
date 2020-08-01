@@ -7,12 +7,11 @@ using namespace network;
 int main()
 {
     Acceptor accpt (15432);
-    WS_Endpoint endpoint (accpt);
+    TCP_Endpoint endpoint (accpt);
     endpoint.options.inactive_warning = 5;
     endpoint.options.read_timeout = 10;
-    endpoint.options.handshake_timeout = 3;
     endpoint.connect();
-    std::cout << "Websocket-echoserver auf Port 15432" << std::endl;
+    std::cout << "TCP echoserver auf Port 15432" << std::endl;
     while (true)
     {
         endpoint.tick();

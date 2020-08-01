@@ -1,0 +1,59 @@
+#ifndef TC_TCP_H
+#define TC_TCP_H
+
+#include <boost/asio.hpp>
+#include "../general/timer.hpp"
+
+namespace tobilib{
+namespace network{
+
+    struct ConnectorOptions
+    {
+        double handshake_timeout = 0;
+    };
+
+namespace detail
+{
+    class Connector
+    {
+    public:
+        Connector(ConnectorOptions& _options): options(_options) {};
+
+        boost::system::error_code error;
+        boost::asio::ip::address remote_ip;
+        bool finished = false;
+        virtual void tick() = 0;
+        virtual void connect() = 0;
+        virtual void reset() = 0;
+        virtual ~Connector() = 0;
+
+    protected:
+        ConnectorOptions& options;
+    };
+
+    class TCP_Client_Connect: public Connector
+    {
+    public:
+        TCP_Client_Connect(const std::string&, unsigned int, boost::asio::ip::tcp::socket&, boost::asio::io_context&,ConnectorOptions&);
+
+        void tick();
+        void connect();
+        void reset();
+        
+    private:
+        boost::asio::ip::tcp::socket& socket;
+        boost::asio::io_context& ioc;
+        boost::asio::ip::tcp::resolver resolver;
+        std::string target_address;
+        unsigned int target_port;
+        bool active = false;
+
+        void on_resolve(const boost::system::error_code&, boost::asio::ip::tcp::resolver::results_type);
+        void on_connect(const boost::system::error_code&, const boost::asio::ip::tcp::endpoint&);
+    };
+
+} // namespace detail
+} // namespace network
+} // namespace tobilib
+
+#endif

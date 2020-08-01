@@ -4,17 +4,18 @@
 using namespace tobilib;
 using namespace network;
 
-void send(WS_Endpoint* ep)
+void send(TCP_Endpoint* ep)
 {
     std::cout << "your message: ";
     std::string msg;
     std::cin >> msg;
+    msg += "\n";
     ep->write(msg);
 }
 
 int main()
 {
-    std::cout << "***Synchronous Websocket-Client***" << std::endl;
+    std::cout << "***Synchronous TCP-Client***" << std::endl;
     std::cout << "enter address:" << std::endl;
     std::string host;
     std::cin >> host;
@@ -22,7 +23,7 @@ int main()
     unsigned int port;
     std::cin >> port;
 
-    WS_Endpoint endpoint (host,port);
+    TCP_Endpoint endpoint (host,port);
     endpoint.options.connect_timeout = 5;
     endpoint.connect();
     while (true)
@@ -45,6 +46,5 @@ int main()
         case EndpointEvent::closed:
             std::cout << "Connection closed" << std::endl;
             return 0;
-        }
     }
 }
