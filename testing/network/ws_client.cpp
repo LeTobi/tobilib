@@ -9,7 +9,10 @@ void send(WS_Endpoint* ep)
     std::cout << "your message: ";
     std::string msg;
     std::cin >> msg;
-    ep->write(msg);
+    if (msg=="quit")
+        ep->close();
+    else
+        ep->write(msg);
 }
 
 int main()

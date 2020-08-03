@@ -24,6 +24,7 @@ namespace detail
         bool finished = false;
         virtual void tick() = 0;
         virtual void connect() = 0;
+        virtual bool is_async() const = 0;
         virtual void reset() = 0;
         virtual ~Connector() = 0;
 
@@ -38,6 +39,7 @@ namespace detail
 
         void tick();
         void connect();
+        bool is_async() const;
         void reset();
         
     private:
@@ -46,7 +48,9 @@ namespace detail
         boost::asio::ip::tcp::resolver resolver;
         std::string target_address;
         unsigned int target_port;
-        bool active = false;
+        bool async = false;
+        bool resolving = false;
+        bool resetting = false;
 
         void on_resolve(const boost::system::error_code&, boost::asio::ip::tcp::resolver::results_type);
         void on_connect(const boost::system::error_code&, const boost::asio::ip::tcp::endpoint&);

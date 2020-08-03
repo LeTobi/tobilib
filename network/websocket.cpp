@@ -2,9 +2,7 @@
 #include <boost/bind.hpp>
 #include <boost/bind/placeholders.hpp>
 #include "errors.h"
-
-#warning debug mode
-#include <iostream>
+#include "../general/exception.hpp"
 
 using namespace tobilib;
 using namespace network;
@@ -43,7 +41,7 @@ void WS_Client_Connect<Stream,StreamConnector>::tick()
         if (options.handshake_timeout>0)
             hs_timer.set(options.handshake_timeout);
         remote_ip = lowerlevel.remote_ip;
-        pending = true;
+        async = true;
         socket.async_handshake(
             address,
             "/",
@@ -68,13 +66,18 @@ void WS_Client_Connect<Stream,StreamConnector>::connect()
 }
 
 template<class Stream, class StreamConnector>
+bool WS_Client_Connect<Stream,StreamConnector>::is_async() const
+{
+    return async || lowerlevel.is_async();
+}
+
+template<class Stream, class StreamConnector>
 void WS_Client_Connect<Stream,StreamConnector>::reset()
 {
+    if (is_async())
+        throw Exception("reset mit ausstehender Operation","WS_Client_Connect::reset()");
     lowerlevel.reset();
-    socket.next_layer().close();
     hs_timer.disable();
-    while (pending)
-        ioc.poll_one();
     finished = false;
 }
 
@@ -82,7 +85,7 @@ template<class Stream, class StreamConnector>
 void WS_Client_Connect<Stream,StreamConnector>::on_handshake(const boost::system::error_code& ec)
 {
     hs_timer.disable();
-    pending = false;
+    async = false;
     finished = true;
     error = ec;
 }
@@ -116,15 +119,12 @@ void WS_Server_Connect<Stream,StreamConnector>::tick()
         if (options.handshake_timeout>0)
             hs_timer.set(options.handshake_timeout);
         remote_ip = lowerlevel.remote_ip;
-        pending = true;
-        std::cout << "handshake?" << std::endl; // TODO: Entfernen
+        async = true;
         socket.async_accept(boost::bind(&WS_Server_Connect::on_handshake,this,_1));
-        std::cout << "handshake!" << std::endl; // TODO: Entfernen
     }
     if (hs_timer.due())
     {
         hs_timer.disable();
-        reset();
         finished = true;
         error = boost::system::error_code(TobilibErrors.handshake_timeout,TobilibErrors);
     }
@@ -139,12 +139,18 @@ void WS_Server_Connect<Stream,StreamConnector>::connect()
 }
 
 template<class Stream, class StreamConnector>
+bool WS_Server_Connect<Stream,StreamConnector>::is_async() const
+{
+    return async || lowerlevel.is_async();
+}
+
+template<class Stream, class StreamConnector>
 void WS_Server_Connect<Stream,StreamConnector>::reset()
 {
+    if (is_async())
+        throw Exception("reset mit ausstehender operation","WS_Server_Connect::reset()");
     lowerlevel.reset();
     hs_timer.disable();
-    while (pending)
-        ioc.poll_one();
     finished = false;
 }
 
@@ -152,7 +158,7 @@ template<class Stream, class StreamConnector>
 void WS_Server_Connect<Stream,StreamConnector>::on_handshake(const boost::system::error_code& ec)
 {
     hs_timer.disable();
-    pending = false;
+    async = false;
     finished = true;
     error = ec;
 }

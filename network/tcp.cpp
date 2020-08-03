@@ -1,6 +1,7 @@
 #include "tcp.h"
 #include <boost/bind.hpp>
 #include <boost/bind/placeholders.hpp>
+#include "../general/exception.hpp"
 
 using namespace tobilib;
 using namespace network;
@@ -31,7 +32,7 @@ void TCP_Client_Connect::connect()
 {
     finished = false;
     error.clear();
-    active = true;
+    resolving = true;
     resolver.async_resolve(
         target_address,
         std::to_string(target_port),
@@ -39,25 +40,35 @@ void TCP_Client_Connect::connect()
         );
 }
 
+bool TCP_Client_Connect::is_async() const
+{
+    return async;
+}
+
 void TCP_Client_Connect::reset()
 {
-    resolver.cancel();
-    socket.close();
-    while(active)
+    if (async)
+        throw Exception("reset mit ausstehender Verbindung","TCP_Client_Connect::reset()");
+    resetting = true;
+    if (resolving)
+        resolver.cancel();
+    while (resolving)
         ioc.poll_one();
+    resetting = false;
     error.clear();
     finished = false;
 }
 
 void TCP_Client_Connect::on_resolve(const boost::system::error_code& ec, boost::asio::ip::tcp::resolver::results_type results)
 {
+    resolving = false;
     error = ec;
-    if (error)
+    if (error || resetting)
     {
         finished = true;
-        active = false;
         return;
     }
+    async = true;
     boost::asio::async_connect(socket,results,boost::bind(&TCP_Client_Connect::on_connect,this,_1,_2));
 }
 
@@ -66,7 +77,7 @@ void TCP_Client_Connect::on_connect(const boost::system::error_code& ec, const b
     error = ec;
     remote_ip = ep.address();
     finished = true;
-    active = false;
+    async = false;
 }
 
 Connector::~Connector()

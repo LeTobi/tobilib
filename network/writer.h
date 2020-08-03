@@ -26,7 +26,7 @@ namespace detail{
 
         void tick();
         void send_data(const std::string&);
-        bool is_busy() const;
+        bool is_async() const;
         void reset();
 
         bool timed_out = false;
@@ -38,7 +38,7 @@ namespace detail{
         Stream& stream;
         
         Timer timer;
-        bool sending = false;
+        bool async = false;
         std::string data_sending;
         std::string data_queue;
 
@@ -55,7 +55,7 @@ namespace detail{
 
         void tick();
         void send_data(const std::string&);
-        bool is_busy() const;
+        bool is_async() const;
         void reset();
 
         bool timed_out = false;
@@ -67,7 +67,7 @@ namespace detail{
         WSStream& stream;
 
         Timer timer;
-        bool sending = false;
+        bool async = false;
         std::string data_sending;
         std::string data_queue;
 

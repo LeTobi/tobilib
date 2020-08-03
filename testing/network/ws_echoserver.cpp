@@ -11,7 +11,10 @@ int main()
     endpoint.options.inactive_warning = 5;
     endpoint.options.read_timeout = 10;
     endpoint.options.handshake_timeout = 3;
+    endpoint.options.close_timeout = 5;
     endpoint.connect();
+    Timer loltimer (5);
+    loltimer.set();
     std::cout << "Websocket-echoserver auf Port 15432" << std::endl;
     while (true)
     {
@@ -33,6 +36,12 @@ int main()
             std::cout << "Verbindung getrennt" << std::endl;
             endpoint.connect();
             break;
+        }
+        if (loltimer.due())
+        {
+            loltimer.disable();
+            std::cout << "loltimer" << std::endl;
+            endpoint.close();
         }
     }
 }

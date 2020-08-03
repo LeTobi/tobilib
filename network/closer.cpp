@@ -27,12 +27,13 @@ WS_Closer::WS_Closer(
         log(_log)
 { }
 
-void TCP_Closer::close()
+void TCP_Closer::request()
 {
-    socket.close();
+    boost::system::error_code ec;
+    socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both,ec);
 }
 
-void WS_Closer::close()
+void WS_Closer::request()
 {
     pending = true;
     socket.async_close(
@@ -41,16 +42,31 @@ void WS_Closer::close()
     );
 }
 
-void TCP_Closer::reset()
+void TCP_Closer::force()
 {
     socket.close();
 }
 
-void WS_Closer::reset()
+void WS_Closer::force()
 {
+    boost::system::error_code ec;
+    socket.next_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
     socket.next_layer().close();
     while (pending)
         ioc.poll_one();
+}
+
+void TCP_Closer::cleanup()
+{
+    socket.close();
+}
+
+void WS_Closer::cleanup()
+{
+    socket.next_layer().close();
+    // This is a Beast-workaround: status_ is not properly reset
+    socket.~WSStream();
+    new (&socket) WSStream(ioc);
 }
 
 void WS_Closer::on_close(const boost::system::error_code& err)

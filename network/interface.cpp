@@ -105,7 +105,7 @@ void Endpoint<StackConfig>::tick()
     {
         writer.written=false;
         if (_status==EndpointStatus::closing)
-            closer.close();
+            closer.request();
     }
 
     connector->tick();
@@ -196,8 +196,8 @@ void Endpoint<StackConfig>::close()
     if (options.close_timeout>0)
         close_timer.set(options.close_timeout);
     set_closing();
-    if (!writer.is_busy())
-        closer.close();
+    if (!writer.is_async())
+        closer.request();
 }
 
 template<class StackConfig>
@@ -205,14 +205,18 @@ void Endpoint<StackConfig>::reset()
 {
     if (_status==EndpointStatus::closed)
         return;
-    connector->reset();
-    connect_timer.disable();
-    close_timer.disable();
-    closer.reset();
-    while (reader.is_reading() || writer.is_busy())
+    
+    closer.force();
+    while (reader.is_async() || writer.is_async() || connector->is_async())
         ioc.poll_one();
     reader.reset();
     writer.reset();
+    connector->reset();
+    closer.cleanup();
+
+    connect_timer.disable();
+    close_timer.disable();
+
     set_closed();
 }
 

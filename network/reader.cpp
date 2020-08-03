@@ -55,13 +55,13 @@ void WS_Reader<Stream>::tick()
 template<class Stream>
 void StreamReader<Stream>::start_reading()
 {
-    if (reading)
+    if (async)
         return;
     if (options.read_timeout>0)
         timer_B.set(options.read_timeout);
     if (options.inactive_warning>0)
         timer_A.set(options.inactive_warning);
-    reading = true;
+    async = true;
     stream.async_read_some(
         boost::asio::buffer(buffer,BUFFER_SIZE),
         boost::bind(&StreamReader<Stream>::on_receive,this,_1,_2)
@@ -71,13 +71,13 @@ void StreamReader<Stream>::start_reading()
 template<class Stream>
 void WS_Reader<Stream>::start_reading()
 {
-    if (reading)
+    if (async)
         return;
     if (options.read_timeout>0)
         timer_B.set(options.read_timeout);
     if (options.inactive_warning>0)
         timer_A.set(options.inactive_warning);
-    reading = true;
+    async = true;
     stream.async_read(
         buffer,
         boost::bind(&WS_Reader::on_receive,this,_1,_2)
@@ -85,21 +85,21 @@ void WS_Reader<Stream>::start_reading()
 }
 
 template<class Stream>
-bool StreamReader<Stream>::is_reading() const
+bool StreamReader<Stream>::is_async() const
 {
-    return reading;
+    return async;
 }
 
 template<class Stream>
-bool WS_Reader<Stream>::is_reading() const
+bool WS_Reader<Stream>::is_async() const
 {
-    return reading;
+    return async;
 }
 
 template<class Stream>
 void StreamReader<Stream>::reset()
 {
-    if (reading)
+    if (async)
         throw Exception("Implementierungsfehler: Offene Leseanfrage","StreamReader::reset()");
     warning = false;
     inactive = false;
@@ -113,7 +113,7 @@ void StreamReader<Stream>::reset()
 template<class Stream>
 void WS_Reader<Stream>::reset()
 {
-    if (reading)
+    if (async)
         throw Exception("Implementierungsfehler: Offene Leseanfrage","WS_Reader::reset()");
     warning = false;
     inactive = false;
@@ -127,7 +127,7 @@ void WS_Reader<Stream>::reset()
 template<class Stream>
 void StreamReader<Stream>::on_receive(const boost::system::error_code& ec, size_t recv_len)
 {
-    reading = false;
+    async = false;
     timer_A.disable();
     timer_B.disable();
     error = ec;
@@ -140,7 +140,7 @@ void StreamReader<Stream>::on_receive(const boost::system::error_code& ec, size_
 template<class Stream>
 void WS_Reader<Stream>::on_receive(const boost::system::error_code& ec, size_t recv_len)
 {
-    reading = false;
+    async = false;
     timer_A.disable();
     timer_B.disable();
     error = ec;

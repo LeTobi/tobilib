@@ -24,7 +24,10 @@ bool Acceptor::busy() const
 void Acceptor::connect(Interface* iface)
 {
     if (iface!=nullptr)
+    {
         queue.push_back(iface);
+        iface->enqueued = true;
+    }
     if (busy() || queue.empty())
         return;
     current = queue.front();
@@ -35,7 +38,7 @@ void Acceptor::connect(Interface* iface)
 void Acceptor::on_connect(const boost::system::error_code& ec)
 {
     current->finished = true;
-    current->pending = false;
+    current->enqueued = false;
     current->error = ec;
     if (!ec)
         current->remote_ip = current->socket.remote_endpoint().address();
@@ -62,21 +65,28 @@ void Acceptor::Interface::tick()
 void Acceptor::Interface::connect()
 {
     finished = false;
-    pending = true;
     accpt.connect(this);
+}
+
+bool Acceptor::Interface::is_async() const
+{
+    return false;
 }
 
 void Acceptor::Interface::reset()
 {
     socket.close();
-    if (pending)
+    if (accpt.current==this)
+    {
+        accpt.acceptor.cancel();
+        while (enqueued)
+            accpt.ioc.poll_one();
+        accpt.acceptor.listen();
+    }
+    else
+    {
         accpt.queue.remove(this);
+        enqueued = false;
+    }
     finished = false;
-    if (accpt.current!=this)
-        return;
-    accpt.acceptor.cancel();
-    while (!finished)
-        accpt.ioc.poll_one();
-    finished = false;
-    accpt.acceptor.listen();
 }

@@ -18,6 +18,7 @@ namespace network {
 
             void tick();
             void connect();
+            bool is_async() const;
             void reset();
         
         private:
@@ -25,7 +26,7 @@ namespace network {
 
             Acceptor& accpt;
             boost::asio::ip::tcp::socket& socket;
-            bool pending = false;
+            bool enqueued = false;
         };
 
         Acceptor(unsigned int);

@@ -9,7 +9,6 @@ void send(TCP_Endpoint* ep)
     std::cout << "your message: ";
     std::string msg;
     std::cin >> msg;
-    msg += "\n";
     ep->write(msg);
 }
 
@@ -46,5 +45,6 @@ int main()
         case EndpointEvent::closed:
             std::cout << "Connection closed" << std::endl;
             return 0;
+        }
     }
 }

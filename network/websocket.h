@@ -20,6 +20,7 @@ namespace detail {
 
         void tick();
         void connect();
+        bool is_async() const;
         void reset();
 
     private:
@@ -28,7 +29,7 @@ namespace detail {
         StreamConnector lowerlevel;
         Stream& socket;
         boost::asio::io_context& ioc;
-        bool pending = false;
+        bool async = false;
         Timer hs_timer;
 
         void on_handshake(const boost::system::error_code&);
@@ -42,13 +43,14 @@ namespace detail {
 
         void tick();
         void connect();
+        bool is_async() const;
         void reset();
 
     private:
         StreamConnector lowerlevel;
         Stream& socket;
         boost::asio::io_context& ioc;
-        bool pending = false;
+        bool async = false;
         Timer hs_timer;
 
         void on_handshake(const boost::system::error_code&);

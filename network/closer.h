@@ -13,8 +13,9 @@ namespace detail {
     public:
         TCP_Closer(boost::asio::ip::tcp::socket&,boost::asio::io_context&,Logger&);
 
-        void close();
-        void reset();
+        void request();
+        void force();
+        void cleanup();
 
     private:
         Logger& log;
@@ -34,8 +35,9 @@ namespace detail {
         
         WS_Closer(WSStream&,boost::asio::io_context&,Logger&);
 
-        void close();
-        void reset();
+        void request();
+        void force();
+        void cleanup();
 
     private:
         WSStream& socket;

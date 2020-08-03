@@ -46,7 +46,7 @@ template<class Stream>
 void StreamWriter<Stream>::send_data(const std::string& msg)
 {
     data_queue += msg;
-    if (sending)
+    if (async)
         return;
     data_sending += data_queue;
     data_queue.clear();
@@ -59,7 +59,7 @@ void StreamWriter<Stream>::send_data(const std::string& msg)
             boost::asio::buffer(data_sending),
             boost::bind(&StreamWriter<Stream>::on_write,this,_1,_2)
         );
-    sending = true;
+    async = true;
     if (options.send_timeout>0)
         timer.set(options.send_timeout);
 }
@@ -68,7 +68,7 @@ template<class Stream>
 void WS_Writer<Stream>::send_data(const std::string& msg)
 {
     data_queue += msg;
-    if (sending)
+    if (async)
         return;
     data_sending += data_queue;
     data_queue.clear();
@@ -81,27 +81,27 @@ void WS_Writer<Stream>::send_data(const std::string& msg)
             boost::asio::buffer(data_sending),
             boost::bind(&WS_Writer<Stream>::on_write,this,_1,_2)
         );
-    sending = true;
+    async = true;
     if (options.send_timeout>0)
         timer.set(options.send_timeout);
 }
 
 template<class Stream>
-bool StreamWriter<Stream>::is_busy() const
+bool StreamWriter<Stream>::is_async() const
 {
-    return sending;
+    return async;
 }
 
 template<class Stream>
-bool WS_Writer<Stream>::is_busy() const
+bool WS_Writer<Stream>::is_async() const
 {
-    return sending;
+    return async;
 }
 
 template<class Stream>
 void StreamWriter<Stream>::reset()
 {
-    if (sending)
+    if (async)
         throw Exception("Implementierungsfehler: Offener Schreibauftrag","StreamWriter::reset()");
     error.clear();
     timer.disable();
@@ -113,7 +113,7 @@ void StreamWriter<Stream>::reset()
 template<class Stream>
 void WS_Writer<Stream>::reset()
 {
-    if (sending)
+    if (async)
         throw Exception("Implementierungsfehler: Offener Schreibauftrag","WS_Writer::reset()");
     error.clear();
     timer.disable();
@@ -126,7 +126,7 @@ template<class Stream>
 void StreamWriter<Stream>::on_write(const boost::system::error_code& ec, std::size_t len)
 {
     timer.disable();
-    sending = false;
+    async = false;
     data_sending = data_sending.substr(len);
     error = ec;
     send_data("");
@@ -136,7 +136,7 @@ template<class Stream>
 void WS_Writer<Stream>::on_write(const boost::system::error_code& ec, std::size_t len)
 {
     timer.disable();
-    sending = false;
+    async = false;
     data_sending = data_sending.substr(len);
     error = ec;
     send_data("");
