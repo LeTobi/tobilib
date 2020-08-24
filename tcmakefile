@@ -6,6 +6,16 @@ selection windows
 
 selection linux
 	lib libtc.a 
+	add database/
+	add encoding/
+	add general/
+	add h2ep/
+	add network/
+	add stringplus/
+	add webcap/
+
+selection ssl
+	lib libtc.a
 	add ./
 
 selection test
@@ -28,3 +38,30 @@ selection test
 		link pthread
 		link boost_system
 		link boost_thread
+
+selection ssl-test
+	exe ssl-client ./testing/network/ssl_client.cpp
+		link pthread
+		link boost_system
+		link boost_thread
+		link crypto
+		link ssl
+	exe ssl-echoserver ./testing/network/ssl_echoserver.cpp
+		link pthread
+		link ssl
+		link crypto
+		link boost_system
+		link boost_thread
+	exe wss-client ./testing/network/wss_client.cpp
+		link pthread
+		link boost_system
+		link boost_thread
+		link crypto
+		link ssl
+	exe wss-echoserver ./testing/network/wss_echoserver.cpp
+		link pthread
+		link ssl
+		link crypto
+		link boost_system
+		link boost_thread
+	

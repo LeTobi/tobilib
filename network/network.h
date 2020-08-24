@@ -8,9 +8,8 @@
 #include "reader.h"
 #include "writer.h"
 #include "closer.h"
-#include "tcp.h"
-#include "ssl.h"
-#include "websocket.h"
+#include "tcp-connector.h"
+#include "ws-connector.h"
 #include "acceptor.h"
 
 namespace tobilib {
@@ -97,7 +96,7 @@ namespace detail {
     struct Config_TCP
     {
         using Stream = boost::asio::ip::tcp::socket;
-        using ServerConnector = Acceptor::Interface;
+        using ServerConnector = TCP_Server_Connect;
         using ClientConnector = TCP_Client_Connect;
         using Reader = StreamReader<boost::asio::ip::tcp::socket>;
         using Writer = StreamWriter<boost::asio::ip::tcp::socket>;
@@ -107,8 +106,8 @@ namespace detail {
     struct Config_WS
     {
         using Stream = boost::beast::websocket::stream<boost::asio::ip::tcp::socket>;
-        using ServerConnector = WS_Server_Connect<Stream,Config_TCP::ServerConnector>;
-        using ClientConnector = WS_Client_Connect<Stream,Config_TCP::ClientConnector>;
+        using ServerConnector = WS_Server_Connect<Stream,TCP_Server_Connect>;
+        using ClientConnector = WS_Client_Connect<Stream,TCP_Client_Connect>;
         using Reader = WS_Reader<boost::asio::ip::tcp::socket>;
         using Writer = WS_Writer<boost::asio::ip::tcp::socket>;
         using Closer = WS_Closer;

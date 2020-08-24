@@ -1,11 +1,10 @@
 #include "closer.h"
-#include <boost/bind.hpp>
-#include <boost/bind/placeholders.hpp>
+#include <boost/bind/bind.hpp>
 
 using namespace tobilib;
 using namespace network;
 using namespace detail;
-using boost::placeholders::_1;
+using namespace boost::placeholders;
 
 TCP_Closer::TCP_Closer(
     boost::asio::ip::tcp::socket& _socket,
@@ -51,7 +50,6 @@ void WS_Closer::force()
 {
     boost::system::error_code ec;
     socket.next_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
-    socket.next_layer().close();
     while (pending)
         ioc.poll_one();
 }
@@ -63,8 +61,6 @@ void TCP_Closer::cleanup()
 
 void WS_Closer::cleanup()
 {
-    socket.next_layer().close();
-    // This is a Beast-workaround: status_ is not properly reset
     socket.~WSStream();
     new (&socket) WSStream(ioc);
 }
@@ -75,6 +71,6 @@ void WS_Closer::on_close(const boost::system::error_code& err)
     if (err)
     {
         log << "Fehler beim Schliessen: " << err.message() << std::endl;
-        socket.next_layer().close();
+        force();
     }
 }

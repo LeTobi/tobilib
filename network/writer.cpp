@@ -1,14 +1,11 @@
 #include "writer.h"
-#include <boost/bind.hpp>
-#include <boost/bind/placeholders.hpp>
-//#include <boost/asio/ssl.hpp>
+#include <boost/bind/bind.hpp>
 #include "../general/exception.hpp"
 
 using namespace tobilib;
 using namespace network;
 using namespace detail;
-using boost::placeholders::_1;
-using boost::placeholders::_2;
+using namespace boost::placeholders;
 
 template<class Stream>
 StreamWriter<Stream>::StreamWriter(WriterOptions& _options, Stream& _stream):
@@ -142,7 +139,14 @@ void WS_Writer<Stream>::on_write(const boost::system::error_code& ec, std::size_
     send_data("");
 }
 
-template class StreamWriter<boost::asio::ip::tcp::socket>;
-//template class StreamWrtier<boost::asio::ssl::stream>;
-template class WS_Writer<boost::asio::ip::tcp::socket>;
-//template class WS_Writer<boost::asio::ssl::stream>;
+#ifndef TC_SSL_IMPL_ONLY
+
+    template class StreamWriter<boost::asio::ip::tcp::socket>;
+    template class WS_Writer<boost::asio::ip::tcp::socket>;
+
+#else
+
+    template class StreamWriter<SSL_Stream>;
+    template class WS_Writer<SSL_Stream>;
+
+#endif

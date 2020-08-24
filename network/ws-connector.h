@@ -1,7 +1,7 @@
 #ifndef TC_NETWORK_WEBSOCKET_H
 #define TC_NETWORK_WEBSOCKET_H
 
-#include "tcp.h"
+#include "tcp-connector.h"
 #include "acceptor.h"
 #include <boost/beast.hpp>
 #include "../general/timer.hpp"

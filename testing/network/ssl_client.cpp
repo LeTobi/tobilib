@@ -1,10 +1,10 @@
 #include <iostream>
-#include "../../network/network.h"
+#include "../../ssl/network.h"
 
 using namespace tobilib;
 using namespace network;
 
-void send(TCP_Endpoint* ep)
+void send(SSL_Endpoint* ep)
 {
     std::cout << "your message: ";
     std::string msg;
@@ -14,7 +14,9 @@ void send(TCP_Endpoint* ep)
 
 int main()
 {
-    std::cout << "***Synchronous TCP-Client***" << std::endl;
+    ssl_client_ctx.add_verify_path("/etc/ssl/certs");
+
+    std::cout << "***Synchronous SSL-Client***" << std::endl;
     std::cout << "enter address:" << std::endl;
     std::string host;
     std::cin >> host;
@@ -22,8 +24,8 @@ int main()
     unsigned int port;
     std::cin >> port;
 
-    TCP_Endpoint endpoint (host,port);
-    endpoint.options.connect_timeout = 5;
+    SSL_Endpoint endpoint (host,port);
+    endpoint.options.connect_timeout = 30;
     endpoint.connect();
     while (true)
     {

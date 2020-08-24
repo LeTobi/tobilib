@@ -1,17 +1,18 @@
 #include <iostream>
-#include "../../network/network.h"
+#include "../../ssl/network.h"
 
 using namespace tobilib;
 using namespace network;
 
 int main()
 {
-    Acceptor accpt (15432);
-    TCP_Endpoint endpoint (accpt);
+    ssl_server_init("/home/pi/test.pem");
+    Acceptor accpt (1533);
+    SSL_Endpoint endpoint (accpt);
     endpoint.options.inactive_warning = 5;
     endpoint.options.read_timeout = 10;
     endpoint.connect();
-    std::cout << "TCP echoserver auf Port 15432" << std::endl;
+    std::cout << "SSL echoserver auf Port 1533" << std::endl;
     while (true)
     {
         endpoint.tick();

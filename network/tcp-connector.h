@@ -56,6 +56,8 @@ namespace detail
         void on_connect(const boost::system::error_code&, const boost::asio::ip::tcp::endpoint&);
     };
 
+    // TCP_Server_Connect see acceptor.h
+
 } // namespace detail
 } // namespace network
 } // namespace tobilib

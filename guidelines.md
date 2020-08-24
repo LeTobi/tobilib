@@ -12,8 +12,3 @@ Klassen, die eine State Machine implementieren, müssen folgende Struktur Einhal
 2) Tick-Funktionalität: (wenn nötig) Interne Vorgänge, die zum Statusverlauf gehören. Gebündelt durch den Aufruf von tick()
 3) Steuerfunktionen: Applikationsabhängige Beeinflussung des Statusverlaufs
 4) Ausgabe: In Form von Variablen. Events sollen Abgerufen werden. **Keine Callbacks**
-
-Konzepte, die einzuhalten sind:
-1) Eine Ausgabe ist pro tick()-Aufruf gültig.
-2) Bearbeitung von Ausgaben ist nur mit Verantwortungsübernahme von tick() möglich und umgekehrt.
-3) tick() soll unmittelbar vor Lesen der Ausgabe erfolgen.

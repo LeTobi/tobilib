@@ -1,13 +1,11 @@
-#include "tcp.h"
-#include <boost/bind.hpp>
-#include <boost/bind/placeholders.hpp>
+#include "tcp-connector.h"
+#include <boost/bind/bind.hpp>
 #include "../general/exception.hpp"
 
 using namespace tobilib;
 using namespace network;
 using namespace detail;
-using boost::placeholders::_1;
-using boost::placeholders::_2;
+using namespace boost::placeholders;
 
 
 TCP_Client_Connect::TCP_Client_Connect(

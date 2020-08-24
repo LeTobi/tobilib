@@ -1,5 +1,5 @@
 #include <iostream>
-#include "../../network/interface.h"
+#include "../../network/network.h"
 
 using namespace tobilib;
 using namespace network;

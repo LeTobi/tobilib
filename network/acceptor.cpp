@@ -1,11 +1,10 @@
 #include "acceptor.h"
-#include <boost/bind.hpp>
-#include <boost/bind/placeholders.hpp>
+#include <boost/bind/bind.hpp>
 #include "../general/exception.hpp"
 
 using namespace tobilib;
 using namespace network;
-using boost::placeholders::_1;
+using namespace boost::placeholders;
 
 Acceptor::Acceptor(unsigned int port): acceptor(ioc), _port(port)
 {

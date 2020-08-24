@@ -1,14 +1,11 @@
 #include "reader.h"
 #include "../general/exception.hpp"
-#include <boost/bind.hpp>
-#include <boost/bind/placeholders.hpp>
-//#include <boost/asio/ssl.hpp>
+#include <boost/bind/bind.hpp>
 
 using namespace tobilib;
 using namespace network;
 using namespace detail;
-using boost::placeholders::_1;
-using boost::placeholders::_2;
+using namespace boost::placeholders;
 
 template<class Stream>
 StreamReader<Stream>::StreamReader(ReaderOptions& _options, Stream& _stream):
@@ -152,7 +149,14 @@ void WS_Reader<Stream>::on_receive(const boost::system::error_code& ec, size_t r
         start_reading();
 }
 
-template class StreamReader<boost::asio::ip::tcp::socket>;
-//template class StreamReader<boost::asio::ssl::stream>;
-template class WS_Reader<boost::asio::ip::tcp::socket>;
-//template class WS_Reader<boost::asio::ssl::stream>;
+#ifndef TC_SSL_IMPL_ONLY
+
+    template class StreamReader<boost::asio::ip::tcp::socket>;
+    template class WS_Reader<boost::asio::ip::tcp::socket>;
+
+#else
+
+    template class StreamReader<SSL_Stream>;
+    template class WS_Reader<SSL_Stream>;
+
+#endif

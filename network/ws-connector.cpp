@@ -1,13 +1,12 @@
-#include "websocket.h"
-#include <boost/bind.hpp>
-#include <boost/bind/placeholders.hpp>
+#include "ws-connector.h"
+#include <boost/bind/bind.hpp>
 #include "errors.h"
 #include "../general/exception.hpp"
 
 using namespace tobilib;
 using namespace network;
 using namespace detail;
-using boost::placeholders::_1;
+using namespace boost::placeholders;
 
 template<class Stream, class StreamConnector>
 WS_Client_Connect<Stream,StreamConnector>::WS_Client_Connect(
@@ -22,6 +21,19 @@ WS_Client_Connect<Stream,StreamConnector>::WS_Client_Connect(
         lowerlevel(_address,_port,_socket.next_layer(),_ioc,_options),
         address(_address),
         port(_port),
+        Connector(_options)
+{ }
+
+template<class Stream, class StreamConnector>
+WS_Server_Connect<Stream,StreamConnector>::WS_Server_Connect(
+    Acceptor& _accpt,
+    Stream& _socket,
+    boost::asio::io_context& _ioc,
+    ConnectorOptions& _options
+    ):
+        ioc(_ioc),
+        socket(_socket),
+        lowerlevel(_accpt,_socket.next_layer(),_ioc,_options),
         Connector(_options)
 { }
 
@@ -51,57 +63,10 @@ void WS_Client_Connect<Stream,StreamConnector>::tick()
     if (hs_timer.due())
     {
         hs_timer.disable();
-        reset();
         finished = true;
         error = boost::system::error_code(TobilibErrors.handshake_timeout,TobilibErrors);
     }
 }
-
-template<class Stream, class StreamConnector>
-void WS_Client_Connect<Stream,StreamConnector>::connect()
-{
-    finished = false;
-    error.clear();
-    lowerlevel.connect();
-}
-
-template<class Stream, class StreamConnector>
-bool WS_Client_Connect<Stream,StreamConnector>::is_async() const
-{
-    return async || lowerlevel.is_async();
-}
-
-template<class Stream, class StreamConnector>
-void WS_Client_Connect<Stream,StreamConnector>::reset()
-{
-    if (is_async())
-        throw Exception("reset mit ausstehender Operation","WS_Client_Connect::reset()");
-    lowerlevel.reset();
-    hs_timer.disable();
-    finished = false;
-}
-
-template<class Stream, class StreamConnector>
-void WS_Client_Connect<Stream,StreamConnector>::on_handshake(const boost::system::error_code& ec)
-{
-    hs_timer.disable();
-    async = false;
-    finished = true;
-    error = ec;
-}
-
-template<class Stream, class StreamConnector>
-WS_Server_Connect<Stream,StreamConnector>::WS_Server_Connect(
-    Acceptor& _accpt,
-    Stream& _socket,
-    boost::asio::io_context& _ioc,
-    ConnectorOptions& _options
-    ):
-        ioc(_ioc),
-        socket(_socket),
-        lowerlevel(_accpt,_socket.next_layer(),_ioc,_options),
-        Connector(_options)
-{ }
 
 template<class Stream, class StreamConnector>
 void WS_Server_Connect<Stream,StreamConnector>::tick()
@@ -131,6 +96,14 @@ void WS_Server_Connect<Stream,StreamConnector>::tick()
 }
 
 template<class Stream, class StreamConnector>
+void WS_Client_Connect<Stream,StreamConnector>::connect()
+{
+    finished = false;
+    error.clear();
+    lowerlevel.connect();
+}
+
+template<class Stream, class StreamConnector>
 void WS_Server_Connect<Stream,StreamConnector>::connect()
 {
     finished = false;
@@ -139,9 +112,25 @@ void WS_Server_Connect<Stream,StreamConnector>::connect()
 }
 
 template<class Stream, class StreamConnector>
+bool WS_Client_Connect<Stream,StreamConnector>::is_async() const
+{
+    return async || lowerlevel.is_async();
+}
+
+template<class Stream, class StreamConnector>
 bool WS_Server_Connect<Stream,StreamConnector>::is_async() const
 {
     return async || lowerlevel.is_async();
+}
+
+template<class Stream, class StreamConnector>
+void WS_Client_Connect<Stream,StreamConnector>::reset()
+{
+    if (is_async())
+        throw Exception("reset mit ausstehender Operation","WS_Client_Connect::reset()");
+    lowerlevel.reset();
+    hs_timer.disable();
+    finished = false;
 }
 
 template<class Stream, class StreamConnector>
@@ -155,6 +144,15 @@ void WS_Server_Connect<Stream,StreamConnector>::reset()
 }
 
 template<class Stream, class StreamConnector>
+void WS_Client_Connect<Stream,StreamConnector>::on_handshake(const boost::system::error_code& ec)
+{
+    hs_timer.disable();
+    async = false;
+    finished = true;
+    error = ec;
+}
+
+template<class Stream, class StreamConnector>
 void WS_Server_Connect<Stream,StreamConnector>::on_handshake(const boost::system::error_code& ec)
 {
     hs_timer.disable();
@@ -163,5 +161,15 @@ void WS_Server_Connect<Stream,StreamConnector>::on_handshake(const boost::system
     error = ec;
 }
 
-template class WS_Client_Connect<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>,TCP_Client_Connect>;
-template class WS_Server_Connect<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>,Acceptor::Interface>;
+#ifndef TC_SSL_IMPL_ONLY
+
+    template class WS_Client_Connect<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>,TCP_Client_Connect>;
+    template class WS_Server_Connect<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>,TCP_Server_Connect>;
+
+#else
+
+    template class WS_Client_Connect<boost::beast::websocket::stream<SSL_Stream>,SSL_Client_Connect>;
+    template class WS_Server_Connect<boost::beast::websocket::stream<SSL_Stream>,SSL_Server_Connect>;
+
+#endif
+

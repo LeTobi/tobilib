@@ -2,7 +2,7 @@
 #define TC_NETWORK_ACCEPTOR
 
 #include <boost/asio.hpp>
-#include "tcp.h"
+#include "tcp-connector.h"
 #include <list>
 
 namespace tobilib {
@@ -45,6 +45,8 @@ namespace network {
         void connect(Interface*);
         void on_connect(const boost::system::error_code&);
     };
+
+    using TCP_Server_Connect = Acceptor::Interface;
 
 } // namespace network
 } // namespace tobilib

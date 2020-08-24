@@ -23,17 +23,12 @@ namespace detail {
         boost::asio::ip::tcp::socket& socket;
     };
 
-    /*class SSL_Closer {
-    public:
-
-    };*/
-
     class WS_Closer
     {
     public:
         using WSStream = boost::beast::websocket::stream<boost::asio::ip::tcp::socket>;
         
-        WS_Closer(WSStream&,boost::asio::io_context&,Logger&);
+        WS_Closer(WSStream&, boost::asio::io_context&, Logger&);
 
         void request();
         void force();
@@ -45,7 +40,7 @@ namespace detail {
         Logger& log;
         bool pending = false;
 
-        void on_close(const boost::system::error_code& ec);
+        void on_close(const boost::system::error_code&);
     };
 
 } // namespace detail

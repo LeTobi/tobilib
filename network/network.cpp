@@ -1,14 +1,12 @@
-#include "interface.h"
+#include "network.h"
 #include "acceptor.h"
 
-#include <boost/bind.hpp>
-#include <boost/bind/placeholders.hpp>
+#include <boost/bind/bind.hpp>
 
 using namespace tobilib;
 using namespace network;
 using namespace detail;
-using boost::placeholders::_1;
-using boost::placeholders::_2;
+using namespace boost::placeholders;
 
 template<class StackConfig>
 Endpoint<StackConfig>::Endpoint(Acceptor& _acceptor):
@@ -248,5 +246,14 @@ void Endpoint<StackConfig>::set_closed()
     _status = EndpointStatus::closed;
 }
 
-template class Endpoint<Config_TCP>;
-template class Endpoint<Config_WS>;
+#ifndef TC_SSL_IMPL_ONLY
+
+    template class Endpoint<Config_TCP>;
+    template class Endpoint<Config_WS>;
+
+#else
+
+    template class Endpoint<Config_SSL>;
+    template class Endpoint<Config_WSS>;
+
+#endif
