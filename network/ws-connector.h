@@ -1,9 +1,9 @@
 #ifndef TC_NETWORK_WEBSOCKET_H
 #define TC_NETWORK_WEBSOCKET_H
 
+#include "alias.h"
 #include "tcp-connector.h"
 #include "acceptor.h"
-#include <boost/beast.hpp>
 #include "../general/timer.hpp"
 
 namespace tobilib {
@@ -12,11 +12,11 @@ namespace network {
 
 namespace detail {
 
-    template<class Stream, class StreamConnector>
-    class WS_Client_Connect: public Connector
+    template<class WebsocketType, class ConnectorType>
+    class WS_ClientConnector: public Connector
     {
     public:
-        WS_Client_Connect(const std::string&, unsigned int, Stream&, boost::asio::io_context&, ConnectorOptions&);
+        WS_ClientConnector(const std::string&, unsigned int, WebsocketType&, boost::asio::io_context&, ConnectorOptions&);
 
         void tick();
         void connect();
@@ -26,8 +26,8 @@ namespace detail {
     private:
         std::string address;
         unsigned int port;
-        StreamConnector lowerlevel;
-        Stream& socket;
+        ConnectorType lowerlevel;
+        WebsocketType& socket;
         boost::asio::io_context& ioc;
         bool async = false;
         Timer hs_timer;
@@ -35,11 +35,11 @@ namespace detail {
         void on_handshake(const boost::system::error_code&);
     };
 
-    template<class Stream, class StreamConnector>
-    class WS_Server_Connect: public Connector
+    template<class WebsocketType, class ConnectorType>
+    class WS_ServerConnector: public Connector
     {
     public:
-        WS_Server_Connect(Acceptor&, Stream&, boost::asio::io_context&, ConnectorOptions&);
+        WS_ServerConnector(Acceptor&, WebsocketType&, boost::asio::io_context&, ConnectorOptions&);
 
         void tick();
         void connect();
@@ -47,8 +47,8 @@ namespace detail {
         void reset();
 
     private:
-        StreamConnector lowerlevel;
-        Stream& socket;
+        ConnectorType lowerlevel;
+        WebsocketType& socket;
         boost::asio::io_context& ioc;
         bool async = false;
         Timer hs_timer;

@@ -1,28 +1,35 @@
+#ifndef TC_NETWORK_SSL_H
+#define TC_NETWORK_SSL_H
+
+#include "alias.h"
 #include "../network/network.h"
 #include "connector.h"
 #include "closer.h"
 
 namespace tobilib {
 namespace network {
+
+    void ssl_server_init(const std::string&);
+
 namespace detail {
 
     struct Config_SSL
     {
-        using Stream = SSL_Stream;
-        using ServerConnector = SSL_Server_Connect;
-        using ClientConnector = SSL_Client_Connect;
-        using Reader = StreamReader<SSL_Stream>;
-        using Writer = StreamWriter<SSL_Stream>;
+        using Socket = SSL_Socket;
+        using ServerConnector = SSL_ServerConnector;
+        using ClientConnector = SSL_ClientConnector;
+        using Reader = SocketReader<SSL_Socket>;
+        using Writer = SocketWriter<SSL_Socket>;
         using Closer = SSL_Closer;
     };
 
     struct Config_WSS
     {
-        using Stream = boost::beast::websocket::stream<SSL_Stream>;
-        using ServerConnector = WS_Server_Connect<Stream,SSL_Server_Connect>;
-        using ClientConnector = WS_Client_Connect<Stream,SSL_Client_Connect>;
-        using Reader = WS_Reader<SSL_Stream>;
-        using Writer = WS_Writer<SSL_Stream>;
+        using Socket = WSS_Socket;
+        using ServerConnector = WS_ServerConnector<WSS_Socket,SSL_ServerConnector>;
+        using ClientConnector = WS_ClientConnector<WSS_Socket,SSL_ClientConnector>;
+        using Reader = WebsocketReader<SSL_Socket>;
+        using Writer = WebsocketWriter<SSL_Socket>;
         using Closer = WSS_Closer;
     };
 
@@ -33,3 +40,5 @@ using WSS_Endpoint = Endpoint<detail::Config_WSS>;
 
 } // namespace network
 } // namespace tobilib
+
+#endif

@@ -1,8 +1,7 @@
 #ifndef TC_NETWORK_READER_H
 #define TC_NETWORK_READER_H
 
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
+#include "alias.h"
 #include "../general/timer.hpp"
 
 namespace tobilib{
@@ -16,14 +15,14 @@ namespace network{
     
 namespace detail{
 
-    // Stream:
+    // SocketType:
     // boost::asio::ip::tcp::socket
     // boost::asio::ssl::stream
-    template<class Stream>
-    class StreamReader
+    template<class SocketType>
+    class SocketReader
     {
     public:
-        StreamReader(ReaderOptions&,Stream&);
+        SocketReader(ReaderOptions&,SocketType&);
 
         void tick();
         void start_reading();
@@ -40,7 +39,7 @@ namespace detail{
 
     private:
         ReaderOptions& options;
-        Stream& stream;
+        SocketType& socket;
         Timer timer_A; // used for no activity warning
         Timer timer_B; // used for no activity deadline
         std::string buffer = std::string(BUFFER_SIZE,0);
@@ -49,13 +48,13 @@ namespace detail{
         void on_receive(const boost::system::error_code&,size_t);
     };
 
-    template <class Stream>
-    class WS_Reader
+    template <class SocketType>
+    class WebsocketReader
     {
     public:
-        using WSStream = boost::beast::websocket::stream<Stream>;
+        using WebsocketType = boost::beast::websocket::stream<SocketType>;
 
-        WS_Reader(ReaderOptions&,WSStream&);
+        WebsocketReader(ReaderOptions&,WebsocketType&);
 
         void tick();
         void start_reading();
@@ -70,7 +69,7 @@ namespace detail{
 
     private:
         ReaderOptions& options;
-        WSStream& stream;
+        WebsocketType& socket;
         Timer timer_A;
         Timer timer_B;
         boost::asio::streambuf buffer;

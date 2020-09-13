@@ -1,8 +1,8 @@
 #ifndef TC_TCP_H
 #define TC_TCP_H
 
-#include <boost/asio.hpp>
 #include "../general/timer.hpp"
+#include "alias.h"
 
 namespace tobilib{
 namespace network{
@@ -32,10 +32,10 @@ namespace detail
         ConnectorOptions& options;
     };
 
-    class TCP_Client_Connect: public Connector
+    class TCP_ClientConnector: public Connector
     {
     public:
-        TCP_Client_Connect(const std::string&, unsigned int, boost::asio::ip::tcp::socket&, boost::asio::io_context&,ConnectorOptions&);
+        TCP_ClientConnector(const std::string&, unsigned int, boost::asio::ip::tcp::socket&, boost::asio::io_context&,ConnectorOptions&);
 
         void tick();
         void connect();
@@ -56,7 +56,7 @@ namespace detail
         void on_connect(const boost::system::error_code&, const boost::asio::ip::tcp::endpoint&);
     };
 
-    // TCP_Server_Connect see acceptor.h
+    // TCP_ServerConnector see acceptor.h
 
 } // namespace detail
 } // namespace network

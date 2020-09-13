@@ -7,20 +7,20 @@ using namespace network;
 using namespace detail;
 using namespace boost::placeholders;
 
-template<class Stream>
-StreamWriter<Stream>::StreamWriter(WriterOptions& _options, Stream& _stream):
+template<class SocketType>
+SocketWriter<SocketType>::SocketWriter(WriterOptions& _options, SocketType& _socket):
     options(_options),
-    stream(_stream)
+    socket(_socket)
 { }
 
-template<class Stream>
-WS_Writer<Stream>::WS_Writer(WriterOptions& _options, WSStream& _stream):
+template<class SocketType>
+WebsocketWriter<SocketType>::WebsocketWriter(WriterOptions& _options, WebsocketType& _socket):
     options(_options),
-    stream(_stream)
+    socket(_socket)
 { }
 
-template<class Stream>
-void StreamWriter<Stream>::tick()
+template<class SocketType>
+void SocketWriter<SocketType>::tick()
 {
     if (timer.due())
     {
@@ -29,8 +29,8 @@ void StreamWriter<Stream>::tick()
     }
 }
 
-template<class Stream>
-void WS_Writer<Stream>::tick()
+template<class SocketType>
+void WebsocketWriter<SocketType>::tick()
 {
     if (timer.due())
     {
@@ -39,8 +39,8 @@ void WS_Writer<Stream>::tick()
     }
 }
 
-template<class Stream>
-void StreamWriter<Stream>::send_data(const std::string& msg)
+template<class SocketType>
+void SocketWriter<SocketType>::send_data(const std::string& msg)
 {
     data_queue += msg;
     if (async)
@@ -52,17 +52,17 @@ void StreamWriter<Stream>::send_data(const std::string& msg)
         written = true;
         return;
     }
-    stream.async_write_some(
+    socket.async_write_some(
             boost::asio::buffer(data_sending),
-            boost::bind(&StreamWriter<Stream>::on_write,this,_1,_2)
+            boost::bind(&SocketWriter<SocketType>::on_write,this,_1,_2)
         );
     async = true;
     if (options.send_timeout>0)
         timer.set(options.send_timeout);
 }
 
-template<class Stream>
-void WS_Writer<Stream>::send_data(const std::string& msg)
+template<class SocketType>
+void WebsocketWriter<SocketType>::send_data(const std::string& msg)
 {
     data_queue += msg;
     if (async)
@@ -74,32 +74,32 @@ void WS_Writer<Stream>::send_data(const std::string& msg)
         written = true;
         return;
     }
-    stream.async_write(
+    socket.async_write(
             boost::asio::buffer(data_sending),
-            boost::bind(&WS_Writer<Stream>::on_write,this,_1,_2)
+            boost::bind(&WebsocketWriter<SocketType>::on_write,this,_1,_2)
         );
     async = true;
     if (options.send_timeout>0)
         timer.set(options.send_timeout);
 }
 
-template<class Stream>
-bool StreamWriter<Stream>::is_async() const
+template<class SocketType>
+bool SocketWriter<SocketType>::is_async() const
 {
     return async;
 }
 
-template<class Stream>
-bool WS_Writer<Stream>::is_async() const
+template<class SocketType>
+bool WebsocketWriter<SocketType>::is_async() const
 {
     return async;
 }
 
-template<class Stream>
-void StreamWriter<Stream>::reset()
+template<class SocketType>
+void SocketWriter<SocketType>::reset()
 {
     if (async)
-        throw Exception("Implementierungsfehler: Offener Schreibauftrag","StreamWriter::reset()");
+        throw Exception("Implementierungsfehler: Offener Schreibauftrag","SocketWriter::reset()");
     error.clear();
     timer.disable();
     timed_out = false;
@@ -107,11 +107,11 @@ void StreamWriter<Stream>::reset()
     data_sending.clear();
 }
 
-template<class Stream>
-void WS_Writer<Stream>::reset()
+template<class SocketType>
+void WebsocketWriter<SocketType>::reset()
 {
     if (async)
-        throw Exception("Implementierungsfehler: Offener Schreibauftrag","WS_Writer::reset()");
+        throw Exception("Implementierungsfehler: Offener Schreibauftrag","WebsocketWriter::reset()");
     error.clear();
     timer.disable();
     timed_out = false;
@@ -119,8 +119,8 @@ void WS_Writer<Stream>::reset()
     data_sending.clear();
 }
 
-template<class Stream>
-void StreamWriter<Stream>::on_write(const boost::system::error_code& ec, std::size_t len)
+template<class SocketType>
+void SocketWriter<SocketType>::on_write(const boost::system::error_code& ec, std::size_t len)
 {
     timer.disable();
     async = false;
@@ -129,8 +129,8 @@ void StreamWriter<Stream>::on_write(const boost::system::error_code& ec, std::si
     send_data("");
 }
 
-template<class Stream>
-void WS_Writer<Stream>::on_write(const boost::system::error_code& ec, std::size_t len)
+template<class SocketType>
+void WebsocketWriter<SocketType>::on_write(const boost::system::error_code& ec, std::size_t len)
 {
     timer.disable();
     async = false;
@@ -141,12 +141,12 @@ void WS_Writer<Stream>::on_write(const boost::system::error_code& ec, std::size_
 
 #ifndef TC_SSL_IMPL_ONLY
 
-    template class StreamWriter<boost::asio::ip::tcp::socket>;
-    template class WS_Writer<boost::asio::ip::tcp::socket>;
+    template class SocketWriter<boost::asio::ip::tcp::socket>;
+    template class WebsocketWriter<boost::asio::ip::tcp::socket>;
 
 #else
 
-    template class StreamWriter<SSL_Stream>;
-    template class WS_Writer<SSL_Stream>;
+    template class SocketWriter<SSL_Socket>;
+    template class WebsocketWriter<SSL_Socket>;
 
 #endif

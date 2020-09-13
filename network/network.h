@@ -2,7 +2,6 @@
 #define TC_NETWORK_ENDPOINT_H
 
 #include <string>
-#include <boost/asio.hpp>
 #include "../general/queue.hpp"
 #include "../general/exception.hpp"
 #include "reader.h"
@@ -77,7 +76,7 @@ namespace network {
         void set_closed();
 
         boost::asio::io_context      ioc;
-        typename StackConfig::Stream socket;
+        typename StackConfig::Socket socket;
         EndpointStatus               _status    = EndpointStatus::closed;
         boost::asio::ip::address     _remote_ip;
         detail::Connector*           connector;
@@ -95,21 +94,21 @@ namespace detail {
 
     struct Config_TCP
     {
-        using Stream = boost::asio::ip::tcp::socket;
-        using ServerConnector = TCP_Server_Connect;
-        using ClientConnector = TCP_Client_Connect;
-        using Reader = StreamReader<boost::asio::ip::tcp::socket>;
-        using Writer = StreamWriter<boost::asio::ip::tcp::socket>;
+        using Socket = TCP_Socket;
+        using ServerConnector = TCP_ServerConnector;
+        using ClientConnector = TCP_ClientConnector;
+        using Reader = SocketReader<TCP_Socket>;
+        using Writer = SocketWriter<TCP_Socket>;
         using Closer = TCP_Closer;
     };
 
     struct Config_WS
     {
-        using Stream = boost::beast::websocket::stream<boost::asio::ip::tcp::socket>;
-        using ServerConnector = WS_Server_Connect<Stream,TCP_Server_Connect>;
-        using ClientConnector = WS_Client_Connect<Stream,TCP_Client_Connect>;
-        using Reader = WS_Reader<boost::asio::ip::tcp::socket>;
-        using Writer = WS_Writer<boost::asio::ip::tcp::socket>;
+        using Socket = WS_Socket;
+        using ServerConnector = WS_ServerConnector<WS_Socket,TCP_ServerConnector>;
+        using ClientConnector = WS_ClientConnector<WS_Socket,TCP_ClientConnector>;
+        using Reader = WebsocketReader<TCP_Socket>;
+        using Writer = WebsocketWriter<TCP_Socket>;
         using Closer = WS_Closer;
     };
 

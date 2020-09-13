@@ -8,11 +8,11 @@ using namespace network;
 using namespace detail;
 using namespace boost::placeholders;
 
-template<class Stream, class StreamConnector>
-WS_Client_Connect<Stream,StreamConnector>::WS_Client_Connect(
+template<class WebsocketType, class ConnectorType>
+WS_ClientConnector<WebsocketType,ConnectorType>::WS_ClientConnector(
     const std::string& _address,
     unsigned int _port,
-    Stream& _socket,
+    WebsocketType& _socket,
     boost::asio::io_context& _ioc,
     ConnectorOptions& _options
     ):
@@ -24,10 +24,10 @@ WS_Client_Connect<Stream,StreamConnector>::WS_Client_Connect(
         Connector(_options)
 { }
 
-template<class Stream, class StreamConnector>
-WS_Server_Connect<Stream,StreamConnector>::WS_Server_Connect(
+template<class WebsocketType, class ConnectorType>
+WS_ServerConnector<WebsocketType,ConnectorType>::WS_ServerConnector(
     Acceptor& _accpt,
-    Stream& _socket,
+    WebsocketType& _socket,
     boost::asio::io_context& _ioc,
     ConnectorOptions& _options
     ):
@@ -37,8 +37,8 @@ WS_Server_Connect<Stream,StreamConnector>::WS_Server_Connect(
         Connector(_options)
 { }
 
-template<class Stream, class StreamConnector>
-void WS_Client_Connect<Stream,StreamConnector>::tick()
+template<class WebsocketType, class ConnectorType>
+void WS_ClientConnector<WebsocketType,ConnectorType>::tick()
 {
     lowerlevel.tick();
     if (lowerlevel.finished)
@@ -57,7 +57,7 @@ void WS_Client_Connect<Stream,StreamConnector>::tick()
         socket.async_handshake(
             address,
             "/",
-            boost::bind(&WS_Client_Connect<Stream,StreamConnector>::on_handshake,this,_1)
+            boost::bind(&WS_ClientConnector<WebsocketType,ConnectorType>::on_handshake,this,_1)
             );
     }
     if (hs_timer.due())
@@ -68,8 +68,8 @@ void WS_Client_Connect<Stream,StreamConnector>::tick()
     }
 }
 
-template<class Stream, class StreamConnector>
-void WS_Server_Connect<Stream,StreamConnector>::tick()
+template<class WebsocketType, class ConnectorType>
+void WS_ServerConnector<WebsocketType,ConnectorType>::tick()
 {
     lowerlevel.tick();
     if (lowerlevel.finished)
@@ -85,7 +85,7 @@ void WS_Server_Connect<Stream,StreamConnector>::tick()
             hs_timer.set(options.handshake_timeout);
         remote_ip = lowerlevel.remote_ip;
         async = true;
-        socket.async_accept(boost::bind(&WS_Server_Connect::on_handshake,this,_1));
+        socket.async_accept(boost::bind(&WS_ServerConnector::on_handshake,this,_1));
     }
     if (hs_timer.due())
     {
@@ -95,56 +95,56 @@ void WS_Server_Connect<Stream,StreamConnector>::tick()
     }
 }
 
-template<class Stream, class StreamConnector>
-void WS_Client_Connect<Stream,StreamConnector>::connect()
+template<class WebsocketType, class ConnectorType>
+void WS_ClientConnector<WebsocketType,ConnectorType>::connect()
 {
     finished = false;
     error.clear();
     lowerlevel.connect();
 }
 
-template<class Stream, class StreamConnector>
-void WS_Server_Connect<Stream,StreamConnector>::connect()
+template<class WebsocketType, class ConnectorType>
+void WS_ServerConnector<WebsocketType,ConnectorType>::connect()
 {
     finished = false;
     error.clear();
     lowerlevel.connect();
 }
 
-template<class Stream, class StreamConnector>
-bool WS_Client_Connect<Stream,StreamConnector>::is_async() const
+template<class WebsocketType, class ConnectorType>
+bool WS_ClientConnector<WebsocketType,ConnectorType>::is_async() const
 {
     return async || lowerlevel.is_async();
 }
 
-template<class Stream, class StreamConnector>
-bool WS_Server_Connect<Stream,StreamConnector>::is_async() const
+template<class WebsocketType, class ConnectorType>
+bool WS_ServerConnector<WebsocketType,ConnectorType>::is_async() const
 {
     return async || lowerlevel.is_async();
 }
 
-template<class Stream, class StreamConnector>
-void WS_Client_Connect<Stream,StreamConnector>::reset()
+template<class WebsocketType, class ConnectorType>
+void WS_ClientConnector<WebsocketType,ConnectorType>::reset()
 {
     if (is_async())
-        throw Exception("reset mit ausstehender Operation","WS_Client_Connect::reset()");
+        throw Exception("reset mit ausstehender Operation","WS_ClientConnector::reset()");
     lowerlevel.reset();
     hs_timer.disable();
     finished = false;
 }
 
-template<class Stream, class StreamConnector>
-void WS_Server_Connect<Stream,StreamConnector>::reset()
+template<class WebsocketType, class ConnectorType>
+void WS_ServerConnector<WebsocketType,ConnectorType>::reset()
 {
     if (is_async())
-        throw Exception("reset mit ausstehender operation","WS_Server_Connect::reset()");
+        throw Exception("reset mit ausstehender operation","WS_ServerConnector::reset()");
     lowerlevel.reset();
     hs_timer.disable();
     finished = false;
 }
 
-template<class Stream, class StreamConnector>
-void WS_Client_Connect<Stream,StreamConnector>::on_handshake(const boost::system::error_code& ec)
+template<class WebsocketType, class ConnectorType>
+void WS_ClientConnector<WebsocketType,ConnectorType>::on_handshake(const boost::system::error_code& ec)
 {
     hs_timer.disable();
     async = false;
@@ -152,8 +152,8 @@ void WS_Client_Connect<Stream,StreamConnector>::on_handshake(const boost::system
     error = ec;
 }
 
-template<class Stream, class StreamConnector>
-void WS_Server_Connect<Stream,StreamConnector>::on_handshake(const boost::system::error_code& ec)
+template<class WebsocketType, class ConnectorType>
+void WS_ServerConnector<WebsocketType,ConnectorType>::on_handshake(const boost::system::error_code& ec)
 {
     hs_timer.disable();
     async = false;
@@ -163,13 +163,13 @@ void WS_Server_Connect<Stream,StreamConnector>::on_handshake(const boost::system
 
 #ifndef TC_SSL_IMPL_ONLY
 
-    template class WS_Client_Connect<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>,TCP_Client_Connect>;
-    template class WS_Server_Connect<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>,TCP_Server_Connect>;
+    template class WS_ClientConnector<WS_Socket,TCP_ClientConnector>;
+    template class WS_ServerConnector<WS_Socket,TCP_ServerConnector>;
 
 #else
 
-    template class WS_Client_Connect<boost::beast::websocket::stream<SSL_Stream>,SSL_Client_Connect>;
-    template class WS_Server_Connect<boost::beast::websocket::stream<SSL_Stream>,SSL_Server_Connect>;
+    template class WS_ClientConnector<WSS_Socket,SSL_ClientConnector>;
+    template class WS_ServerConnector<WSS_Socket,SSL_ServerConnector>;
 
 #endif
 

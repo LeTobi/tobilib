@@ -7,20 +7,20 @@ using namespace network;
 using namespace detail;
 using namespace boost::placeholders;
 
-template<class Stream>
-StreamReader<Stream>::StreamReader(ReaderOptions& _options, Stream& _stream):
+template<class SocketType>
+SocketReader<SocketType>::SocketReader(ReaderOptions& _options, SocketType& _socket):
     options(_options),
-    stream(_stream)
+    socket(_socket)
 { }
 
-template<class Stream>
-WS_Reader<Stream>::WS_Reader(ReaderOptions& _options, WSStream& _stream):
+template<class SocketType>
+WebsocketReader<SocketType>::WebsocketReader(ReaderOptions& _options, WebsocketType& _socket):
     options(_options),
-    stream(_stream)
+    socket(_socket)
 { }
 
-template<class Stream>
-void StreamReader<Stream>::tick()
+template<class SocketType>
+void SocketReader<SocketType>::tick()
 {
     if (timer_A.due())
     {
@@ -34,8 +34,8 @@ void StreamReader<Stream>::tick()
     }
 }
 
-template<class Stream>
-void WS_Reader<Stream>::tick()
+template<class SocketType>
+void WebsocketReader<SocketType>::tick()
 {
     if (timer_A.due())
     {
@@ -49,8 +49,8 @@ void WS_Reader<Stream>::tick()
     }
 }
 
-template<class Stream>
-void StreamReader<Stream>::start_reading()
+template<class SocketType>
+void SocketReader<SocketType>::start_reading()
 {
     if (async)
         return;
@@ -59,14 +59,14 @@ void StreamReader<Stream>::start_reading()
     if (options.inactive_warning>0)
         timer_A.set(options.inactive_warning);
     async = true;
-    stream.async_read_some(
+    socket.async_read_some(
         boost::asio::buffer(buffer,BUFFER_SIZE),
-        boost::bind(&StreamReader<Stream>::on_receive,this,_1,_2)
+        boost::bind(&SocketReader<SocketType>::on_receive,this,_1,_2)
     );
 }
 
-template<class Stream>
-void WS_Reader<Stream>::start_reading()
+template<class SocketType>
+void WebsocketReader<SocketType>::start_reading()
 {
     if (async)
         return;
@@ -75,29 +75,29 @@ void WS_Reader<Stream>::start_reading()
     if (options.inactive_warning>0)
         timer_A.set(options.inactive_warning);
     async = true;
-    stream.async_read(
+    socket.async_read(
         buffer,
-        boost::bind(&WS_Reader::on_receive,this,_1,_2)
+        boost::bind(&WebsocketReader::on_receive,this,_1,_2)
     );
 }
 
-template<class Stream>
-bool StreamReader<Stream>::is_async() const
+template<class SocketType>
+bool SocketReader<SocketType>::is_async() const
 {
     return async;
 }
 
-template<class Stream>
-bool WS_Reader<Stream>::is_async() const
+template<class SocketType>
+bool WebsocketReader<SocketType>::is_async() const
 {
     return async;
 }
 
-template<class Stream>
-void StreamReader<Stream>::reset()
+template<class SocketType>
+void SocketReader<SocketType>::reset()
 {
     if (async)
-        throw Exception("Implementierungsfehler: Offene Leseanfrage","StreamReader::reset()");
+        throw Exception("Implementierungsfehler: Offene Leseanfrage","SocketReader::reset()");
     warning = false;
     inactive = false;
     received = false;
@@ -107,11 +107,11 @@ void StreamReader<Stream>::reset()
     timer_B.disable();
 }
 
-template<class Stream>
-void WS_Reader<Stream>::reset()
+template<class SocketType>
+void WebsocketReader<SocketType>::reset()
 {
     if (async)
-        throw Exception("Implementierungsfehler: Offene Leseanfrage","WS_Reader::reset()");
+        throw Exception("Implementierungsfehler: Offene Leseanfrage","WebsocketReader::reset()");
     warning = false;
     inactive = false;
     received = false;
@@ -121,8 +121,8 @@ void WS_Reader<Stream>::reset()
     timer_B.disable();
 }
 
-template<class Stream>
-void StreamReader<Stream>::on_receive(const boost::system::error_code& ec, size_t recv_len)
+template<class SocketType>
+void SocketReader<SocketType>::on_receive(const boost::system::error_code& ec, size_t recv_len)
 {
     async = false;
     timer_A.disable();
@@ -134,8 +134,8 @@ void StreamReader<Stream>::on_receive(const boost::system::error_code& ec, size_
         start_reading();
 }
 
-template<class Stream>
-void WS_Reader<Stream>::on_receive(const boost::system::error_code& ec, size_t recv_len)
+template<class SocketType>
+void WebsocketReader<SocketType>::on_receive(const boost::system::error_code& ec, size_t recv_len)
 {
     async = false;
     timer_A.disable();
@@ -151,12 +151,12 @@ void WS_Reader<Stream>::on_receive(const boost::system::error_code& ec, size_t r
 
 #ifndef TC_SSL_IMPL_ONLY
 
-    template class StreamReader<boost::asio::ip::tcp::socket>;
-    template class WS_Reader<boost::asio::ip::tcp::socket>;
+    template class SocketReader<TCP_Socket>;
+    template class WebsocketReader<TCP_Socket>;
 
 #else
 
-    template class StreamReader<SSL_Stream>;
-    template class WS_Reader<SSL_Stream>;
+    template class SocketReader<SSL_Socket>;
+    template class WebsocketReader<SSL_Socket>;
 
 #endif

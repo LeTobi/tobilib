@@ -1,6 +1,12 @@
-#include "connector.h"
-#include "../general/exception.hpp"
+#ifndef TC_NETWORK_SSL_CLOSER_H
+#define TC_NETWORK_SSL_CLOSER_H
+
 #include <boost/beast.hpp>
+#include <boost/beast/websocket/ssl.hpp>
+
+#include "alias.h"
+#include "../general/exception.hpp"
+
 
 namespace boost {
 namespace beast {
@@ -8,10 +14,10 @@ namespace websocket {
     template<class TeardownHandler>
     void async_teardown(
         boost::beast::role_type role,
-        tobilib::network::detail::SSL_Stream& stream,
+        tobilib::network::detail::SSL_Socket& stream,
         TeardownHandler&& handler)
     {
-        //async_teardown(role, (tobilib::network::detail::Asio_SSL_Stream&)stream, handler);
+        //async_teardown(role, (tobilib::network::detail::SSL_Socket_Asio&)stream, handler);
     }
 } // namespace websocket
 } // namespace beast
@@ -24,14 +30,14 @@ namespace detail {
     class SSL_Closer
     {
     public:
-        SSL_Closer(SSL_Stream&, boost::asio::io_context&,Logger&);
+        SSL_Closer(SSL_Socket&, boost::asio::io_context&,Logger&);
 
         void request();
         void force();
         void cleanup();
 
     private:
-        SSL_Stream& socket;
+        SSL_Socket& socket;
         boost::asio::io_context& ioc;
         Logger& log;
         bool pending = false;
@@ -42,16 +48,14 @@ namespace detail {
     class WSS_Closer
     {
     public:
-        using WSStream = boost::beast::websocket::stream<SSL_Stream>;
-
-        WSS_Closer(WSStream&, boost::asio::io_context&, Logger&);
+        WSS_Closer(WSS_Socket&, boost::asio::io_context&, Logger&);
 
         void request();
         void force();
         void cleanup();
 
     private:
-        WSStream& socket;
+        WSS_Socket& socket;
         boost::asio::io_context& ioc;
         Logger& log;
         bool pending = false;
@@ -62,3 +66,5 @@ namespace detail {
 } // namespace detail
 } // namespace network
 } // namespace tobilib
+
+#endif

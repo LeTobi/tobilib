@@ -6,13 +6,13 @@ using namespace network;
 using namespace detail;
 using namespace boost::placeholders;
 
-SSL_Closer::SSL_Closer(SSL_Stream& _socket, boost::asio::io_context& _ioc, Logger& _log):
+SSL_Closer::SSL_Closer(SSL_Socket& _socket, boost::asio::io_context& _ioc, Logger& _log):
     socket(_socket),
     ioc(_ioc),
     log(_log)
 { }
 
-WSS_Closer::WSS_Closer(WSStream& _socket, boost::asio::io_context& _ioc, Logger& _log):
+WSS_Closer::WSS_Closer(WSS_Socket& _socket, boost::asio::io_context& _ioc, Logger& _log):
     socket(_socket),
     ioc(_ioc),
     log(_log)
@@ -56,10 +56,11 @@ void SSL_Closer::cleanup()
 
 void WSS_Closer::cleanup()
 {
-    socket.next_layer().reassign(
-        socket.next_layer().role,
-        socket.next_layer().sni
-        );
+    int role = socket.next_layer().role;
+    std::string sni = socket.next_layer().sni;
+    socket.~WSS_Socket();
+    new (&socket) WSS_Socket(ioc);
+    socket.next_layer().reassign(role,sni);
 }
 
 void SSL_Closer::on_close(const boost::system::error_code& err)

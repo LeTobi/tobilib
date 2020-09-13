@@ -17,7 +17,7 @@ TCP_Closer::TCP_Closer(
 { }
 
 WS_Closer::WS_Closer(
-    WSStream& _socket,
+    WS_Socket& _socket,
     boost::asio::io_context& _ioc,
     Logger& _log
     ):
@@ -61,8 +61,8 @@ void TCP_Closer::cleanup()
 
 void WS_Closer::cleanup()
 {
-    socket.~WSStream();
-    new (&socket) WSStream(ioc);
+    socket.~WS_Socket();
+    new (&socket) WS_Socket(ioc);
 }
 
 void WS_Closer::on_close(const boost::system::error_code& err)

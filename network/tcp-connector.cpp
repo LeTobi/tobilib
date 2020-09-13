@@ -8,7 +8,7 @@ using namespace detail;
 using namespace boost::placeholders;
 
 
-TCP_Client_Connect::TCP_Client_Connect(
+TCP_ClientConnector::TCP_ClientConnector(
     const std::string& _address,
     unsigned int _port,
     boost::asio::ip::tcp::socket& _socket,
@@ -23,10 +23,10 @@ TCP_Client_Connect::TCP_Client_Connect(
         Connector(_options)
 { }
 
-void TCP_Client_Connect::tick()
+void TCP_ClientConnector::tick()
 { }
 
-void TCP_Client_Connect::connect()
+void TCP_ClientConnector::connect()
 {
     finished = false;
     error.clear();
@@ -34,19 +34,19 @@ void TCP_Client_Connect::connect()
     resolver.async_resolve(
         target_address,
         std::to_string(target_port),
-        boost::bind(&TCP_Client_Connect::on_resolve,this,_1,_2)
+        boost::bind(&TCP_ClientConnector::on_resolve,this,_1,_2)
         );
 }
 
-bool TCP_Client_Connect::is_async() const
+bool TCP_ClientConnector::is_async() const
 {
     return async;
 }
 
-void TCP_Client_Connect::reset()
+void TCP_ClientConnector::reset()
 {
     if (async)
-        throw Exception("reset mit ausstehender Verbindung","TCP_Client_Connect::reset()");
+        throw Exception("reset mit ausstehender Verbindung","TCP_ClientConnector::reset()");
     resetting = true;
     if (resolving)
         resolver.cancel();
@@ -57,7 +57,7 @@ void TCP_Client_Connect::reset()
     finished = false;
 }
 
-void TCP_Client_Connect::on_resolve(const boost::system::error_code& ec, boost::asio::ip::tcp::resolver::results_type results)
+void TCP_ClientConnector::on_resolve(const boost::system::error_code& ec, boost::asio::ip::tcp::resolver::results_type results)
 {
     resolving = false;
     error = ec;
@@ -67,10 +67,10 @@ void TCP_Client_Connect::on_resolve(const boost::system::error_code& ec, boost::
         return;
     }
     async = true;
-    boost::asio::async_connect(socket,results,boost::bind(&TCP_Client_Connect::on_connect,this,_1,_2));
+    boost::asio::async_connect(socket,results,boost::bind(&TCP_ClientConnector::on_connect,this,_1,_2));
 }
 
-void TCP_Client_Connect::on_connect(const boost::system::error_code& ec, const boost::asio::ip::tcp::endpoint& ep)
+void TCP_ClientConnector::on_connect(const boost::system::error_code& ec, const boost::asio::ip::tcp::endpoint& ep)
 {
     error = ec;
     remote_ip = ep.address();

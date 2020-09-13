@@ -1,8 +1,7 @@
 #ifndef TC_NETWORK_WRITER_H
 #define TC_NETWORK_WRITER_H
 
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
+#include "alias.h"
 #include "../general/timer.hpp"
 
 namespace tobilib{
@@ -15,14 +14,14 @@ namespace network{
 
 namespace detail{
 
-    // Stream:
+    // SocketType:
     // boost::asio::ip::tcp::socket
     // boost::asio::ssl::stream
-    template<class Stream>
-    class StreamWriter
+    template<class SocketType>
+    class SocketWriter
     {
     public:
-        StreamWriter(WriterOptions&,Stream&);
+        SocketWriter(WriterOptions&,SocketType&);
 
         void tick();
         void send_data(const std::string&);
@@ -35,7 +34,7 @@ namespace detail{
 
     private:
         WriterOptions& options;
-        Stream& stream;
+        SocketType& socket;
         
         Timer timer;
         bool async = false;
@@ -45,13 +44,13 @@ namespace detail{
         void on_write(const boost::system::error_code& ec, std::size_t);
     };
 
-    template<class Stream>
-    class WS_Writer
+    template<class SocketType>
+    class WebsocketWriter
     {
     public:
-        using WSStream = boost::beast::websocket::stream<Stream>;
+        using WebsocketType = boost::beast::websocket::stream<SocketType>;
 
-        WS_Writer(WriterOptions&,WSStream&);
+        WebsocketWriter(WriterOptions&,WebsocketType&);
 
         void tick();
         void send_data(const std::string&);
@@ -64,7 +63,7 @@ namespace detail{
 
     private:
         WriterOptions& options;
-        WSStream& stream;
+        WebsocketType& socket;
 
         Timer timer;
         bool async = false;
