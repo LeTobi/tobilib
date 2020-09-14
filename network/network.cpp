@@ -11,21 +11,21 @@ using namespace boost::placeholders;
 template<class StackConfig>
 Endpoint<StackConfig>::Endpoint(Acceptor& _acceptor):
     socket(ioc),
-    reader(options,socket),
-    writer(options,socket),
-    closer(socket,ioc,log)
+    reader(options,&socket),
+    writer(options,&socket),
+    closer(&socket,ioc)
 {
-    connector = new typename StackConfig::ServerConnector(_acceptor,socket,ioc,options);
+    connector = new typename StackConfig::ServerConnector(_acceptor,&socket,ioc,options);
 }
 
 template<class StackConfig>
 Endpoint<StackConfig>::Endpoint(const std::string& _address, unsigned int _port):
     socket(ioc),
-    reader(options,socket),
-    writer(options,socket),
-    closer(socket,ioc,log)
+    reader(options,&socket),
+    writer(options,&socket),
+    closer(&socket,ioc)
 {
-    connector = new typename StackConfig::ClientConnector(_address,_port,socket,ioc,options);
+    connector = new typename StackConfig::ClientConnector(_address,_port,&socket,ioc,options);
 }
 
 template<class StackConfig>
@@ -123,6 +123,12 @@ void Endpoint<StackConfig>::tick()
             reader.start_reading();
         }
     }
+
+    if (closer.error)
+    {
+        log << closer.error.message() << std::endl;
+        reset();
+    }
     
     if (connect_timer.due())
     {
@@ -204,16 +210,24 @@ void Endpoint<StackConfig>::reset()
     if (_status==EndpointStatus::closed)
         return;
     
+
+    connector->cancel();
     closer.force();
-    while (reader.is_async() || writer.is_async() || connector->is_async())
-        ioc.poll_one();
-    reader.reset();
-    writer.reset();
-    connector->reset();
-    closer.cleanup();
+    while (connector->is_async())
+        connector->tick();
+    while (reader.is_async())
+        reader.tick();
+    while (writer.is_async())
+        writer.tick();
 
     connect_timer.disable();
     close_timer.disable();
+
+    reset_socket();
+    reader.reset(&socket);
+    writer.reset(&socket);
+    connector->reset(&socket);
+    closer.reset(&socket);
 
     set_closed();
 }
@@ -246,12 +260,47 @@ void Endpoint<StackConfig>::set_closed()
     _status = EndpointStatus::closed;
 }
 
+template<class StackConfig>
+void Endpoint<StackConfig>::reset_socket()
+{
+    throw Exception("Endpoint::reset_socket wurde nicht implementiert");
+}
+
 #ifndef TC_SSL_IMPL_ONLY
+
+    template<>
+    void Endpoint<Config_TCP>::reset_socket()
+    {
+        socket.close();
+    }
+
+    template<>
+    void Endpoint<Config_WS>::reset_socket()
+    {
+        socket.~WS_Socket();
+        new (&socket) WS_Socket(ioc);
+    }
 
     template class Endpoint<Config_TCP>;
     template class Endpoint<Config_WS>;
 
 #else
+
+    template<>
+    void Endpoint<Config_SSL>::reset_socket()
+    {
+        socket.reassign(socket.role,socket.sni);
+    }
+
+    template<>
+    void Endpoint<Config_WSS>::reset_socket()
+    {
+        std::string sni = socket.next_layer().sni;
+        int role = socket.next_layer().role;
+        socket.~WSS_Socket();
+        new (&socket) WSS_Socket(ioc);
+        socket.next_layer().reassign(role,sni);
+    }
 
     template class Endpoint<Config_SSL>;
     template class Endpoint<Config_WSS>;

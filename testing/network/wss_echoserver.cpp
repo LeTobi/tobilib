@@ -3,6 +3,7 @@
 
 using namespace tobilib;
 using namespace network;
+using namespace detail;
 
 int main()
 {

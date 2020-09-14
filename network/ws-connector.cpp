@@ -12,29 +12,29 @@ template<class WebsocketType, class ConnectorType>
 WS_ClientConnector<WebsocketType,ConnectorType>::WS_ClientConnector(
     const std::string& _address,
     unsigned int _port,
-    WebsocketType& _socket,
+    WebsocketType* _socket,
     boost::asio::io_context& _ioc,
     ConnectorOptions& _options
     ):
         ioc(_ioc),
         socket(_socket),
-        lowerlevel(_address,_port,_socket.next_layer(),_ioc,_options),
+        lowerlevel(_address,_port,&_socket->next_layer(),_ioc,_options),
         address(_address),
         port(_port),
-        Connector(_options)
+        Connector<WebsocketType>(_options)
 { }
 
 template<class WebsocketType, class ConnectorType>
 WS_ServerConnector<WebsocketType,ConnectorType>::WS_ServerConnector(
     Acceptor& _accpt,
-    WebsocketType& _socket,
+    WebsocketType* _socket,
     boost::asio::io_context& _ioc,
     ConnectorOptions& _options
     ):
         ioc(_ioc),
         socket(_socket),
-        lowerlevel(_accpt,_socket.next_layer(),_ioc,_options),
-        Connector(_options)
+        lowerlevel(_accpt,&_socket->next_layer(),_ioc,_options),
+        Connector<WebsocketType>(_options)
 { }
 
 template<class WebsocketType, class ConnectorType>
@@ -46,15 +46,15 @@ void WS_ClientConnector<WebsocketType,ConnectorType>::tick()
         lowerlevel.finished = false;
         if (lowerlevel.error)
         {
-            error = lowerlevel.error;
-            finished = true;
+            this->error = lowerlevel.error;
+            this->finished = true;
             return;
         }
-        if (options.handshake_timeout>0)
-            hs_timer.set(options.handshake_timeout);
-        remote_ip = lowerlevel.remote_ip;
+        if (this->options.handshake_timeout>0)
+            hs_timer.set(this->options.handshake_timeout);
+        this->remote_ip = lowerlevel.remote_ip;
         async = true;
-        socket.async_handshake(
+        socket->async_handshake(
             address,
             "/",
             boost::bind(&WS_ClientConnector<WebsocketType,ConnectorType>::on_handshake,this,_1)
@@ -63,8 +63,8 @@ void WS_ClientConnector<WebsocketType,ConnectorType>::tick()
     if (hs_timer.due())
     {
         hs_timer.disable();
-        finished = true;
-        error = boost::system::error_code(TobilibErrors.handshake_timeout,TobilibErrors);
+        this->finished = true;
+        this->error = boost::system::error_code(TobilibErrors.handshake_timeout,TobilibErrors);
     }
 }
 
@@ -77,37 +77,37 @@ void WS_ServerConnector<WebsocketType,ConnectorType>::tick()
         lowerlevel.finished = false;
         if (lowerlevel.error)
         {
-            error = lowerlevel.error;
-            finished = true;
+            this->error = lowerlevel.error;
+            this->finished = true;
             return;
         }
-        if (options.handshake_timeout>0)
-            hs_timer.set(options.handshake_timeout);
-        remote_ip = lowerlevel.remote_ip;
+        if (this->options.handshake_timeout>0)
+            hs_timer.set(this->options.handshake_timeout);
+        this->remote_ip = lowerlevel.remote_ip;
         async = true;
-        socket.async_accept(boost::bind(&WS_ServerConnector::on_handshake,this,_1));
+        socket->async_accept(boost::bind(&WS_ServerConnector::on_handshake,this,_1));
     }
     if (hs_timer.due())
     {
         hs_timer.disable();
-        finished = true;
-        error = boost::system::error_code(TobilibErrors.handshake_timeout,TobilibErrors);
+        this->finished = true;
+        this->error = boost::system::error_code(TobilibErrors.handshake_timeout,TobilibErrors);
     }
 }
 
 template<class WebsocketType, class ConnectorType>
 void WS_ClientConnector<WebsocketType,ConnectorType>::connect()
 {
-    finished = false;
-    error.clear();
+    this->finished = false;
+    this->error.clear();
     lowerlevel.connect();
 }
 
 template<class WebsocketType, class ConnectorType>
 void WS_ServerConnector<WebsocketType,ConnectorType>::connect()
 {
-    finished = false;
-    error.clear();
+    this->finished = false;
+    this->error.clear();
     lowerlevel.connect();
 }
 
@@ -124,23 +124,37 @@ bool WS_ServerConnector<WebsocketType,ConnectorType>::is_async() const
 }
 
 template<class WebsocketType, class ConnectorType>
-void WS_ClientConnector<WebsocketType,ConnectorType>::reset()
+void WS_ClientConnector<WebsocketType,ConnectorType>::cancel()
 {
-    if (is_async())
-        throw Exception("reset mit ausstehender Operation","WS_ClientConnector::reset()");
-    lowerlevel.reset();
-    hs_timer.disable();
-    finished = false;
+    lowerlevel.cancel();
 }
 
 template<class WebsocketType, class ConnectorType>
-void WS_ServerConnector<WebsocketType,ConnectorType>::reset()
+void WS_ServerConnector<WebsocketType,ConnectorType>::cancel()
+{
+    lowerlevel.cancel();
+}
+
+template<class WebsocketType, class ConnectorType>
+void WS_ClientConnector<WebsocketType,ConnectorType>::reset(WebsocketType* sock)
+{
+    if (is_async())
+        throw Exception("reset mit ausstehender Operation","WS_ClientConnector::reset()");
+    socket = sock;
+    lowerlevel.reset(&sock->next_layer());
+    hs_timer.disable();
+    this->finished = false;
+}
+
+template<class WebsocketType, class ConnectorType>
+void WS_ServerConnector<WebsocketType,ConnectorType>::reset(WebsocketType* sock)
 {
     if (is_async())
         throw Exception("reset mit ausstehender operation","WS_ServerConnector::reset()");
-    lowerlevel.reset();
+    socket = sock;
+    lowerlevel.reset(&sock->next_layer());
     hs_timer.disable();
-    finished = false;
+    this->finished = false;
 }
 
 template<class WebsocketType, class ConnectorType>
@@ -148,8 +162,8 @@ void WS_ClientConnector<WebsocketType,ConnectorType>::on_handshake(const boost::
 {
     hs_timer.disable();
     async = false;
-    finished = true;
-    error = ec;
+    this->finished = true;
+    this->error = ec;
 }
 
 template<class WebsocketType, class ConnectorType>
@@ -157,8 +171,8 @@ void WS_ServerConnector<WebsocketType,ConnectorType>::on_handshake(const boost::
 {
     hs_timer.disable();
     async = false;
-    finished = true;
-    error = ec;
+    this->finished = true;
+    this->error = ec;
 }
 
 #ifndef TC_SSL_IMPL_ONLY

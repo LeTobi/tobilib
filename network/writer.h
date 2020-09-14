@@ -21,12 +21,12 @@ namespace detail{
     class SocketWriter
     {
     public:
-        SocketWriter(WriterOptions&,SocketType&);
+        SocketWriter(WriterOptions&,SocketType*);
 
         void tick();
         void send_data(const std::string&);
         bool is_async() const;
-        void reset();
+        void reset(SocketType*);
 
         bool timed_out = false;
         bool written = false;
@@ -34,7 +34,7 @@ namespace detail{
 
     private:
         WriterOptions& options;
-        SocketType& socket;
+        SocketType* socket;
         
         Timer timer;
         bool async = false;
@@ -50,12 +50,12 @@ namespace detail{
     public:
         using WebsocketType = boost::beast::websocket::stream<SocketType>;
 
-        WebsocketWriter(WriterOptions&,WebsocketType&);
+        WebsocketWriter(WriterOptions&,WebsocketType*);
 
         void tick();
         void send_data(const std::string&);
         bool is_async() const;
-        void reset();
+        void reset(WebsocketType*);
 
         bool timed_out = false;
         bool written = false;
@@ -63,7 +63,7 @@ namespace detail{
 
     private:
         WriterOptions& options;
-        WebsocketType& socket;
+        WebsocketType* socket;
 
         Timer timer;
         bool async = false;

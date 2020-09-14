@@ -8,13 +8,13 @@ using namespace detail;
 using namespace boost::placeholders;
 
 template<class SocketType>
-SocketReader<SocketType>::SocketReader(ReaderOptions& _options, SocketType& _socket):
+SocketReader<SocketType>::SocketReader(ReaderOptions& _options, SocketType* _socket):
     options(_options),
     socket(_socket)
 { }
 
 template<class SocketType>
-WebsocketReader<SocketType>::WebsocketReader(ReaderOptions& _options, WebsocketType& _socket):
+WebsocketReader<SocketType>::WebsocketReader(ReaderOptions& _options, WebsocketType* _socket):
     options(_options),
     socket(_socket)
 { }
@@ -59,7 +59,7 @@ void SocketReader<SocketType>::start_reading()
     if (options.inactive_warning>0)
         timer_A.set(options.inactive_warning);
     async = true;
-    socket.async_read_some(
+    socket->async_read_some(
         boost::asio::buffer(buffer,BUFFER_SIZE),
         boost::bind(&SocketReader<SocketType>::on_receive,this,_1,_2)
     );
@@ -75,7 +75,7 @@ void WebsocketReader<SocketType>::start_reading()
     if (options.inactive_warning>0)
         timer_A.set(options.inactive_warning);
     async = true;
-    socket.async_read(
+    socket->async_read(
         buffer,
         boost::bind(&WebsocketReader::on_receive,this,_1,_2)
     );
@@ -94,10 +94,11 @@ bool WebsocketReader<SocketType>::is_async() const
 }
 
 template<class SocketType>
-void SocketReader<SocketType>::reset()
+void SocketReader<SocketType>::reset(SocketType* sock)
 {
     if (async)
         throw Exception("Implementierungsfehler: Offene Leseanfrage","SocketReader::reset()");
+    socket = sock;
     warning = false;
     inactive = false;
     received = false;
@@ -108,10 +109,11 @@ void SocketReader<SocketType>::reset()
 }
 
 template<class SocketType>
-void WebsocketReader<SocketType>::reset()
+void WebsocketReader<SocketType>::reset(WebsocketType* sock)
 {
     if (async)
         throw Exception("Implementierungsfehler: Offene Leseanfrage","WebsocketReader::reset()");
+    socket = sock;
     warning = false;
     inactive = false;
     received = false;

@@ -12,21 +12,22 @@ namespace network {
     class Acceptor {
     public:
 
-        class Interface: public detail::Connector
+        class Interface: public detail::Connector<detail::TCP_Socket>
         {
         public:
-            Interface(Acceptor&, boost::asio::ip::tcp::socket&, boost::asio::io_context&, ConnectorOptions&);
+            Interface(Acceptor&, detail::TCP_Socket*, boost::asio::io_context&, ConnectorOptions&);
 
             void tick();
             void connect();
             bool is_async() const;
-            void reset();
+            void cancel();
+            void reset(detail::TCP_Socket*);
         
         private:
             friend class Acceptor;
 
             Acceptor& accpt;
-            boost::asio::ip::tcp::socket& socket;
+            detail::TCP_Socket* socket;
             bool enqueued = false;
         };
 

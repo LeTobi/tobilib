@@ -70,22 +70,26 @@ namespace network {
         Queue<EndpointEvent> events;
         EndpointOptions options;
     private:
+        using ConnectorType = detail::Connector<typename StackConfig::Socket>;
+
         void set_connecting();
         void set_connected();
         void set_closing();
         void set_closed();
 
-        boost::asio::io_context      ioc;
-        typename StackConfig::Socket socket;
-        EndpointStatus               _status    = EndpointStatus::closed;
-        boost::asio::ip::address     _remote_ip;
-        detail::Connector*           connector;
-        typename StackConfig::Reader reader;
-        typename StackConfig::Writer writer;
-        typename StackConfig::Closer closer;
+        void reset_socket();
+
+        boost::asio::io_context       ioc;
+        typename StackConfig::Socket  socket;
+        EndpointStatus                _status    = EndpointStatus::closed;
+        boost::asio::ip::address      _remote_ip;
+        ConnectorType*                connector;
+        typename StackConfig::Reader  reader;
+        typename StackConfig::Writer  writer;
+        typename StackConfig::Closer  closer;
         
-        Timer                    connect_timer;
-        Timer                    close_timer;
+        Timer                         connect_timer;
+        Timer                         close_timer;
         
         boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard = boost::asio::make_work_guard(ioc);
     };

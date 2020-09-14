@@ -11,26 +11,26 @@ using namespace boost::placeholders;
 SSL_ClientConnector::SSL_ClientConnector(
     const std::string& address,
     unsigned int port,
-    SSL_Socket& _socket,
+    SSL_Socket* _socket,
     boost::asio::io_context& ioc,
     ConnectorOptions& _options):
         Connector(_options),
         socket(_socket),
-        lowerlevel(address,port,_socket.next_layer(),ioc,_options)
+        lowerlevel(address,port,&_socket->next_layer(),ioc,_options)
 {
-    socket.reassign(SSL_Socket_Asio::handshake_type::client,address);
+    socket->reassign(SSL_Socket_Asio::handshake_type::client,address);
 }
 
 SSL_ServerConnector::SSL_ServerConnector(
     Acceptor& accpt,
-    SSL_Socket& _socket,
+    SSL_Socket* _socket,
     boost::asio::io_context& ioc,
     ConnectorOptions& _options):
         Connector(_options),
         socket(_socket),
-        lowerlevel(accpt,_socket.next_layer(),ioc,_options)
+        lowerlevel(accpt,&_socket->next_layer(),ioc,_options)
 {
-    socket.reassign(SSL_Socket_Asio::handshake_type::server,"");
+    socket->reassign(SSL_Socket_Asio::handshake_type::server,"");
 }
 
 void SSL_ClientConnector::tick()
@@ -49,7 +49,7 @@ void SSL_ClientConnector::tick()
             hs_timer.set(options.handshake_timeout);
         remote_ip = lowerlevel.remote_ip;
         async = true;
-        socket.async_handshake(
+        socket->async_handshake(
                 SSL_Socket_Asio::handshake_type::client,
                 boost::bind(&SSL_ClientConnector::on_handshake,this,_1)
             );
@@ -78,7 +78,7 @@ void SSL_ServerConnector::tick()
             hs_timer.set(options.handshake_timeout);
         remote_ip = lowerlevel.remote_ip;
         async = true;
-        socket.async_handshake(
+        socket->async_handshake(
                 SSL_Socket_Asio::handshake_type::server,
                 boost::bind(&SSL_ServerConnector::on_handshake,this,_1)
             );
@@ -115,21 +115,33 @@ bool SSL_ServerConnector::is_async() const
     return async || lowerlevel.is_async();
 }
 
-void SSL_ClientConnector::reset()
+void SSL_ClientConnector::cancel()
+{
+    lowerlevel.cancel();
+}
+
+void SSL_ServerConnector::cancel()
+{
+    lowerlevel.cancel();
+}
+
+void SSL_ClientConnector::reset(SSL_Socket* sock)
 {
     if (is_async())
         throw Exception("reset mit ausstehender Operation","SSL_ClientConnector::reset()");
+    socket = sock;
     hs_timer.disable();
-    lowerlevel.reset();
+    lowerlevel.reset(&socket->next_layer());
     finished = false;
 }
 
-void SSL_ServerConnector::reset()
+void SSL_ServerConnector::reset(SSL_Socket* sock)
 {
     if (is_async())
         throw Exception("reset mit ausstehender Operation","SSL_ServerConnector::reset()");
+    socket = sock;
     hs_timer.disable();
-    lowerlevel.reset();
+    lowerlevel.reset(&socket->next_layer());
     finished = false;
 }
 

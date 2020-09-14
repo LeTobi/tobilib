@@ -9,31 +9,33 @@ namespace network{
 namespace detail {
     class TCP_Closer {
     public:
-        TCP_Closer(boost::asio::ip::tcp::socket&,boost::asio::io_context&,Logger&);
+        TCP_Closer(TCP_Socket*,boost::asio::io_context&);
 
         void request();
         void force();
-        void cleanup();
+        void reset(TCP_Socket*);
+
+        boost::system::error_code error;
 
     private:
-        Logger& log;
         boost::asio::io_context& ioc;
-        boost::asio::ip::tcp::socket& socket;
+        TCP_Socket* socket;
     };
 
     class WS_Closer
     {
     public:
-        WS_Closer(WS_Socket&, boost::asio::io_context&, Logger&);
+        WS_Closer(WS_Socket*, boost::asio::io_context&);
 
         void request();
         void force();
-        void cleanup();
+        void reset(WS_Socket*);
+
+        boost::system::error_code error;
 
     private:
-        WS_Socket& socket;
+        WS_Socket* socket;
         boost::asio::io_context& ioc;
-        Logger& log;
         bool pending = false;
 
         void on_close(const boost::system::error_code&);

@@ -11,6 +11,7 @@ int main()
     SSL_Endpoint endpoint (accpt);
     endpoint.options.inactive_warning = 5;
     endpoint.options.read_timeout = 10;
+    endpoint.options.close_timeout = 5;
     endpoint.connect();
     std::cout << "SSL echoserver auf Port 1533" << std::endl;
     while (true)

@@ -8,13 +8,13 @@ using namespace detail;
 using namespace boost::placeholders;
 
 template<class SocketType>
-SocketWriter<SocketType>::SocketWriter(WriterOptions& _options, SocketType& _socket):
+SocketWriter<SocketType>::SocketWriter(WriterOptions& _options, SocketType* _socket):
     options(_options),
     socket(_socket)
 { }
 
 template<class SocketType>
-WebsocketWriter<SocketType>::WebsocketWriter(WriterOptions& _options, WebsocketType& _socket):
+WebsocketWriter<SocketType>::WebsocketWriter(WriterOptions& _options, WebsocketType* _socket):
     options(_options),
     socket(_socket)
 { }
@@ -52,7 +52,7 @@ void SocketWriter<SocketType>::send_data(const std::string& msg)
         written = true;
         return;
     }
-    socket.async_write_some(
+    socket->async_write_some(
             boost::asio::buffer(data_sending),
             boost::bind(&SocketWriter<SocketType>::on_write,this,_1,_2)
         );
@@ -74,7 +74,7 @@ void WebsocketWriter<SocketType>::send_data(const std::string& msg)
         written = true;
         return;
     }
-    socket.async_write(
+    socket->async_write(
             boost::asio::buffer(data_sending),
             boost::bind(&WebsocketWriter<SocketType>::on_write,this,_1,_2)
         );
@@ -96,10 +96,11 @@ bool WebsocketWriter<SocketType>::is_async() const
 }
 
 template<class SocketType>
-void SocketWriter<SocketType>::reset()
+void SocketWriter<SocketType>::reset(SocketType* sock)
 {
     if (async)
         throw Exception("Implementierungsfehler: Offener Schreibauftrag","SocketWriter::reset()");
+    socket = sock;
     error.clear();
     timer.disable();
     timed_out = false;
@@ -108,10 +109,11 @@ void SocketWriter<SocketType>::reset()
 }
 
 template<class SocketType>
-void WebsocketWriter<SocketType>::reset()
+void WebsocketWriter<SocketType>::reset(WebsocketType* sock)
 {
     if (async)
         throw Exception("Implementierungsfehler: Offener Schreibauftrag","WebsocketWriter::reset()");
+    socket = sock;
     error.clear();
     timer.disable();
     timed_out = false;

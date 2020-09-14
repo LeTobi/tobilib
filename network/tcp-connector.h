@@ -14,6 +14,7 @@ namespace network{
 
 namespace detail
 {
+    template<class SocketType>
     class Connector
     {
     public:
@@ -25,25 +26,27 @@ namespace detail
         virtual void tick() = 0;
         virtual void connect() = 0;
         virtual bool is_async() const = 0;
-        virtual void reset() = 0;
-        virtual ~Connector() = 0;
+        virtual void cancel() = 0;
+        virtual void reset(SocketType*) = 0;
+        virtual ~Connector() { }
 
     protected:
         ConnectorOptions& options;
     };
 
-    class TCP_ClientConnector: public Connector
+    class TCP_ClientConnector: public Connector<TCP_Socket>
     {
     public:
-        TCP_ClientConnector(const std::string&, unsigned int, boost::asio::ip::tcp::socket&, boost::asio::io_context&,ConnectorOptions&);
+        TCP_ClientConnector(const std::string&, unsigned int, TCP_Socket*, boost::asio::io_context&, ConnectorOptions&);
 
         void tick();
         void connect();
         bool is_async() const;
-        void reset();
+        void cancel();
+        void reset(TCP_Socket*);
         
     private:
-        boost::asio::ip::tcp::socket& socket;
+        TCP_Socket* socket;
         boost::asio::io_context& ioc;
         boost::asio::ip::tcp::resolver resolver;
         std::string target_address;

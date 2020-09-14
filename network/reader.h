@@ -22,12 +22,12 @@ namespace detail{
     class SocketReader
     {
     public:
-        SocketReader(ReaderOptions&,SocketType&);
+        SocketReader(ReaderOptions&,SocketType*);
 
         void tick();
         void start_reading();
         bool is_async() const;
-        void reset();
+        void reset(SocketType*);
 
         bool warning = false;
         bool inactive = false;
@@ -39,7 +39,7 @@ namespace detail{
 
     private:
         ReaderOptions& options;
-        SocketType& socket;
+        SocketType* socket;
         Timer timer_A; // used for no activity warning
         Timer timer_B; // used for no activity deadline
         std::string buffer = std::string(BUFFER_SIZE,0);
@@ -54,12 +54,12 @@ namespace detail{
     public:
         using WebsocketType = boost::beast::websocket::stream<SocketType>;
 
-        WebsocketReader(ReaderOptions&,WebsocketType&);
+        WebsocketReader(ReaderOptions&,WebsocketType*);
 
         void tick();
         void start_reading();
         bool is_async() const;
-        void reset();
+        void reset(WebsocketType*);
 
         bool warning = false;
         bool inactive = false;
@@ -69,7 +69,7 @@ namespace detail{
 
     private:
         ReaderOptions& options;
-        WebsocketType& socket;
+        WebsocketType* socket;
         Timer timer_A;
         Timer timer_B;
         boost::asio::streambuf buffer;

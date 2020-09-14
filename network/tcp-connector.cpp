@@ -11,7 +11,7 @@ using namespace boost::placeholders;
 TCP_ClientConnector::TCP_ClientConnector(
     const std::string& _address,
     unsigned int _port,
-    boost::asio::ip::tcp::socket& _socket,
+    boost::asio::ip::tcp::socket* _socket,
     boost::asio::io_context& _ioc,
     ConnectorOptions& _options
     ):
@@ -43,16 +43,21 @@ bool TCP_ClientConnector::is_async() const
     return async;
 }
 
-void TCP_ClientConnector::reset()
+void TCP_ClientConnector::cancel()
 {
-    if (async)
-        throw Exception("reset mit ausstehender Verbindung","TCP_ClientConnector::reset()");
     resetting = true;
     if (resolving)
         resolver.cancel();
     while (resolving)
         ioc.poll_one();
     resetting = false;
+}
+
+void TCP_ClientConnector::reset(TCP_Socket* sock)
+{
+    if (async)
+        throw Exception("reset mit ausstehender Verbindung","TCP_ClientConnector::reset()");
+    socket = sock;
     error.clear();
     finished = false;
 }
@@ -67,7 +72,7 @@ void TCP_ClientConnector::on_resolve(const boost::system::error_code& ec, boost:
         return;
     }
     async = true;
-    boost::asio::async_connect(socket,results,boost::bind(&TCP_ClientConnector::on_connect,this,_1,_2));
+    boost::asio::async_connect(*socket,results,boost::bind(&TCP_ClientConnector::on_connect,this,_1,_2));
 }
 
 void TCP_ClientConnector::on_connect(const boost::system::error_code& ec, const boost::asio::ip::tcp::endpoint& ep)
@@ -77,6 +82,3 @@ void TCP_ClientConnector::on_connect(const boost::system::error_code& ec, const 
     finished = true;
     async = false;
 }
-
-Connector::~Connector()
-{ }

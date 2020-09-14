@@ -15,40 +15,42 @@ namespace tobilib {
 namespace network {
 namespace detail {
 
-class SSL_ClientConnector: public Connector
+class SSL_ClientConnector: public Connector<SSL_Socket>
 {
 public:
-    SSL_ClientConnector(const std::string&, unsigned int, SSL_Socket&, boost::asio::io_context&, ConnectorOptions&);
+    SSL_ClientConnector(const std::string&, unsigned int, SSL_Socket*, boost::asio::io_context&, ConnectorOptions&);
 
     void tick();
     void connect();
     bool is_async() const;
-    void reset();
+    void cancel();
+    void reset(SSL_Socket*);
 
 private:
     bool async = false;
     Timer hs_timer;
     TCP_ClientConnector lowerlevel;
-    SSL_Socket& socket;
+    SSL_Socket* socket;
 
     void on_handshake(const boost::system::error_code&);
 };
 
-class SSL_ServerConnector: public Connector
+class SSL_ServerConnector: public Connector<SSL_Socket>
 {
 public:
-    SSL_ServerConnector(Acceptor&, SSL_Socket&, boost::asio::io_context&, ConnectorOptions&);
+    SSL_ServerConnector(Acceptor&, SSL_Socket*, boost::asio::io_context&, ConnectorOptions&);
 
     void tick();
     void connect();
     bool is_async() const;
-    void reset();
+    void cancel();
+    void reset(SSL_Socket*);
 
 private:
     bool async = false;
     Timer hs_timer;
     TCP_ServerConnector lowerlevel;
-    SSL_Socket& socket;
+    SSL_Socket* socket;
 
     void on_handshake(const boost::system::error_code&);
 };

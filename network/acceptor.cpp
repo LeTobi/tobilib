@@ -4,6 +4,7 @@
 
 using namespace tobilib;
 using namespace network;
+using namespace detail;
 using namespace boost::placeholders;
 
 Acceptor::Acceptor(unsigned int port): acceptor(ioc), _port(port)
@@ -31,7 +32,7 @@ void Acceptor::connect(Interface* iface)
         return;
     current = queue.front();
     queue.pop_front();
-    acceptor.async_accept(current->socket,boost::bind(&Acceptor::on_connect,this,_1));
+    acceptor.async_accept(*current->socket,boost::bind(&Acceptor::on_connect,this,_1));
 }
 
 void Acceptor::on_connect(const boost::system::error_code& ec)
@@ -40,14 +41,14 @@ void Acceptor::on_connect(const boost::system::error_code& ec)
     current->enqueued = false;
     current->error = ec;
     if (!ec)
-        current->remote_ip = current->socket.remote_endpoint().address();
+        current->remote_ip = current->socket->remote_endpoint().address();
     current = nullptr;
     connect(nullptr);
 }
 
 Acceptor::Interface::Interface (
     Acceptor& _accpt,
-    boost::asio::ip::tcp::socket& _socket,
+    TCP_Socket* _socket,
     boost::asio::io_context& unused,
     ConnectorOptions& _options):
         accpt(_accpt),
@@ -69,12 +70,11 @@ void Acceptor::Interface::connect()
 
 bool Acceptor::Interface::is_async() const
 {
-    return false;
+    return accpt.current==this;
 }
 
-void Acceptor::Interface::reset()
+void Acceptor::Interface::cancel()
 {
-    socket.close();
     if (accpt.current==this)
     {
         accpt.acceptor.cancel();
@@ -88,4 +88,9 @@ void Acceptor::Interface::reset()
         enqueued = false;
     }
     finished = false;
+}
+
+void Acceptor::Interface::reset(TCP_Socket* sock)
+{
+    socket = sock;
 }
