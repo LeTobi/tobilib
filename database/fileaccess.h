@@ -39,7 +39,7 @@ public:
     Member create_member(const Member&, unsigned int) const;
     unsigned int get_index(const Member&) const;
 
-    // raw access
+    // element access
     unsigned int get_first_empty() const;
     unsigned int get_last_empty() const;
     unsigned int get_next(unsigned int) const;
@@ -52,13 +52,13 @@ public:
     void set_first_filled(const Member&,unsigned int);
     unsigned int extend();
 
-    // link control
+    // list access
     unsigned int remove_empty();
     void append_empty(unsigned int);
     void append_filled(const Member&, unsigned int);
     void remove_filled(const Member&, unsigned int);
 
-    // space control
+    // file access
     Member emplace(const Member&);
     void erase(const Member&, const Member&);
     Member begin(const Member&);
@@ -81,7 +81,7 @@ public:
     Cluster create_cluster(unsigned int) const;
     unsigned int get_index(const Cluster&) const;
 
-    // raw access
+    // element access
     unsigned int get_first_filled() const;
     unsigned int get_first_empty() const;
     unsigned int get_last_filled() const;
@@ -101,13 +101,13 @@ public:
     void set_refcount_add(unsigned int, int);
     unsigned int extend();
 
-    // link control
+    // list access
     unsigned int remove_empty();
     void append_empty(unsigned int);
     void append_filled(unsigned int);
     void remove_filled(unsigned int);
 
-    // space control
+    // file access
     Cluster emplace();
     void erase(const Cluster&);
     Cluster at(unsigned int);

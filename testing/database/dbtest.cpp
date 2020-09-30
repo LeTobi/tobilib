@@ -18,11 +18,13 @@ int main(int argc, const char** args) {
 	}
 	for (auto a: b1("liste"))
 		a("name") = std::to_string(a->index()) + " xxx";
-	for (auto x: db.list("A"))
-		std::cout << (std::string)x("name") << std::endl;
 
 	while (db.list("B").begin()!=db.list("B").end())
 		db.list("B").begin()->erase();
+
+	for (auto x: db.list("A"))
+		std::cout << (std::string)x("name") << std::endl;
+
 	while (db.list("A").begin()!=db.list("A").end())
 		db.list("A").begin()->erase();
 	

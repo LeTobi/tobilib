@@ -1,0 +1,36 @@
+*** Types ***
+idx: unsigned int
+bool: 1 byte
+count: unsigned int
+
+*** Cluster ***
+    No header
+    Entries according to structurefile
+
+*** Clusterfile ***
+
+* First line:
+    [idx] first occupied
+    [idx] last occupied
+    [idx] first empty
+    [idx] last empty
+    [] space
+    
+* Other lines:
+    [bool] occupied flag
+    [idx] previous element
+    [idx] next element
+    [count] reference count
+    [cluster] clusterdata
+
+*** Listfile ***
+
+* First line:
+    [idx] first empty
+    [idx] last empty
+    [] space
+
+* Other lines:
+    [idx] previous element
+    [idx] next element
+    [idx] target cluster index

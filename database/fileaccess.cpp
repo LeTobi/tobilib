@@ -619,9 +619,9 @@ bool ClusterFile::is_occupied(const Cluster& cluster)
 
 std::streampos ClusterFile::linesize() const
 {
-    std::streampos min_out = 4*serial_size<unsigned int>() + 2;
-    std::streampos out = type.size() + LINEHEAD;
+    std::streampos min_out = LINEHEAD + 2;
+    std::streampos out = LINEHEAD + type.size() + 2;
     return std::max(out,min_out);
 }
 
-const std::streampos ClusterFile::LINEHEAD = 1*serial_size<bool>() + 3*serial_size<unsigned int>() + 2;
+const std::streampos ClusterFile::LINEHEAD = 1*serial_size<bool>() + 3*serial_size<unsigned int>();
