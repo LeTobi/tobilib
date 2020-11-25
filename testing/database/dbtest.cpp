@@ -1,36 +1,131 @@
 #include "../../database/database.h"
 #include <iostream>
+#include <sstream>
 
 using namespace tobilib;
 
+struct GlobalData
+{
+	Database base;
+
+	GlobalData(): base("../testing/database/data_test/")
+	{ }
+};
+
 Logger cout = std::string("main: ");
+GlobalData data;
 
-int main(int argc, const char** args) {
-	Database db ("../testing/database/data_test/");
-	db.init();
-	db.open();
+bool init()
+{
+	data.base.init();
+	data.base.open();
 
-	auto b1 = db.list("B").emplace();
+	if (!data.base.is_good())
+	{
+		std::cout << "error with init" << std::endl;
+		return false;
+	}
+	return true;
+}
+
+bool reference_test()
+{
+	auto target1 = data.base.list("AdvancedClass").emplace();
+	auto target2 = data.base.list("SimpleClass").emplace();
+	auto item1 = data.base.list("SimpleClass").emplace();
+	auto item2 = data.base.list("AdvancedClass").emplace();
+
+	item1("memberPointer") = target1;
+	item2("memberList").emplace() = target2;
+
+	if (!data.base.is_good())
+	{
+		std::cout << "error with setup" << std::endl;
+		return false;
+	}
+
+	try {
+		target1.erase();
+		std::cout << "expected error when erasing target 1" << std::endl;
+		return false;
+	}
+	catch (...)
+	{ }
+
+	try {
+		target2.erase();
+		std::cout << "expected error when erasing target 2" << std::endl;
+		return false;
+	}
+	catch (...)
+	{ }
+
+	item1.clear_references();
+	item2.clear_references();
+
+	if (!data.base.is_good())
+	{
+		std::cout << "error with clear_reference()" << std::endl;
+		return false;
+	}
+
+	target1.erase();
+	target2.erase();
+	item1.erase();
+	item2.erase();
+
+	if (!data.base.is_good())
+	{
+		std::cout << "error with cleanup" << std::endl;
+		return false;
+	}
+
+	return true;
+}
+
+bool list_test()
+{
+	auto simpleList = data.base.list("SimpleClass");
+	auto advancedList = data.base.list("AdvancedClass");
+	auto advanced = advancedList.emplace();
 
 	for (int i=0;i<10;i++)
 	{
-		b1("liste").emplace() = db.list("A").emplace();
+		advanced("memberList").emplace() = simpleList.emplace();
 	}
-	for (auto a: b1("liste"))
-		a("name") = std::to_string(a->index()) + " xxx";
+	for (auto simple: advanced("memberList"))
+		simple("memberString") = std::string("this item is at ") + std::to_string(simple->index());
 
-	while (db.list("B").begin()!=db.list("B").end())
-		db.list("B").begin()->erase();
+	while (advancedList.begin()!=advancedList.end())
+		advancedList.begin()->erase();
 
-	for (auto x: db.list("A"))
-		std::cout << (std::string)x("name") << std::endl;
+	for (auto x: simpleList)
+		std::cout << (std::string)x("memberString") << std::endl;
 
-	while (db.list("A").begin()!=db.list("A").end())
-		db.list("A").begin()->erase();
+	while (simpleList.begin()!=simpleList.end())
+		simpleList.begin()->erase();
 	
-	if (db.is_good())
-		cout << "Erfolgreich" << std::endl;
+	if (data.base.is_good())
+	{
+		return true;
+	}
 	else
+	{
 		cout << "Fehlgeschlagen" << std::endl;
+		return false;
+	}
+}
+
+int main(int argc, const char** args) {
+	std::cout << "init" << std::endl;
+	if (!init())
+		return 0;
+	std::cout << "reference test" << std::endl;
+	if (!reference_test())
+		return 0;
+	std::cout << "list test" << std::endl;
+	if (!list_test())
+		return 0;
+	std::cout << "erfolgreich" << std::endl;
 	return 0;
 }

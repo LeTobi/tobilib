@@ -1,11 +1,11 @@
-type A
-    char 50 name
-    int zahl
-    double kommazahl
-    bool test
-    B referenz
+type SimpleClass
+    char 50 memberString
+    int memberInt
+    double memberDouble
+    bool memberBool
+    AdvancedClass memberPointer
 
-type B
-    char 30 name
-    A [] liste
-    int 10 zahlen
+type AdvancedClass
+    char 30 memberString
+    SimpleClass [] memberList
+    int 10 memberIntArray
