@@ -5,15 +5,20 @@ using namespace database_detail;
 
 Member::Member(
     Database* db,
-    const MemberType& t,
     File* f,
+    const MemberType& t,
     std::streampos pos
     ):
         Component(db),
-        type(t),
         fs(f),
+        type(t),
         position(pos)
-{ }
+{
+    if (position==0)
+    {
+        nullflag=true;
+    }
+}
 
 bool Member::operator==(const Member& other) const
 {
@@ -29,30 +34,33 @@ bool Member::operator!=(const Member& other) const
     return !(*this==other);
 }
 
-Member::operator int() const
+template<>
+int Member::get() const
 {
     if (!pre_open())
         return 0;
     if (type.blockType!=BlockType::t_int)
-        throw ("Type-Error","Database::Member::operator int");
+        throw ("Type-Error","Database::Member::get<int>");
     return fs->readAt<int>(position);
 }
 
-Member::operator char() const
+template<>
+char Member::get() const
 {
     if (!pre_open())
         return 0;
     if (type.blockType!=BlockType::t_char)
-        throw ("Type-Error","Database::Member::operator char");
+        throw ("Type-Error","Database::Member::get<char>");
     return fs->readAt<char>(position);
 }
 
-Member::operator std::string() const
+template<>
+std::string Member::get() const
 {
     if (!pre_open())
         return "";
     if (type.blockType!=BlockType::t_char)
-        throw ("Type-Error","Database::Member::operator std::string");
+        throw ("Type-Error","Database::Member::get<string>");
     std::string out;
     for (std::streampos i=0;i<type.amount;i+=1)
     {
@@ -64,21 +72,23 @@ Member::operator std::string() const
     return out;
 }
 
-Member::operator double() const
+template<>
+double Member::get() const
 {
     if (!pre_open())
         return 0;
     if (type.blockType!=BlockType::t_double)
-        throw ("Type-Error","Database::Member::operator double");
+        throw ("Type-Error","Database::Member::get<double>");
     return fs->readAt<double>(position);
 }
 
-Member::operator bool() const
+template<>
+bool Member::get() const
 {
     if (!pre_open())
         return 0;
     if (type.blockType!=BlockType::t_bool)
-        throw ("Type-Error","Database::Member::operator bool");
+        throw ("Type-Error","Database::Member::get<bool>");
     return fs->readAt<bool>(position);
 }
 
@@ -89,7 +99,11 @@ Cluster Member::operator*() const
     if (type.blockType != BlockType::t_ptr)
         throw Exception("Type-Error","Database::Member::operator*");
     unsigned int index = fs->readAt<unsigned int>(position);
-    return database->get_cluster(type.ptr_type)->at(index);
+    return Cluster(
+        database,
+        database->get_file(type.ptr_type),
+        index
+    );
 }
 
 std::unique_ptr<Cluster> Member::operator->() const
@@ -98,30 +112,30 @@ std::unique_ptr<Cluster> Member::operator->() const
     return out;
 }
 
-void Member::operator= (int out)
+void Member::set(int out)
 {
     if (!pre_open())
         return;
     if (type.blockType!=BlockType::t_int)
-        throw Exception("Type-Error","Database::Member::operator= int");
+        throw Exception("Type-Error","Database::Member::set(int)");
     fs->writeAt(position,out);
 }
 
-void Member::operator= (char out)
+void Member::set(char out)
 {
     if (!pre_open())
         return;
     if (type.blockType!=BlockType::t_char)
-        throw Exception("Type-Error","Database::Member::operator= char");
+        throw Exception("Type-Error","Database::Member::set(char)");
     fs->writeAt(position,out);
 }
 
-void Member::operator= (const std::string& out)
+void Member::set(const std::string& out)
 {
     if (!pre_open())
         return;
     if (type.blockType!=BlockType::t_char)
-        throw Exception("Type-Error","Database::Member::operator= std::string");
+        throw Exception("Type-Error","Database::Member::set(string)");
     for (std::streampos i=0;i<type.amount;i+=1)
     {
         if (i<out.size())
@@ -131,45 +145,45 @@ void Member::operator= (const std::string& out)
     }
 }
 
-void Member::operator= (double out)
+void Member::set(double out)
 {
     if (!pre_open())
         return;
     if (type.blockType!=BlockType::t_double)
-        throw Exception("Type-Error","Database::Member::operator= double");
+        throw Exception("Type-Error","Database::Member::set(double)");
     fs->writeAt(position,out);
 }
 
-void Member::operator= (bool out)
+void Member::set(bool out)
 {
     if (!pre_open())
         return;
     if (type.blockType!=BlockType::t_bool)
-        throw Exception("Type-Error","Database::Member::operator= bool");
+        throw Exception("Type-Error","Database::Member::set(bool)");
     fs->writeAt(position,out);
 }
 
-void Member::operator=(const Cluster& cluster)
+void Member::set(const Cluster& cluster)
 {
     if (!pre_open())
         return;
     if (type.blockType!=BlockType::t_ptr)
-        throw Exception("Type-Error","Database::Member::operator= Element");
+        throw Exception("Type-Error","Database::Member::set(Cluster)");
     if (!cluster.nullflag && cluster.cf->type != *type.ptr_type)
-        throw Exception("Type-Error (Cluster Mismatch)","Database::Member::operator= Cluster");
+        throw Exception("Type-Error (Cluster Mismatch)","Database::Member::set(cluster)");
     (*this)->add_refcount(-1);
     fs->writeAt(position,cluster.index());
     (*this)->add_refcount(1);
 }
 
-Member Member::operator()(const std::string& name)
+Member Member::operator[](const std::string& name)
 {
-    return (*this)->operator()(name);
+    return (*this)->operator[](name);
 }
 
-const Member Member::operator()(const std::string& name) const
+const Member Member::operator[](const std::string& name) const
 {
-    return const_cast<Member*>(this)->operator()(name);
+    return const_cast<Member*>(this)->operator[](name);
 }
 
 Member Member::operator[](unsigned int index)
@@ -196,7 +210,7 @@ MemberIterator Member::begin()
     MemberIterator out;
     out.parent = *this;
     if (type.blockType==BlockType::t_list)
-        out.ref = database->listfile.begin(*this);
+        out.ref = get_list_item(get_list_begin());
     else
         out.ref = (*this)[0];
     return out;
@@ -211,9 +225,17 @@ void Member::erase(const MemberIterator& where)
 {
     if (!pre_open())
         return;
+    if (is_null() || where.ref.is_null())
+        return;
+    if (type.blockType != BlockType::t_list)
+        throw Exception("Type error, Liste erwartet.","Database::Member::erase");
     if (where.parent != *this)
         throw Exception("Das Element gehoert nicht zur liste","Database::Member::erase");
-    database->listfile.erase(*this,*where);
+    ListFile::LineIndex target = get_list_begin();
+    ListFile::LineIndex to_remove = database->listfile.get_index(where.ref.position);
+    ListFile::LineIndex successor = database->listfile.erase(to_remove);
+    if (target==to_remove)
+        set_list_begin(successor);
 }
 
 Member Member::emplace()
@@ -222,8 +244,11 @@ Member Member::emplace()
         return Member();
     if (type.blockType != BlockType::t_list)
         throw Exception("Type-Error","Database::Member::emplace()");
-    Member out = database->listfile.emplace(*this);
-    out.init();
+    set_list_begin(
+        database->listfile.emplace(get_list_begin())
+    );
+    Member out = get_list_item(get_list_begin());
+    out.init_memory();
     return out;
 }
 
@@ -236,7 +261,7 @@ void Member::clear_references()
             m.clear_references();
     }
     else if (type.blockType==BlockType::t_ptr) {
-        *this = Cluster();
+        this->set(Cluster());
     }
     else if (type.blockType==BlockType::t_list) {
         while (begin()!=end()) {
@@ -246,13 +271,13 @@ void Member::clear_references()
     }
 }
 
-void Member::init()
+void Member::init_memory()
 {
     if (!pre_open())
         return;
     if (type.amount>1) {
         for (auto m: (*this))
-            m.init();
+            m.init_memory();
     }
     else if (type.blockType==BlockType::t_ptr) {
         fs->writeAt<unsigned int>(position,0);
@@ -260,7 +285,44 @@ void Member::init()
     else if (type.blockType==BlockType::t_list) {
         fs->writeAt<unsigned int>(position,0);
     }
-    // hier könnte noch mehr initialisiert werden
+}
+
+ListFile::LineIndex Member::get_list_begin() const
+{
+    if (!pre_open())
+        return 0;
+    if (type.blockType != BlockType::t_list)
+        throw Exception("Das Element ist keine Liste.","Member::get_list_begin()");
+    return fs->readAt<unsigned int>(position);
+}
+
+void Member::set_list_begin(ListFile::LineIndex index)
+{
+    if (!pre_open())
+        return;
+    if (type.blockType != BlockType::t_list)
+        throw Exception("Das Element ist keine Liste.","Member::set_list_begin()");
+    fs->writeAt(position,index);
+}
+
+Member Member::get_list_item(ListFile::LineIndex index) const
+{
+    if (index==0 || !pre_open())
+        return Member();
+    if (type.blockType != BlockType::t_list)
+        throw Exception("Das Element ist keine Liste.","Member::get_list_element()");
+
+    MemberType memtype;
+    memtype.blockType = BlockType::t_ptr;
+    memtype.amount = 1;
+    memtype.ptr_type = type.ptr_type;
+
+    return Member(
+        database,
+        &(database->listfile),
+        memtype,
+        database->listfile.data_location(index)
+    );
 }
 
 MemberIterator& MemberIterator::operator++()
@@ -307,10 +369,23 @@ void MemberIterator::array_pp()
     std::streampos increment = ref.type.blockType.size;
     ref.position += increment;
     if (ref.position>=end)
+    {
         ref.nullflag = true;
+        ref.position = 0;
+    }
 }
 
 void MemberIterator::list_pp()
 {
-    ref = ref.database->listfile.next(parent,ref);
+    if (!ref.pre_open())
+    {
+        ref = Member();
+        return;
+    }
+    ListFile::LineIndex index = ref.database->listfile.get_index(ref.position);
+    index = ref.database->listfile.get_next(index);
+    if (index==0)
+        ref = Member();
+    else
+        ref = parent.get_list_item(index);
 }

@@ -2,7 +2,6 @@
 #define TC_DATABASE_FILEACCESS_H
 
 #include "concepts.h"
-#include "member.h"
 #include <fstream>
 
 namespace tobilib {
@@ -32,40 +31,36 @@ public:
 class ListFile: public File
 {
 public:
+    using LineIndex = unsigned int;
+
     ListFile(Database*);
 
     void open();
 
-    Member create_member(const Member&, unsigned int) const;
-    unsigned int get_index(const Member&) const;
+    LineIndex get_index(std::streampos position) const;
+    LineIndex capacity() const;
 
-    // element access
-    unsigned int get_first_empty() const;
-    unsigned int get_last_empty() const;
-    unsigned int get_next(unsigned int) const;
-    unsigned int get_previous(unsigned int) const;
-    unsigned int get_first_filled(const Member&) const;
-    void set_first_empty(unsigned int);
-    void set_last_empty(unsigned int);
-    void set_next(unsigned int,unsigned int);
-    void set_previous(unsigned int,unsigned int);
-    void set_first_filled(const Member&,unsigned int);
-    unsigned int extend();
+    // single line access
+    LineIndex get_first_empty() const;
+    LineIndex get_last_empty() const;
+    LineIndex get_next(LineIndex) const;
+    LineIndex get_previous(LineIndex) const;
+    std::streampos data_location(LineIndex) const;
+    void set_first_empty(LineIndex);
+    void set_last_empty(LineIndex);
+    void set_next(LineIndex,LineIndex);
+    void set_previous(LineIndex,LineIndex);
+    LineIndex extend();
 
-    // list access
-    unsigned int remove_empty();
-    void append_empty(unsigned int);
-    void append_filled(const Member&, unsigned int);
-    void remove_filled(const Member&, unsigned int);
+    // leaking modification
+    LineIndex remove_empty();
+    void append_empty(LineIndex);
+    void append_filled(LineIndex, LineIndex);
+    LineIndex remove_filled(LineIndex);
 
-    // file access
-    Member emplace(const Member&);
-    void erase(const Member&, const Member&);
-    Member begin(const Member&);
-    Member next(const Member&, const Member&);
-    const Member begin(const Member&) const;
-    const Member next(const Member&, const Member&) const;
-
+    // stable modification
+    LineIndex emplace(LineIndex);
+    LineIndex erase(LineIndex);
 
     const static std::streampos LINESIZE;
     const static std::streampos LINEHEAD;
@@ -74,52 +69,43 @@ public:
 class ClusterFile: public File
 {
 public:
+    using LineIndex = unsigned int;
+
     ClusterFile(Database*);
 
     void open();
 
-    Cluster create_cluster(unsigned int) const;
-    unsigned int get_index(const Cluster&) const;
-
-    // element access
-    unsigned int get_first_filled() const;
-    unsigned int get_first_empty() const;
-    unsigned int get_last_filled() const;
-    unsigned int get_last_empty() const;
-    unsigned int get_next(unsigned int) const;
-    unsigned int get_previous(unsigned int) const;
-    bool get_occupied(unsigned int) const;
-    unsigned int get_refcount(unsigned int) const;
-    void set_first_filled(unsigned int);
-    void set_first_empty(unsigned int);
-    void set_last_filled(unsigned int);
-    void set_last_empty(unsigned int);
-    void set_next(unsigned int,unsigned int);
-    void set_previous(unsigned int, unsigned int);
-    void set_occupied(unsigned int, bool);
-    void clear_refcount(unsigned int);
-    void set_refcount_add(unsigned int, int);
+    // single entry access
+    LineIndex get_first_filled() const;
+    LineIndex get_first_empty() const;
+    LineIndex get_last_filled() const;
+    LineIndex get_last_empty() const;
+    LineIndex get_next(LineIndex) const;
+    LineIndex get_previous(LineIndex) const;
+    bool get_occupied(LineIndex) const;
+    unsigned int get_refcount(LineIndex) const;
+    LineIndex capacity() const;
+    std::streampos data_location(LineIndex) const;
+    void set_first_filled(LineIndex);
+    void set_first_empty(LineIndex);
+    void set_last_filled(LineIndex);
+    void set_last_empty(LineIndex);
+    void set_next(LineIndex,LineIndex);
+    void set_previous(LineIndex, LineIndex);
+    void set_occupied(LineIndex, bool);
+    void clear_refcount(LineIndex);
+    void set_refcount_add(LineIndex, int);
     unsigned int extend();
 
-    // list access
-    unsigned int remove_empty();
-    void append_empty(unsigned int);
-    void append_filled(unsigned int);
-    void remove_filled(unsigned int);
+    // leaking modification
+    LineIndex remove_empty();
+    void append_empty(LineIndex);
+    void append_filled(LineIndex);
+    void remove_filled(LineIndex);
 
-    // file access
-    Cluster emplace();
-    void erase(const Cluster&);
-    Cluster at(unsigned int);
-    Cluster next(const Cluster&);
-    Cluster begin();
-    const Cluster at(unsigned int) const;
-    const Cluster next(const Cluster&) const;
-    const Cluster begin() const;
-
-    unsigned int refcount(const Cluster&);
-    void add_refcount(const Cluster&, int);
-    bool is_occupied(const Cluster&);
+    // stable modification
+    LineIndex emplace();
+    void erase(LineIndex);
 
     ClusterType type;
 

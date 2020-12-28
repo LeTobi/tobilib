@@ -18,6 +18,9 @@ selection ssl
 	lib libtc.a
 	add ./
 
+selection tools
+	exe baseprinter ./database/tools/baseprinter.cpp
+
 selection test
 	exe database-test ./testing/database/dbtest.cpp
 	exe filename-test ./testing/stringplus/filenametest.cpp

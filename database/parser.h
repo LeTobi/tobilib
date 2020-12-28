@@ -16,12 +16,12 @@ public:
 
 	void parse_all();
 
-private:
+TC_PRIVATE:
     const static std::string valid_chars;
 	File structurefile;
 
     static bool valid_name(const std::string&);
-	bool check(const std::string&);
+	bool next_matches(const std::string&);
 	void parse_typenames();
 	void parse_cluster();
 	void parse_block(ClusterType&);

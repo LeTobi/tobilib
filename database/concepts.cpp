@@ -9,6 +9,11 @@ Component::Component(Database* db): database(db), nullflag(false)
 Component::Component(): database(nullptr), nullflag(true)
 { }
 
+bool Component::is_null() const
+{
+    return nullflag;
+}
+
 bool Component::pre_good() const
 {
     if (nullflag)
@@ -39,28 +44,3 @@ bool Component::pre_open() const
     }
     return true;
 }
-
-template<class ComponentType>
-const_Iterator<ComponentType> Iteratable<ComponentType>::begin() const
-{
-    return const_cast<const Iteratable<ComponentType>>(this)->begin();
-}
-
-template<class ComponentType>
-const_Iterator<ComponentType> Iteratable<ComponentType>::end() const
-{
-    return const_cast<const Iteratable<ComponentType>>(this)->end();
-}
-
-template<class ComponentType>
-const_Iterator<ComponentType> Iteratable<ComponentType>::cbegin() const
-{
-    return const_cast<const Iteratable<ComponentType>>(this)->begin();
-}
-
-template<class ComponentType>
-const_Iterator<ComponentType> Iteratable<ComponentType>::cend() const
-{
-    return const_cast<const Iteratable<ComponentType>>(this)->end();
-}
-

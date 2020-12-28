@@ -48,8 +48,7 @@ public:
 	ClusterList list(const std::string&);
 	const ClusterList list(const std::string&) const;
 
-private:
-
+TC_PRIVATE:
 	using Component = database_detail::Component;
 	using ClusterFile = database_detail::ClusterFile;
 	using ListFile = database_detail::ListFile;
@@ -67,8 +66,8 @@ private:
 	ListFile listfile;
 	std::list<ClusterFile> clusters;
 
-	ClusterFile* get_cluster(const std::string&);
-	ClusterFile* get_cluster(const ClusterType*);
+	ClusterFile* get_file(const std::string&);
+	ClusterFile* get_file(const ClusterType*);
 
 };
 

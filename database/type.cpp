@@ -49,14 +49,11 @@ std::streampos Database::ClusterType::size() const
 
 std::streampos Database::ClusterType::offsetOf(const std::string& name) const
 {
-    if (members.count(name)==0)
-        throw Exception("Implementierungsfehler","Database::ClusterType::offsetOf");
     std::streampos out = 0;
     for (auto& mem: members) {
         if (mem.first==name)
             return out;
         out+=mem.second.size();
     }
-    // never reached!
-    return 0;
+    throw Exception("Implementierungsfehler","Database::ClusterType::offsetOf");
 }

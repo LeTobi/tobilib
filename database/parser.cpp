@@ -19,7 +19,7 @@ void Parser::parse_all()
     if (!pre_good())
         return;
     structurefile.open();
-    while (check("type"))
+    while (next_matches("type"))
         parse_cluster();
     if (!pre_good())
         return;
@@ -40,7 +40,7 @@ bool Parser::valid_name(const std::string& name)
     return true;
 }
 
-bool Parser::check(const std::string& str)
+bool Parser::next_matches(const std::string& str)
 {
     std::streampos start = structurefile.fs.tellg();
     std::string next;
@@ -69,7 +69,7 @@ void Parser::parse_typenames()
             errorlog("Unzulaessiger name");
             return;
         }
-        if (database->get_cluster(command)!=nullptr)
+        if (database->get_file(command)!=nullptr)
         {
             errorlog("doppelter Typenname");
             return;
@@ -87,12 +87,12 @@ void Parser::parse_cluster()
     std::string name;
     // "type" überspringen
     structurefile.fs >> name >> name;
-    ClusterFile* cluster = database->get_cluster(name);
+    ClusterFile* cluster = database->get_file(name);
     if (cluster==nullptr)
         throw Exception("Implementierungsfehler","Database::parse_cluster()");
     while (pre_good())
     {
-        if (check("type"))
+        if (next_matches("type"))
             return;
         if (!structurefile.fs.good())
             return;
@@ -126,7 +126,7 @@ void Parser::parse_block(ClusterType& cluster)
     }
     else {
         member.blockType = BlockType::t_ptr;
-        ClusterFile* cf = database->get_cluster(type);
+        ClusterFile* cf = database->get_file(type);
         if (cf==nullptr)
         {
             errorlog("Unbekannter Membertyp");

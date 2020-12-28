@@ -24,7 +24,7 @@ public:
     ClusterIterator begin();
     ClusterIterator end();
 
-private:
+TC_PRIVATE:
     ClusterFile* cf;
 };
 
@@ -32,13 +32,13 @@ class Cluster : public Component
 {
 public:
     Cluster() = default;
-    Cluster(Database*, ClusterFile*, std::streampos);
+    Cluster(Database*, ClusterFile*, ClusterFile::LineIndex);
 
     bool operator==(const Cluster& other) const;
     bool operator!=(const Cluster& other) const;
 
-    Member operator()(const std::string&);
-    const Member operator()(const std::string&) const;
+    Member operator[](const std::string&);
+    const Member operator[](const std::string&) const;
     unsigned int index() const;
     void erase();
     unsigned int reference_count();
@@ -46,17 +46,16 @@ public:
     
     bool pre_valid() const;
 
-private:
-    friend class ClusterFile;
-    friend class ClusterList;
-    friend class Iterator<Cluster>;
-    friend class Member;
+TC_PRIVATE:
+    friend ClusterList;
+    friend ClusterIterator;
+    friend Member;
 
+    void init_memory();
     void add_refcount(int);
-    void init();
 
     ClusterFile* cf;
-    std::streampos position;
+    ClusterFile::LineIndex line;
 };
 
 template<>
@@ -72,8 +71,8 @@ public:
     Cluster operator*() const;
     Cluster* operator->() const;
 
-private:
-    friend class ClusterList;
+TC_PRIVATE:
+    friend ClusterList;
 
     mutable Cluster ref;
 };

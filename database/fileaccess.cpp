@@ -156,84 +156,72 @@ void ListFile::open()
     }
 }
 
-Member ListFile::create_member(const Member& parent, unsigned int index) const
+ListFile::LineIndex ListFile::get_index(std::streampos position) const
 {
-    if (index==0)
-        return Member();
-    std::streampos pos = index*LINESIZE + LINEHEAD;
-    MemberType mt = parent.type;
-    mt.blockType = BlockType::t_ptr;
-    return Member(
-        const_cast<Database*>(database),
-        mt,
-        const_cast<ListFile*>(this),
-        pos);
+    return position / LINESIZE;
 }
 
-unsigned int ListFile::get_index(const Member& mem) const
+ListFile::LineIndex ListFile::capacity() const
 {
-    return mem.position / LINESIZE;
+    if (!pre_open())
+        return 0;
+    return size() / LINESIZE - 1;
 }
 
-unsigned int ListFile::get_first_empty() const
+ListFile::LineIndex ListFile::get_first_empty() const
 {
     return readAt<unsigned int>(0);
 }
 
-unsigned int ListFile::get_last_empty() const
+ListFile::LineIndex ListFile::get_last_empty() const
 {
     std::streampos where = 1*serial_size<unsigned int>();
     return readAt<unsigned int>(where);
 }
 
-unsigned int ListFile::get_next(unsigned int where) const
+ListFile::LineIndex ListFile::get_next(LineIndex where) const
 {
     std::streampos pos = where*LINESIZE;
     pos += 1*serial_size<unsigned int>();
     return readAt<unsigned int>(pos);
 }
 
-unsigned int ListFile::get_previous(unsigned where) const
+ListFile::LineIndex ListFile::get_previous(LineIndex where) const
 {
     std::streampos pos = where*LINESIZE;
     return readAt<unsigned int>(pos);
 }
 
-unsigned int ListFile::get_first_filled(const Member& parent) const
+std::streampos ListFile::data_location(LineIndex where) const
 {
-    return parent.fs->readAt<unsigned int>(parent.position);
+    return where*LINESIZE+LINEHEAD;
 }
 
-void ListFile::set_first_empty(unsigned int what)
+void ListFile::set_first_empty(LineIndex what)
 {
     writeAt(0,what);
 }
 
-void ListFile::set_last_empty(unsigned int what)
+void ListFile::set_last_empty(LineIndex what)
 {
     std::streampos pos = serial_size<unsigned int>();
     writeAt(pos,what);
 }
 
-void ListFile::set_next(unsigned int where, unsigned int what)
+void ListFile::set_next(LineIndex where, LineIndex what)
 {
     std::streampos pos = where*LINESIZE;
     pos += serial_size<unsigned int>();
     writeAt(pos,what);
 }
 
-void ListFile::set_previous(unsigned int where, unsigned int what)
+void ListFile::set_previous(LineIndex where, LineIndex what)
 {
     std::streampos pos = where*LINESIZE;
     writeAt(pos,what);
 }
 
-void ListFile::set_first_filled(const Member& parent, unsigned int what)
-{
-    parent.fs->writeAt(parent.position,what);
-}
-
-unsigned int ListFile::extend()
+ListFile::LineIndex ListFile::extend()
 {
     if (!pre_open())
         return 0;
@@ -241,6 +229,7 @@ unsigned int ListFile::extend()
     std::streampos new_space = fs.tellp();
     fs << std::string(LINESIZE-2*serial_size<char>(),0);
     fs << "\r\n";
+    fs.flush();
     if (!fs.good()) {
         database->status = Database::Status::error;
         database->log << "Fehler beim Erweitern der Listendatei" << std::endl;
@@ -249,88 +238,63 @@ unsigned int ListFile::extend()
     return new_space/LINESIZE;
 }
 
-unsigned int ListFile::remove_empty()
+ListFile::LineIndex ListFile::remove_empty()
 {
-    unsigned int first = get_first_empty();
+    LineIndex first = get_first_empty();
     if (first==0)
         return extend();
-    unsigned int next = get_next(first);
+    LineIndex next = get_next(first);
     set_first_empty(next);
     if (next==0)
         set_last_empty(0);
+    else
+        set_previous(next,0);
     return first;
 }
 
-void ListFile::append_empty(unsigned int where)
+void ListFile::append_empty(LineIndex where)
 {
-    unsigned int last = get_last_empty();
+    LineIndex last = get_last_empty();
     if (last==0)
         set_first_empty(where);
     else
         set_next(last,where);
+    set_previous(where,last);
+    set_next(where,0);
     set_last_empty(where);
 }
 
-void ListFile::append_filled(const Member& parent, unsigned int new_item)
+void ListFile::append_filled(LineIndex old_first, LineIndex new_first)
 {
-    unsigned int first = get_first_filled(parent);
-    set_next(new_item,first);
-    set_previous(new_item,0);
-    if (first!=0)
-        set_previous(first,new_item);
-    else
-        set_next(new_item,0);
-    set_first_filled(parent,new_item);
+    set_next(new_first,old_first);
+    set_previous(new_first,0);
+    if (old_first!=0)
+        set_previous(old_first,new_first);
 }
 
-void ListFile::remove_filled(const Member& parent, unsigned int to_remove)
+ListFile::LineIndex ListFile::remove_filled(LineIndex to_remove)
 {
-    unsigned int next = get_next(to_remove);
-    unsigned int previous = get_previous(to_remove);
+    LineIndex next = get_next(to_remove);
+    LineIndex previous = get_previous(to_remove);
     if (next!=0)
         set_previous(next,previous);
     if (previous!=0)
         set_next(previous,next);
-    else
-        set_first_filled(parent,next);
+    return next;
 }
 
-Member ListFile::emplace(const Member& parent)
+ListFile::LineIndex ListFile::emplace(LineIndex old_first)
 {
-    unsigned int new_item = remove_empty();
-    append_filled(parent,new_item);
-    return create_member(parent,new_item);
+    LineIndex new_item = remove_empty();
+    append_filled(old_first,new_item);
+    return new_item;
 }
 
-void ListFile::erase(const Member& parent, const Member& to_remove)
+ListFile::LineIndex ListFile::erase(LineIndex to_remove)
 {
-    unsigned int remove_index = get_index(to_remove);
-    remove_filled(parent,remove_index);
-    append_empty(remove_index);
-}
-
-Member ListFile::begin(const Member& parent)
-{
-    return create_member(parent, get_first_filled(parent));
-}
-
-Member ListFile::next(const Member& parent, const Member& current)
-{
-    return create_member( parent,
-        get_next(
-            get_index(current)
-        )
-    );
-}
-
-const Member ListFile::begin(const Member& parent) const
-{
-    return const_cast<ListFile*>(this)->begin(parent);
-}
-
-const Member ListFile::next(const Member& parent, const Member& current) const
-{
-    return const_cast<ListFile*>(this)->next(parent,current);
+    LineIndex successor = remove_filled(to_remove);
+    append_empty(to_remove);
+    return successor;
 }
 
 const std::streampos ListFile::LINESIZE = 3*serial_size<unsigned int>() + 2;
@@ -356,121 +320,113 @@ void ClusterFile::open()
     }
 }
 
-Cluster ClusterFile::create_cluster(unsigned int index) const
-{
-    if (index==0)
-        return Cluster();
-    if (index >= size() / linesize())
-        return Cluster();
-    if (!get_occupied(index))
-        return Cluster();
-    std::streampos pos = index*linesize()+LINEHEAD;
-    return Cluster(
-        const_cast<Database*>(database),
-        const_cast<ClusterFile*>(this),
-        pos);
-}
-
-unsigned int ClusterFile::get_index(const Cluster& cluster) const
-{
-    return cluster.position / linesize();
-}
-
-unsigned int ClusterFile::get_first_filled() const
+ClusterFile::LineIndex ClusterFile::get_first_filled() const
 {
     return readAt<unsigned int>(0);
 }
 
-unsigned int ClusterFile::get_first_empty() const
+ClusterFile::LineIndex ClusterFile::get_first_empty() const
 {
     return readAt<unsigned int>(2*serial_size<unsigned int>());
 }
 
-unsigned int ClusterFile::get_last_filled() const
+ClusterFile::LineIndex ClusterFile::get_last_filled() const
 {
     return readAt<unsigned int>(1*serial_size<unsigned int>());
 }
 
-unsigned int ClusterFile::get_last_empty() const
+ClusterFile::LineIndex ClusterFile::get_last_empty() const
 {
     return readAt<unsigned int>(3*serial_size<unsigned int>());
 }
 
-unsigned int ClusterFile::get_next(unsigned int where) const
+ClusterFile::LineIndex ClusterFile::get_next(LineIndex where) const
 {
     std::streampos pos = where*linesize();
     pos += serial_size<bool>() + serial_size<unsigned int>();
     return readAt<unsigned int>(pos);
 }
 
-unsigned int ClusterFile::get_previous(unsigned int where) const
+ClusterFile::LineIndex ClusterFile::get_previous(LineIndex where) const
 {
     std::streampos pos = where*linesize();
     pos += serial_size<bool>();
     return readAt<unsigned int>(pos);
 }
 
-bool ClusterFile::get_occupied(unsigned int where) const
+bool ClusterFile::get_occupied(LineIndex where) const
 {
     std::streampos pos = where*linesize();
     return readAt<bool>(pos);
 }
 
-unsigned int  ClusterFile::get_refcount(unsigned int where) const
+unsigned int ClusterFile::get_refcount(LineIndex where) const
 {
     std::streampos pos = where*linesize();
     pos += serial_size<bool>() + 2*serial_size<unsigned int>();
     return readAt<unsigned int>(pos);
 }
 
-void ClusterFile::set_first_filled(unsigned int what)
+ClusterFile::LineIndex ClusterFile::capacity() const
+{
+    if (!pre_open())
+        return 0;
+    return size() / linesize() - 1;
+}
+
+std::streampos ClusterFile::data_location(LineIndex where) const
+{
+    return linesize()*where + LINEHEAD;
+}
+
+void ClusterFile::set_first_filled(LineIndex what)
 {
     writeAt(0,what);
 }
 
-void ClusterFile::set_first_empty(unsigned int what)
+void ClusterFile::set_first_empty(LineIndex what)
 {
     writeAt(2*serial_size<unsigned int>(),what);
 }
 
-void ClusterFile::set_last_filled(unsigned int what)
+void ClusterFile::set_last_filled(LineIndex what)
 {
     writeAt(1*serial_size<unsigned int>(),what);
 }
 
-void ClusterFile::set_last_empty(unsigned int what)
+void ClusterFile::set_last_empty(LineIndex what)
 {
     writeAt(3*serial_size<unsigned int>(),what);
 }
 
-void ClusterFile::set_next(unsigned int where, unsigned int what)
+void ClusterFile::set_next(LineIndex where, LineIndex what)
 {
     std::streampos pos = where*linesize();
     pos += serial_size<bool>() + serial_size<unsigned int>();
     writeAt(pos,what);
 }
 
-void ClusterFile::set_previous(unsigned int where, unsigned int what)
+void ClusterFile::set_previous(LineIndex where, LineIndex what)
 {
     std::streampos pos = where*linesize();
     pos += serial_size<bool>();
     writeAt(pos,what);
 }
 
-void ClusterFile::set_occupied(unsigned int where, bool what)
+void ClusterFile::set_occupied(LineIndex where, bool what)
 {
     std::streampos pos = where*linesize();
     writeAt(pos,what);
 }
 
-void ClusterFile::clear_refcount(unsigned int where)
+void ClusterFile::clear_refcount(LineIndex where)
 {
     std::streampos pos = where*linesize();
     pos += serial_size<bool>()+2*serial_size<unsigned int>();
     writeAt<unsigned int>(pos,0);
 }
 
-void ClusterFile::set_refcount_add(unsigned int where, int add)
+void ClusterFile::set_refcount_add(LineIndex where, int add)
 {
     unsigned int refcount = get_refcount(where);
     refcount+=add;
@@ -479,14 +435,15 @@ void ClusterFile::set_refcount_add(unsigned int where, int add)
     writeAt(pos,refcount);
 }
 
-unsigned int ClusterFile::extend()
+ClusterFile::LineIndex ClusterFile::extend()
 {
     if (!pre_open())
         return size();
     fs.seekp(0,fs.end);
-    unsigned int new_space = fs.tellp() / linesize();
+    LineIndex new_space = fs.tellp() / linesize();
     fs << std::string(linesize()-2*serial_size<char>(), 0);
     fs << "\r\n";
+    fs.flush();
     if (!fs.good()) {
         database->status = Database::Status::error;
         database->log << "Datei konnte nicht erweitert werden: " << name.fileOnly() << std::endl;
@@ -494,43 +451,50 @@ unsigned int ClusterFile::extend()
     return new_space;
 }
 
-unsigned int ClusterFile::remove_empty()
+ClusterFile::LineIndex ClusterFile::remove_empty()
 {
-    unsigned int first = get_first_empty();
+    LineIndex first = get_first_empty();
     if (first == 0)
         return extend();
-    unsigned int next = get_next(first);
+    LineIndex next = get_next(first);
     set_first_empty(next);
     if (next==0)
         set_last_empty(0);
+    else
+        set_previous(next,0);
     return first;
 }
 
-void ClusterFile::append_empty(unsigned int new_empty)
+void ClusterFile::append_empty(LineIndex new_empty)
 {
-    unsigned int last = get_last_empty();
+    LineIndex last = get_last_empty();
     if (last==0)
         set_first_empty(new_empty);
     else
         set_next(last,new_empty);
+    
+    set_previous(new_empty,last);
+    set_next(new_empty,0);
     set_last_empty(new_empty);
 }
 
-void ClusterFile::append_filled(unsigned int new_filled)
+void ClusterFile::append_filled(LineIndex new_filled)
 {
-    unsigned int last = get_last_filled();
+    LineIndex last = get_last_filled();
     if (last==0)
         set_first_filled(new_filled);
     else
         set_next(last,new_filled);
+    set_previous(new_filled,last);
+    set_next(new_filled,0);
     set_last_filled(new_filled);
     clear_refcount(new_filled);
 }
 
-void ClusterFile::remove_filled(unsigned int to_remove)
+void ClusterFile::remove_filled(LineIndex to_remove)
 {
-    unsigned int next = get_next(to_remove);
-    unsigned int previous = get_previous(to_remove);
+    LineIndex next = get_next(to_remove);
+    LineIndex previous = get_previous(to_remove);
     if (next==0)
         set_last_filled(previous);
     else
@@ -541,86 +505,27 @@ void ClusterFile::remove_filled(unsigned int to_remove)
         set_next(previous,next);
 }
 
-Cluster ClusterFile::emplace()
+ClusterFile::LineIndex ClusterFile::emplace()
 {
-    unsigned int new_filled = remove_empty();
+    LineIndex new_filled = remove_empty();
     append_filled(new_filled);
     set_occupied(new_filled,true);
-    return create_cluster(new_filled);
+    return new_filled;
 }
 
-void ClusterFile::erase(const Cluster& to_remove)
+void ClusterFile::erase(LineIndex to_remove)
 {
-    unsigned int index = get_index(to_remove);
-    if (get_refcount(index)>0)
+    if (get_refcount(to_remove)>0)
         throw Exception("Removal of referenced Database-Element","Database::ClusterFile::erase");
-    remove_filled(index);
-    append_empty(index);
-    set_occupied(index,false);
-}
-
-Cluster ClusterFile::at(unsigned int where)
-{
-    return create_cluster(where);
-}
-
-Cluster ClusterFile::next(const Cluster& current)
-{
-    return create_cluster(
-        get_next(
-            get_index(current)
-        )
-    );
-}
-
-Cluster ClusterFile::begin()
-{
-    return create_cluster(
-        get_first_filled()
-    );
-}
-
-const Cluster ClusterFile::at(unsigned int index) const
-{
-    return const_cast<ClusterFile*>(this)->at(index);
-}
-
-const Cluster ClusterFile::next(const Cluster& current) const
-{
-    return const_cast<ClusterFile*>(this)->next(current);
-}
-
-const Cluster ClusterFile::begin() const
-{
-    return const_cast<ClusterFile*>(this)->begin();
-}
-
-unsigned int ClusterFile::refcount(const Cluster& cluster)
-{
-    return get_refcount(
-        get_index(cluster)
-    );
-}
-
-void ClusterFile::add_refcount(const Cluster& cluster, int amount)
-{
-    set_refcount_add(
-        get_index(cluster),
-        amount
-    );
-}
-
-bool ClusterFile::is_occupied(const Cluster& cluster)
-{
-    return get_occupied(
-        get_index(cluster)
-    );
+    remove_filled(to_remove);
+    append_empty(to_remove);
+    set_occupied(to_remove,false);
 }
 
 std::streampos ClusterFile::linesize() const
 {
-    std::streampos min_out = LINEHEAD + 2;
-    std::streampos out = LINEHEAD + type.size() + 2;
+    std::streampos min_out = LINEHEAD + 2l;
+    std::streampos out = LINEHEAD + type.size() + 2l;
     return std::max(out,min_out);
 }
 

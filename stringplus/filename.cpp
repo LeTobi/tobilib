@@ -27,7 +27,10 @@ namespace tobilib {
         int extstart = frags.back().find(".");
         if (extstart==StringPlus::npos)
             extstart = frags.back().size();
-        extension = frags.back().substr(extstart+1);
+        if (extstart < frags.back().size())
+            extension = frags.back().substr(extstart+1);
+        else
+            extension = "";
         name = frags.back().substr(0,extstart);
         frags.pop_back();
 

@@ -1,6 +1,14 @@
 #ifndef TC_DATABASE_CONCEPTS_H
 #define TC_DATABASE_CONCEPTS_H
 
+#ifdef TC_DEBUG_ACCESS
+    #define TC_PRIVATE public
+    #define TC_PROTECTED public
+#else
+    #define TC_PRIVATE private
+    #define TC_PROTECTED protected
+#endif
+
 #include "../stringplus/filename.h"
 
 namespace tobilib{
@@ -22,12 +30,13 @@ public:
     Component (Database*);
     Component ();
 
-    mutable bool nullflag;
+    bool is_null() const;
     bool pre_good() const;
     bool pre_init() const;
     bool pre_open() const;
 
-protected:
+TC_PROTECTED:
+    bool nullflag;
     Database* database;
 };
 
@@ -37,7 +46,7 @@ class Iterator { };
 template <class ComponentType>
 class const_Iterator
 {
-private:
+TC_PRIVATE:
     using BaseIterator = Iterator<ComponentType>;
     BaseIterator it;
 public:
@@ -54,6 +63,7 @@ public:
 template <class ComponentType>
 class Iteratable
 {
+public:
     using IteratorType = Iterator<ComponentType>;
     using const_IteratorType = const_Iterator<ComponentType>;
     virtual IteratorType begin() = 0;
@@ -63,6 +73,30 @@ class Iteratable
     const_IteratorType cbegin() const;
     const_IteratorType cend() const;
 };
+
+template<class ComponentType>
+const_Iterator<ComponentType> Iteratable<ComponentType>::begin() const
+{
+    return const_cast<Iteratable<ComponentType>*>(this)->begin();
+}
+
+template<class ComponentType>
+const_Iterator<ComponentType> Iteratable<ComponentType>::end() const
+{
+    return const_cast<Iteratable<ComponentType>*>(this)->end();
+}
+
+template<class ComponentType>
+const_Iterator<ComponentType> Iteratable<ComponentType>::cbegin() const
+{
+    return const_cast<Iteratable<ComponentType>*>(this)->begin();
+}
+
+template<class ComponentType>
+const_Iterator<ComponentType> Iteratable<ComponentType>::cend() const
+{
+    return const_cast<Iteratable<ComponentType>*>(this)->end();
+}
 
 } // namespace database_detail
 } // namespace tobilib

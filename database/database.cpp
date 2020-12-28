@@ -16,6 +16,8 @@ void Database::setPath(const FileName& fname)
 
 bool Database::init()
 {
+    if (status==Status::error)
+        return false;
     if (status!=Status::empty)
         throw Exception("Die Datenbank ist bereits geladen","Database::init()");
     listfile.name = path+"lists.data";
@@ -85,7 +87,7 @@ Database::ClusterList Database::list(const std::string& name)
 {
     if (!is_good())
         return ClusterList();
-    ClusterFile* cluster = get_cluster(name);
+    ClusterFile* cluster = get_file(name);
     if (cluster==nullptr)
         throw Exception("Ungueltiger Typenname","Database::list()");
     return ClusterList(this,cluster);
@@ -96,7 +98,7 @@ const Database::ClusterList Database::list(const std::string& name) const
     return const_cast<Database*>(this)->list(name);
 }
 
-Database::ClusterFile* Database::get_cluster(const std::string& name)
+Database::ClusterFile* Database::get_file(const std::string& name)
 {
     for (auto& cf: clusters) {
         if (cf.type.name==name)
@@ -105,11 +107,11 @@ Database::ClusterFile* Database::get_cluster(const std::string& name)
     return nullptr;
 }
 
-Database::ClusterFile* Database::get_cluster(const ClusterType* cltype)
+Database::ClusterFile* Database::get_file(const ClusterType* cltype)
 {
     for (auto& cf: clusters) {
         if (&cf.type == cltype)
             return &cf;
     }
-    throw Exception("Clustertype ohne Clusterfile","Database::get_cluster(ClusterType*)");
+    throw Exception("Clustertype ohne Clusterfile","Database::get_file(ClusterType*)");
 }

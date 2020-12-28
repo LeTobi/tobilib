@@ -12,7 +12,7 @@ Cluster ClusterList::operator[] (unsigned int index)
 {
     if (!pre_open())
         return Cluster();
-    return cf->at(index);
+    return Cluster(database,cf,index);
 }
 
 const Cluster ClusterList::operator[] (unsigned int index) const
@@ -24,8 +24,8 @@ Cluster ClusterList::emplace()
 {
     if (!pre_open())
         return Cluster();
-    Cluster out = cf->emplace();
-    out.init();
+    Cluster out (database,cf,cf->emplace());
+    out.init_memory();
     return out;
 }
 
@@ -41,7 +41,7 @@ ClusterIterator ClusterList::begin()
     if (!pre_open())
         return end();
     ClusterIterator out;
-    out.ref = cf->begin();
+    out.ref = Cluster(database,cf,cf->get_first_filled());
     return out;
 }
 
@@ -50,17 +50,23 @@ ClusterIterator ClusterList::end()
     return ClusterIterator();
 }
 
-Cluster::Cluster(Database* db, ClusterFile* clfile, std::streampos pos):
+Cluster::Cluster(Database* db, ClusterFile* clfile, ClusterFile::LineIndex ln):
     Component(db),
     cf(clfile),
-    position(pos)
-{ }
+    line(ln)
+{
+    if (!pre_open() || ln==0 || ln>cf->capacity() || !cf->get_occupied(ln))
+    {
+        line = 0;
+        nullflag = true;
+    }
+}
 
 bool Cluster::operator==(const Cluster& other) const
 {
     if (nullflag && other.nullflag)
         return true;
-    return cf==other.cf && position==other.position;
+    return cf==other.cf && line==other.line;
 }
 
 bool Cluster::operator!=(const Cluster& other) const
@@ -68,7 +74,7 @@ bool Cluster::operator!=(const Cluster& other) const
     return !(*this==other);
 }
 
-Member Cluster::operator() (const std::string& name)
+Member Cluster::operator[] (const std::string& name)
 {
     if (!pre_valid())
         return Member();
@@ -76,9 +82,9 @@ Member Cluster::operator() (const std::string& name)
         throw Exception("Member not found","Database::Cluster:operator()");
     return Member(
         database,
-        cf->type.members.at(name),
         cf,
-        position+cf->type.offsetOf(name)
+        cf->type.members.at(name),
+        cf->data_location(line) + cf->type.offsetOf(name)
     );
 }
 
@@ -86,7 +92,7 @@ unsigned int Cluster::index() const
 {
     if (!pre_valid())
         return 0;
-    return cf->get_index(*this);
+    return line;
 }
 
 void Cluster::erase()
@@ -94,7 +100,7 @@ void Cluster::erase()
     if (!pre_valid())
         return;
     clear_references();
-    cf->erase(*this);
+    cf->erase(line);
     nullflag=true;
 }
 
@@ -102,7 +108,7 @@ unsigned int Cluster::reference_count()
 {
     if (!pre_valid())
         return 0;
-    return cf->refcount(*this);
+    return cf->get_refcount(line);
 }
 
 void Cluster::clear_references()
@@ -110,37 +116,40 @@ void Cluster::clear_references()
     if (!pre_valid())
         return;
     for (auto& item: cf->type.members)
-        (*this)(item.first).clear_references();
+        (*this)[item.first].clear_references();
 }
 
 bool Cluster::pre_valid() const
 {
     if (!pre_open())
         return false;
-    if (!cf->is_occupied(*this)) {
-        database->status = Database::Status::error;
-        database->log << "Zugriff auf entferntes element" << std::endl;
-        return false;
-    }
+    if (!cf->get_occupied(line))
+        throw Exception("Zugriff auf entferntes Element","Cluster::pre_valid()");
     return true;
+}
+
+void Cluster::init_memory()
+{
+    for (auto& m: cf->type.members)
+        (*this)[m.first].init_memory();
 }
 
 void Cluster::add_refcount(int amount)
 {
     if (nullflag)
         return;
-    cf->add_refcount(*this,amount);
-}
-
-void Cluster::init()
-{
-    for (auto& m: cf->type.members)
-        (*this)(m.first).init();
+    cf->set_refcount_add(line,amount);
 }
 
 ClusterIterator& ClusterIterator::operator++()
 {
-    ref = ref.cf->next(ref);
+    if (!ref.pre_valid())
+        return *this;
+    ref = Cluster(
+        ref.database,
+        ref.cf,
+        ref.cf->get_next(ref.line)
+    );
     return *this;
 }
 
