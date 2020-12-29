@@ -1,23 +1,51 @@
+#define TC_DATABASE_INTERN
 #include "database.h"
 
 using namespace tobilib;
 using namespace database_detail;
 
-Member::Member(
-    Database* db,
-    File* f,
-    const MemberType& t,
-    std::streampos pos
-    ):
-        Component(db),
-        fs(f),
-        type(t),
-        position(pos)
+Member::Member(const MemberType& listtype, const ListFile& listfile, ListFile::LineIndex idx):
+    Component(listfile.database)
 {
-    if (position==0)
+    if (idx==0)
     {
-        nullflag=true;
+        nullflag = true;
+        position = 0;
+        return;
     }
+
+    if (listtype.blockType != BlockType::t_list)
+        throw Exception("Keine Liste vorhanden","Database::Member constructor");
+
+    fs = &database->listfile;
+
+    type.name = "";
+    type.parent = nullptr;
+    type.parent_offset = 0l;
+    type.blockType = BlockType::t_ptr;
+    type.amount = 1;
+    type.ptr_type = listtype.ptr_type;
+    type.size = BlockType::t_ptr.size;
+    
+    position = idx * ListFile::LINESIZE + ListFile::LINEHEAD;
+}
+
+Member::Member(const MemberType& t, const ClusterFile& clusterfile, ClusterFile::LineIndex idx):
+        Component(clusterfile.database)
+{
+    if (idx==0)
+    {
+        nullflag = true;
+        position = 0;
+        return;
+    }
+
+    if (clusterfile.type != *t.parent)
+        throw Exception("Typ enthaelt die Eigenschaft nicht","Database::Member constructor");
+
+    fs = (File*)&clusterfile;
+    type = t;
+    position = clusterfile.data_location(idx) + t.parent_offset;
 }
 
 bool Member::operator==(const Member& other) const
@@ -210,7 +238,7 @@ MemberIterator Member::begin()
     MemberIterator out;
     out.parent = *this;
     if (type.blockType==BlockType::t_list)
-        out.ref = get_list_item(get_list_begin());
+        out.ref = Member(type,database->listfile,get_list_begin());
     else
         out.ref = (*this)[0];
     return out;
@@ -247,7 +275,7 @@ Member Member::emplace()
     set_list_begin(
         database->listfile.emplace(get_list_begin())
     );
-    Member out = get_list_item(get_list_begin());
+    Member out = Member(type,database->listfile,get_list_begin());
     out.init_memory();
     return out;
 }
@@ -305,26 +333,6 @@ void Member::set_list_begin(ListFile::LineIndex index)
     fs->writeAt(position,index);
 }
 
-Member Member::get_list_item(ListFile::LineIndex index) const
-{
-    if (index==0 || !pre_open())
-        return Member();
-    if (type.blockType != BlockType::t_list)
-        throw Exception("Das Element ist keine Liste.","Member::get_list_element()");
-
-    MemberType memtype;
-    memtype.blockType = BlockType::t_ptr;
-    memtype.amount = 1;
-    memtype.ptr_type = type.ptr_type;
-
-    return Member(
-        database,
-        &(database->listfile),
-        memtype,
-        database->listfile.data_location(index)
-    );
-}
-
 MemberIterator& MemberIterator::operator++()
 {
     if (parent.nullflag)
@@ -365,7 +373,7 @@ Member* MemberIterator::operator->() const
 
 void MemberIterator::array_pp()
 {
-    std::streampos end = parent.position+parent.type.size();
+    std::streampos end = parent.position+parent.type.size;
     std::streampos increment = ref.type.blockType.size;
     ref.position += increment;
     if (ref.position>=end)
@@ -384,8 +392,5 @@ void MemberIterator::list_pp()
     }
     ListFile::LineIndex index = ref.database->listfile.get_index(ref.position);
     index = ref.database->listfile.get_next(index);
-    if (index==0)
-        ref = Member();
-    else
-        ref = parent.get_list_item(index);
+    ref = Member(parent.type,parent.database->listfile,index);
 }

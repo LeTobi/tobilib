@@ -1,3 +1,4 @@
+#define TC_DATABASE_INTERN
 #include "database.h"
 
 using namespace tobilib;
@@ -76,16 +77,16 @@ bool Cluster::operator!=(const Cluster& other) const
 
 Member Cluster::operator[] (const std::string& name)
 {
-    if (!pre_valid())
+    if (nullflag)
         return Member();
-    if (cf->type.members.count(name)==0)
-        throw Exception("Member not found","Database::Cluster:operator()");
-    return Member(
-        database,
-        cf,
-        cf->type.members.at(name),
-        cf->data_location(line) + cf->type.offsetOf(name)
-    );
+    return Member(cf->type.getMember(name),*cf,index());
+}
+
+Member Cluster::operator[] (const MemberType& memtype)
+{
+    if (nullflag)
+        return Member();
+    return Member(memtype,*cf,index());
 }
 
 unsigned int Cluster::index() const
@@ -115,8 +116,8 @@ void Cluster::clear_references()
 {
     if (!pre_valid())
         return;
-    for (auto& item: cf->type.members)
-        (*this)[item.first].clear_references();
+    for (MemberType& item: cf->type.members)
+        (*this)[item.name].clear_references();
 }
 
 bool Cluster::pre_valid() const
@@ -130,8 +131,8 @@ bool Cluster::pre_valid() const
 
 void Cluster::init_memory()
 {
-    for (auto& m: cf->type.members)
-        (*this)[m.first].init_memory();
+    for (MemberType& m: cf->type.members)
+        (*this)[m.name].init_memory();
 }
 
 void Cluster::add_refcount(int amount)

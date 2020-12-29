@@ -1,3 +1,4 @@
+#define TC_DATABASE_INTERN
 #include "database.h"
 #include <cmath>
 
@@ -525,7 +526,7 @@ void ClusterFile::erase(LineIndex to_remove)
 std::streampos ClusterFile::linesize() const
 {
     std::streampos min_out = LINEHEAD + 2l;
-    std::streampos out = LINEHEAD + type.size() + 2l;
+    std::streampos out = LINEHEAD + type.size + 2l;
     return std::max(out,min_out);
 }
 

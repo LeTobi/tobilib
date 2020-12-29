@@ -1,12 +1,10 @@
 #ifndef TC_DATABASE_CONCEPTS_H
 #define TC_DATABASE_CONCEPTS_H
 
-#ifdef TC_DEBUG_ACCESS
-    #define TC_PRIVATE public
-    #define TC_PROTECTED public
+#ifdef TC_DATABASE_INTERN
+    #define TC_DATABASE_PRIVATE public
 #else
-    #define TC_PRIVATE private
-    #define TC_PROTECTED protected
+    #define TC_DATABASE_PRIVATE private
 #endif
 
 #include "../stringplus/filename.h"
@@ -35,7 +33,7 @@ public:
     bool pre_init() const;
     bool pre_open() const;
 
-TC_PROTECTED:
+TC_DATABASE_PRIVATE:
     bool nullflag;
     Database* database;
 };
@@ -46,7 +44,7 @@ class Iterator { };
 template <class ComponentType>
 class const_Iterator
 {
-TC_PRIVATE:
+TC_DATABASE_PRIVATE:
     using BaseIterator = Iterator<ComponentType>;
     BaseIterator it;
 public:

@@ -16,7 +16,7 @@ public:
 
 	void parse_all();
 
-TC_PRIVATE:
+TC_DATABASE_PRIVATE:
     const static std::string valid_chars;
 	File structurefile;
 

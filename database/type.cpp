@@ -23,11 +23,6 @@ bool MemberType::operator!=(const MemberType& other) const
     return !(*this==other);
 }
 
-std::streampos MemberType::size() const
-{
-    return amount*blockType.size;
-}
-
 bool Database::ClusterType::operator== (const ClusterType& other) const
 {
     return name==other.name;
@@ -38,22 +33,25 @@ bool Database::ClusterType::operator!= (const ClusterType& other) const
     return !(*this == other);
 }
 
-std::streampos Database::ClusterType::size() const
+bool Database::ClusterType::contains(const std::string& name) const
 {
-    std::streampos out = 0;
-    for (auto& mem: members) {
-        out+=mem.second.size();
+    for (const MemberType& mem: members) {
+        if (mem.name==name)
+            return true;
     }
-    return out;
+    return false;
 }
 
-std::streampos Database::ClusterType::offsetOf(const std::string& name) const
+MemberType& Database::ClusterType::getMember(const std::string& name)
 {
-    std::streampos out = 0;
-    for (auto& mem: members) {
-        if (mem.first==name)
-            return out;
-        out+=mem.second.size();
+    for (MemberType& mem: members) {
+        if (mem.name==name)
+            return mem;
     }
-    throw Exception("Implementierungsfehler","Database::ClusterType::offsetOf");
+    throw Exception("Name nicht gefunden","Database::ClusterType::operator[]");
+}
+
+const MemberType& Database::ClusterType::getMember(const std::string& name) const
+{
+    return const_cast<ClusterType*>(this)->getMember(name);
 }

@@ -1,3 +1,4 @@
+#define TC_DATABASE_INTERN
 #include "database.h"
 #include "parser.h"
 

@@ -3,6 +3,7 @@
 
 #include "concepts.h"
 #include "fileaccess.h"
+#include "type.h"
 #include <memory> // unique_ptr for operator ->
 
 namespace tobilib {
@@ -15,7 +16,8 @@ class Member : public Component, public Iteratable<Member>
 {
 public:
     Member() = default;
-    Member(Database*,File*,const MemberType&,std::streampos);
+    Member(const MemberType&, const ListFile&, ListFile::LineIndex);
+    Member(const MemberType&, const ClusterFile&, ClusterFile::LineIndex);
 
     bool operator==(const Member&) const;
     bool operator!=(const Member&) const;
@@ -44,14 +46,10 @@ public:
 
     void clear_references();
     
-TC_PRIVATE:
-    friend class Cluster;
-    friend MemberIterator;
-
+TC_DATABASE_PRIVATE:
     void init_memory();
     ListFile::LineIndex get_list_begin() const;
     void set_list_begin(ListFile::LineIndex);
-    Member get_list_item(ListFile::LineIndex) const;
 
     MemberType type;
     File* fs;
@@ -71,9 +69,7 @@ public:
     Member operator*() const;
     Member* operator->() const;
 
-TC_PRIVATE:
-    friend class Member;
-
+TC_DATABASE_PRIVATE:
     void array_pp();
     void list_pp();
 

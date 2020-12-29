@@ -48,18 +48,10 @@ public:
 	ClusterList list(const std::string&);
 	const ClusterList list(const std::string&) const;
 
-TC_PRIVATE:
+TC_DATABASE_PRIVATE:
 	using Component = database_detail::Component;
 	using ClusterFile = database_detail::ClusterFile;
 	using ListFile = database_detail::ListFile;
-	friend class database_detail::Component;
-	friend class database_detail::Member;
-	friend class database_detail::Cluster;
-	friend class database_detail::File;
-	friend class database_detail::Parser;
-	friend class database_detail::ListFile;
-	friend class database_detail::ClusterFile;
-	friend class database_detail::Iterator<Member>;
 
 	FileName path;
 	mutable Status status;

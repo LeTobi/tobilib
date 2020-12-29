@@ -2,7 +2,7 @@
 #define TC_DATABASE_TYPE_H
 
 #include <ios>
-#include <map>
+#include <vector>
 
 namespace tobilib {
 namespace database_detail {
@@ -34,23 +34,29 @@ public:
     bool operator==(const MemberType&) const;
     bool operator!=(const MemberType&) const;
 
+    std::string name;
+    ClusterType* parent;
+    std::streampos parent_offset;
     BlockType blockType;
     unsigned int amount;
     ClusterType* ptr_type = nullptr;
+    std::streampos size;
 
-    std::streampos size() const;
 };
 
 class ClusterType
 {
 public:
     std::string name;
-    std::map<std::string,MemberType> members;
+    std::vector<MemberType> members;
+    std::streampos size;
 
     bool operator==(const ClusterType&) const;
     bool operator!=(const ClusterType&) const;
-    std::streampos size() const;
-    std::streampos offsetOf(const std::string&) const;
+    
+    bool contains(const std::string&) const;
+    MemberType& getMember(const std::string&);
+    const MemberType& getMember(const std::string&) const;
 };
 
 } // namespace database_detail

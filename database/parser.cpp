@@ -1,3 +1,4 @@
+#define TC_DATABASE_INTERN
 #include "database.h"
 #include "parser.h"
 
@@ -93,9 +94,9 @@ void Parser::parse_cluster()
     while (pre_good())
     {
         if (next_matches("type"))
-            return;
+            break;
         if (!structurefile.fs.good())
-            return;
+            break;
         parse_block(cluster->type);
     }
 }
@@ -106,6 +107,7 @@ void Parser::parse_block(ClusterType& cluster)
         return;
     std::string type;
     MemberType member;
+    member.parent = &cluster;
     if (!(structurefile.fs >> type))
     {
         errorlog("Dateiende - Es wird ein BlockTyp erwartet");
@@ -140,40 +142,46 @@ void Parser::parse_block(ClusterType& cluster)
     if (!pre_good())
         return;
 
-    std::string name;
-    if (!(structurefile.fs >> name)) {
+    member.size = member.amount * member.blockType.size;
+    cluster.size += member.size;
+
+    if (!(structurefile.fs >> member.name)) {
         errorlog("Name erwartet");
         return;
     }
 
-    if (name=="[]") {
+    if (member.name=="[]") {
         if (member.blockType!=BlockType::t_ptr) {
             errorlog("Listen existieren nur fuer Referenzen");
             return;
         }
         if (member.amount!=1) {
-            errorlog("Eine liste kann nur einfach vorhanden sein");
+            errorlog("Eine liste kann nicht teil eines arrays sein");
             return;
         }
         member.blockType = BlockType::t_list;
-        if (!(structurefile.fs >> name)) {
+        if (!(structurefile.fs >> member.name)) {
             errorlog("Name erwartet");
             return;
         }
     }
 
-    if (!valid_name(name)) {
+    if (!valid_name(member.name)) {
         errorlog("ungueltiger Name");
         return;
     }
 
-    if (cluster.members.count(name)>0) {
+    if (cluster.contains(member.name)) {
         errorlog("doppelter Membername");
         return;
     }
 
-    cluster.members[name] = member;
-    return;
+    if (cluster.members.empty())
+        member.parent_offset = 0l;
+    else
+        member.parent_offset = cluster.members.back().parent_offset + cluster.members.back().size;
+
+    cluster.members.push_back(member);
 }
 
 void Parser::parse_arr_len(unsigned int& out)

@@ -24,7 +24,7 @@ public:
     ClusterIterator begin();
     ClusterIterator end();
 
-TC_PRIVATE:
+TC_DATABASE_PRIVATE:
     ClusterFile* cf;
 };
 
@@ -38,7 +38,9 @@ public:
     bool operator!=(const Cluster& other) const;
 
     Member operator[](const std::string&);
+    Member operator[](const MemberType&);
     const Member operator[](const std::string&) const;
+    const Member operator[](const MemberType&) const;
     unsigned int index() const;
     void erase();
     unsigned int reference_count();
@@ -46,7 +48,7 @@ public:
     
     bool pre_valid() const;
 
-TC_PRIVATE:
+TC_DATABASE_PRIVATE:
     friend ClusterList;
     friend ClusterIterator;
     friend Member;
@@ -71,7 +73,7 @@ public:
     Cluster operator*() const;
     Cluster* operator->() const;
 
-TC_PRIVATE:
+TC_DATABASE_PRIVATE:
     friend ClusterList;
 
     mutable Cluster ref;

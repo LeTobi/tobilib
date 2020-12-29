@@ -1,4 +1,4 @@
-#define TC_DEBUG_ACCESS
+#define TC_DATABASE_INTERN
 #include "../database.h"
 
 using namespace tobilib;
@@ -79,8 +79,8 @@ void print_clusterfile(ClusterFile& file)
     out << "last empty:;" << file.get_last_empty() << "\r\n";
     out << "\r\n";
     out << "line index;is occupied;previous entry;next entry;referenced by;";
-    for (auto& member: file.type.members)
-        out << member.first << ";";
+    for (MemberType& member: file.type.members)
+        out << member.name << ";";
     out << "\r\n";
 
     for (ClusterFile::LineIndex i=1;i<=file.capacity();i++)
@@ -90,14 +90,12 @@ void print_clusterfile(ClusterFile& file)
         out << file.get_previous(i) << ";";
         out << file.get_next(i) << ";";
         out << file.get_refcount(i) << ";";
-        std::streampos offset = 0;
-        for (auto& member: file.type.members)
+        for (MemberType& member: file.type.members)
         {
             print_member(
-                Member(file.database,&file,member.second,file.data_location(i)+offset),
+                Member(member,file,i),
                 out);
             out << ";";
-            offset+=member.second.size();
         }
         out << "\r\n";
     }
