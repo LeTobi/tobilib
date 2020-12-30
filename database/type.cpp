@@ -12,10 +12,14 @@ const BlockType BlockType::t_ptr   (6, serial_size<unsigned int>());
 
 bool MemberType::operator==(const MemberType& other) const
 {
+    if (this==&other)
+        return true;
     return
-        blockType==other.blockType &&
+        name == other.name &&
+        parent_offset == other.parent_offset &&
+        blockType == other.blockType &&
         amount == other.amount &&
-        ptr_type==other.ptr_type;
+        ptr_type == other.ptr_type;
 }
 
 bool MemberType::operator!=(const MemberType& other) const
@@ -25,7 +29,14 @@ bool MemberType::operator!=(const MemberType& other) const
 
 bool Database::ClusterType::operator== (const ClusterType& other) const
 {
-    return name==other.name;
+    if (this == &other)
+        return true;
+    if (members.size() != other.members.size())
+        return false;
+    for (int i=0;i<members.size();i++)
+        if (members[i] != other.members[i])
+            return false;
+    return true;
 }
 
 bool Database::ClusterType::operator!= (const ClusterType& other) const
