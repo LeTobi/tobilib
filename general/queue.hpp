@@ -2,6 +2,7 @@
 #define TC_QUEUE
 
 #include <queue>
+#include "exception.hpp"
 
 namespace tobilib
 {
@@ -11,6 +12,8 @@ namespace tobilib
     public:
         Item next()
         {
+            if (empty())
+                throw Exception("Die Queue ist leer","tobilib::Queue::next()");
             Item out = std::queue<Item>::front();
             std::queue<Item>::pop();
             return out;

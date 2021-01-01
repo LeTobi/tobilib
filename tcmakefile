@@ -11,6 +11,7 @@ selection linux
 	add general/
 	add h2ep/
 	add network/
+	add protocols/
 	add stringplus/
 	add webcap/
 
@@ -41,6 +42,16 @@ selection test
 		link pthread
 		link boost_system
 		link boost_thread
+	exe h2rfp-server ./testing/protocols/h2rfp_server.cpp
+		link pthread
+		link boost_system
+		link boost_thread
+	exe h2rfp-client ./testing/protocols/h2rfp_client.cpp
+		link pthread
+		link boost_system
+		link boost_thread
+	exe parsing ./testing/protocols/parsing.cpp
+	exe logger ./testing/general/logger.cpp
 
 selection ssl-test
 	exe ssl-client ./testing/network/ssl_client.cpp

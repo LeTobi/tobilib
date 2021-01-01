@@ -66,10 +66,12 @@ namespace tobilib
 
     class Logger
     {
-    public:
-        std::ostream* output = &std::cout;
-        std::string prefix;
+    private:
         bool is_active = false;
+
+    public:
+        Logger* parent = nullptr;
+        std::string prefix;
 
         Logger()
         { }
@@ -78,30 +80,31 @@ namespace tobilib
         { }
 
         template<class msgType>
+        void raw_print(msgType msg)
+        {
+            if (parent==nullptr)
+                std::cout << msg;
+            else
+                *parent << msg;
+        }
+
+        template<class msgType>
         Logger& operator<<(msgType msg)
         {
-            if (output==nullptr)
-                return *this;
-
             if (!is_active) {
                 is_active=true;
-                *output << prefix;
+                raw_print(prefix);
             }
-
-            *output << msg;
-            
+            raw_print(msg);
             return *this;
         }
 
         Logger& operator<< (std::ostream& (*op)(std::ostream&))
         {
-            if (output==nullptr)
-                return *this;
-
-            if (op== &std::endl<std::ostream::char_type,std::ostream::traits_type>)
+            if (op == &std::endl<std::ostream::char_type,std::ostream::traits_type>)
             {
                 is_active = false;
-                *output << std::endl;
+                raw_print(op);
             }
             else
             {

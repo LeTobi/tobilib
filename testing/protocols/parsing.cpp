@@ -2,9 +2,9 @@
 
 using namespace tobilib;
 
-h2rfp::detail::Block testData1()
+h2rfp::Message testData1()
 {
-    h2rfp::detail::Block out;
+    h2rfp::Message out;
     out.name = "myEvent";
     out.id = 12;
     out.data.put("origin","myEvent");
@@ -12,9 +12,9 @@ h2rfp::detail::Block testData1()
     return out;
 }
 
-h2rfp::detail::Block testData2()
+h2rfp::Message testData2()
 {
-    h2rfp::detail::Block out;
+    h2rfp::Message out;
     out.name = "otherEvent";
     out.id = 13;
     out.data.put("origin","unknown");

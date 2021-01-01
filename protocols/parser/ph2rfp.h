@@ -9,11 +9,9 @@
 namespace tobilib {
 namespace h2rfp {
 
-using JSObject = boost::property_tree::ptree;
+    using JSObject = boost::property_tree::ptree;
 
-namespace detail {
-
-    class Block {
+    class Message {
     public:
         std::string name;
         unsigned int id;
@@ -22,10 +20,12 @@ namespace detail {
         std::string to_string() const;
     };
 
+namespace detail {
+
     class Parser {
     public:
         Logger log = std::string("h2rfp Parser: ");
-        Queue<Block> output;
+        Queue<Message> output;
         
         bool is_good() const;
         void feed(std::string);
@@ -35,7 +35,7 @@ namespace detail {
         enum class State { start, name, id, size, data, error };
 
         State parseState = State::start;
-        Block current;
+        Message current;
         unsigned int datalen;
         StringPlus buffer;
     };

@@ -7,7 +7,7 @@ using namespace tobilib;
 using namespace h2rfp;
 using namespace detail;
 
-std::string Block::to_string() const
+std::string Message::to_string() const
 {
     std::string output = "!";
     output += name;
