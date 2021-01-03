@@ -98,6 +98,8 @@ namespace tobilib
 
 	bool StringPlus::isDecimal() const
 	{
+		if (empty())
+			return false;
 		if (numeric_prefix()!="")
 			return false;
 		for (auto& c: numeric_body())
