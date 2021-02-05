@@ -16,7 +16,7 @@ void print_listfile(const ListFile& file)
     out << "\r\n";
     out << "line index;previous;next;target\r\n";
 
-    for (ListFile::LineIndex i=1;i<=file.capacity();i++)
+    for (LineIndex i=1;i<file.get_data_capacity();i++)
     {
         out << i << ";";
         out << file.get_previous(i) << ";";
@@ -83,7 +83,7 @@ void print_clusterfile(ClusterFile& file)
         out << member.name << ";";
     out << "\r\n";
 
-    for (ClusterFile::LineIndex i=1;i<=file.capacity();i++)
+    for (LineIndex i=1;i<file.get_data_capacity();i++)
     {
         out << i << ";";
         out << (file.get_occupied(i)?"1":"0") << ";";

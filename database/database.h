@@ -8,6 +8,7 @@
 #include "cluster.h"
 #include "fileaccess.h"
 #include "../general/exception.hpp"
+#include "../general/requestflag.h"
 
 namespace tobilib 
 {
@@ -48,6 +49,10 @@ public:
 	ClusterList list(const std::string&);
 	const ClusterList list(const std::string&) const;
 
+	FlagRequest begin_critical_operation();
+	bool critical_operation_running() const;
+	void end_critical_operation(FlagRequest);
+
 TC_DATABASE_PRIVATE:
 	using Component = database_detail::Component;
 	using ClusterFile = database_detail::ClusterFile;
@@ -57,6 +62,7 @@ TC_DATABASE_PRIVATE:
 	mutable Status status;
 	ListFile listfile;
 	std::list<ClusterFile> clusters;
+	RequestFlag critical_operation;
 
 	ClusterFile* get_file(const std::string&);
 	ClusterFile* get_file(const ClusterType*);

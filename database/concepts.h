@@ -15,13 +15,15 @@ class Database;
 
 namespace database_detail{
 
+using LineIndex = unsigned int;
+using filesize_t = unsigned long int;
+
 class BlockType;
 class MemberType;
 class ClusterType;
 class Member;
 class Cluster;
 class Parser;
-
 
 class Component {
 public:
@@ -30,8 +32,8 @@ public:
 
     bool is_null() const;
     bool pre_good() const;
-    bool pre_init() const;
-    bool pre_open() const;
+    bool pre_init(const std::string&) const;
+    bool pre_open(const std::string&) const;
 
 TC_DATABASE_PRIVATE:
     bool nullflag;

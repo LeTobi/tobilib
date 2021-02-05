@@ -22,26 +22,28 @@ bool Component::pre_good() const
     return database->status != Database::Status::error;
 }
 
-bool Component::pre_init() const
+bool Component::pre_init(const std::string& trace) const
 {
     if (!pre_good())
         return false;
-    if (database->status == Database::Status::empty) {
-        database->status = Database::Status::error;
-        database->log << "Anwendungsfehler: erwarte initialisierte datenbank" << std::endl;
-        return false;
+    if (database->status == Database::Status::empty)
+    {
+        Exception ex("Precondition verletzt: erwarte initialisierte datenbank","Database_detail::Component::pre_init()");
+        ex.trace.push_back(trace);
+        throw ex;
     }
     return true;
 }
 
-bool Component::pre_open() const
+bool Component::pre_open(const std::string& trace) const
 {
-    if (!pre_init())
+    if (!pre_init(trace))
         return false;
-    if (database->status!=Database::Status::open) {
-        database->status = Database::Status::error;
-        database->log << "Anwendungsfehler: erwarte offene datanbank" << std::endl;
-        return false;
+    if (database->status!=Database::Status::open)
+    {
+        Exception ex("Precondition verletzt: erwarte offene Datenbank","Database_detail::Component::pre_open()");
+        ex.trace.push_back(trace);
+        throw ex;
     }
     return true;
 }

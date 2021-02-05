@@ -2,7 +2,7 @@
 #define TC_DATABASE_MEMBER_H
 
 #include "concepts.h"
-#include "fileaccess.h"
+#include "tableaccess.h"
 #include "type.h"
 #include <memory> // unique_ptr for operator ->
 
@@ -16,8 +16,8 @@ class Member : public Component, public Iteratable<Member>
 {
 public:
     Member() = default;
-    Member(const MemberType&, const ListFile&, ListFile::LineIndex);
-    Member(const MemberType&, const ClusterFile&, ClusterFile::LineIndex);
+    Member(const MemberType&, const ListFile&, LineIndex);
+    Member(const MemberType&, const ClusterFile&, LineIndex);
 
     bool operator==(const Member&) const;
     bool operator!=(const Member&) const;
@@ -48,12 +48,12 @@ public:
     
 TC_DATABASE_PRIVATE:
     void init_memory();
-    ListFile::LineIndex get_list_begin() const;
-    void set_list_begin(ListFile::LineIndex);
+    LineIndex get_list_begin() const;
+    void set_list_begin(LineIndex);
 
     MemberType type;
-    File* fs;
-    std::streampos position;
+    CrashSafeFile* fs;
+    filesize_t position;
 };
 
 template<>

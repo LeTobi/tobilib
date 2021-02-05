@@ -24,6 +24,7 @@ selection tools
 
 selection test
 	exe database-test ./testing/database/dbtest.cpp
+	exe database-crashtest ./testing/database/dbcrashtest.cpp
 	exe filename-test ./testing/stringplus/filenametest.cpp
 	exe number-test ./testing/stringplus/numbers.cpp
 	exe tcp-echoserver ./testing/network/tcp_echoserver.cpp
@@ -52,6 +53,7 @@ selection test
 		link boost_thread
 	exe parsing ./testing/protocols/parsing.cpp
 	exe logger ./testing/general/logger.cpp
+	exe requestflag ./testing/general/requestflag.cpp
 
 selection ssl-test
 	exe ssl-client ./testing/network/ssl_client.cpp

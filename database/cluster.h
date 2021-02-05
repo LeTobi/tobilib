@@ -3,7 +3,7 @@
 
 #include "concepts.h"
 #include "type.h"
-#include "fileaccess.h"
+#include "tableaccess.h"
 
 namespace tobilib {
 namespace database_detail {
@@ -32,7 +32,7 @@ class Cluster : public Component
 {
 public:
     Cluster() = default;
-    Cluster(Database*, ClusterFile*, ClusterFile::LineIndex);
+    Cluster(Database*, ClusterFile*, LineIndex);
 
     bool operator==(const Cluster& other) const;
     bool operator!=(const Cluster& other) const;
@@ -45,19 +45,18 @@ public:
     void erase();
     unsigned int reference_count();
     void clear_references();
-    
-    bool pre_valid() const;
 
 TC_DATABASE_PRIVATE:
     friend ClusterList;
     friend ClusterIterator;
     friend Member;
 
+    bool pre_valid(const std::string&) const;
     void init_memory();
     void add_refcount(int);
 
     ClusterFile* cf;
-    ClusterFile::LineIndex line;
+    LineIndex line;
 };
 
 template<>

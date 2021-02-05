@@ -3,6 +3,7 @@
 
 #include <ios>
 #include <vector>
+#include "concepts.h"
 
 namespace tobilib {
 namespace database_detail {
@@ -10,7 +11,7 @@ namespace database_detail {
 class BlockType
 {
 public:
-    std::streampos size;
+    filesize_t size;
 
     BlockType(): id(0), size(0) {};
 
@@ -26,7 +27,7 @@ public:
 
 private:
     unsigned int id;
-    BlockType(unsigned int _id, std::streampos _size): id(_id), size(_size) {};
+    BlockType(unsigned int _id, filesize_t _size): id(_id), size(_size) {};
 };
 
 class MemberType {
@@ -36,11 +37,11 @@ public:
 
     std::string name;
     ClusterType* parent;
-    std::streampos parent_offset;
+    filesize_t parent_offset;
     BlockType blockType;
     unsigned int amount;
     ClusterType* ptr_type = nullptr;
-    std::streampos size;
+    filesize_t size;
 
 };
 
@@ -49,7 +50,7 @@ class ClusterType
 public:
     std::string name;
     std::vector<MemberType> members;
-    std::streampos size;
+    filesize_t size;
 
     bool operator==(const ClusterType&) const;
     bool operator!=(const ClusterType&) const;

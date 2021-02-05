@@ -59,21 +59,19 @@ bool Database::is_open() const
 
 void Database::close()
 {
-    if (status==Status::error)
-        return;
-    if (status != Status::open) {
-        status = Status::error;
-        log << "close() mit falschem status" << std::endl;
-        return;
-    }
+    if (critical_operation_running())
+        throw Exception("Es sind empfindliche Zugriffe ausstehend.","Database::close()");
     listfile.close();
     for (auto& cf: clusters)
         cf.close();
-    status = Status::closed;
+    if (status != Status::error)
+        status = Status::closed;
 }
 
 void Database::clear()
 {
+    if (critical_operation_running())
+        throw Exception("Es sind empfindliche Zugriffe ausstehend.","Database::clear()");
     clusters.clear();
     close();
     status = Status::empty;
@@ -97,6 +95,28 @@ Database::ClusterList Database::list(const std::string& name)
 const Database::ClusterList Database::list(const std::string& name) const
 {
     return const_cast<Database*>(this)->list(name);
+}
+
+FlagRequest Database::begin_critical_operation()
+{
+    return critical_operation.request();
+}
+
+bool Database::critical_operation_running() const
+{
+    return critical_operation.is_requested();
+}
+
+void Database::end_critical_operation(FlagRequest id)
+{
+    critical_operation.dismiss(id);
+    critical_operation.events.clear();
+    if (!critical_operation.is_requested())
+    {
+        listfile.confirm();
+        for (ClusterFile& cf: clusters)
+            cf.confirm();
+    }
 }
 
 Database::ClusterFile* Database::get_file(const std::string& name)

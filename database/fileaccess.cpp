@@ -1,4 +1,6 @@
 #define TC_DATABASE_INTERN
+
+#include "fileaccess.h"
 #include "database.h"
 #include <cmath>
 
@@ -6,21 +8,21 @@ using namespace tobilib;
 using namespace database_detail;
 
 template<class PrimT>
-std::streampos database_detail::serial_size()
+filesize_t database_detail::serial_size()
 {
     return sizeof(PrimT);
 }
 
 template<bool>
-std::streampos database_detail::serial_size()
+filesize_t serial_size()
 {
     return sizeof(char);
 }
 
-template std::streampos database_detail::serial_size<int>();
-template std::streampos database_detail::serial_size<unsigned int>();
-template std::streampos database_detail::serial_size<double>();
-template std::streampos database_detail::serial_size<char>();
+template filesize_t database_detail::serial_size<int>();
+template filesize_t database_detail::serial_size<unsigned int>();
+template filesize_t database_detail::serial_size<double>();
+template filesize_t database_detail::serial_size<char>();
 
 template<class PrimT>
 bool serial_print(std::fstream& fs, PrimT out)
@@ -88,12 +90,12 @@ void File::close()
     fs.close();
 }
 
-std::streampos File::size() const
+filesize_t File::size() const
 {
     if (!pre_good())
         return 0;
     fs.seekg(0,fs.end);
-    std::streampos len = fs.tellg();
+    filesize_t len = fs.tellg();
     if (!fs.good()) {
         database->status = Database::Status::error;
         database->log << "Fehler bei Ermittlung der Dateigroesse: (" << name.fileOnly() << ")" << std::endl;
@@ -102,8 +104,22 @@ std::streampos File::size() const
     return len;
 }
 
+void File::extend(filesize_t len)
+{
+    if (!pre_good())
+        return;
+    fs.seekp(0,fs.end);
+    fs << std::string(len,0);
+    if (!fs.good())
+    {
+        database->status = Database::Status::error;
+        database->log << "Fehler beim erweitern der Datei " << name.fileOnly() << std::endl;
+        return;
+    }
+}
+
 template<class PrimT>
-PrimT File::readAt(std::streampos where) const
+PrimT File::readAt(filesize_t where) const
 {
     if (!pre_good())
         return 0;
@@ -117,14 +133,8 @@ PrimT File::readAt(std::streampos where) const
     return out;
 }
 
-template int          File::readAt(std::streampos) const;
-template unsigned int File::readAt(std::streampos) const;
-template double       File::readAt(std::streampos) const;
-template char         File::readAt(std::streampos) const;
-template bool         File::readAt(std::streampos) const;
-
 template <class PrimT>
-void File::writeAt(std::streampos where, PrimT what)
+void File::writeAt(filesize_t where, PrimT what)
 {
     if (!pre_good())
         return;
@@ -135,399 +145,258 @@ void File::writeAt(std::streampos where, PrimT what)
     }
 }
 
-template void File::writeAt(std::streampos,int);
-template void File::writeAt(std::streampos,unsigned int);
-template void File::writeAt(std::streampos,double);
-template void File::writeAt(std::streampos,char);
-template void File::writeAt(std::streampos,bool);
-
-ListFile::ListFile(Database* db): File(db) {};
-
-void ListFile::open()
-{
-    if (!pre_init())
-        return;
-    File::open();
-    std::streampos len = size();
-    if (len==0) {
-        fs << std::string(LINESIZE-2*serial_size<char>(),0);
-        fs << "\r\n";
-        set_first_empty(0);
-        set_last_empty(0);
-    }
-}
-
-ListFile::LineIndex ListFile::get_index(std::streampos position) const
-{
-    return position / LINESIZE;
-}
-
-ListFile::LineIndex ListFile::capacity() const
-{
-    if (!pre_open())
-        return 0;
-    return size() / LINESIZE - 1;
-}
-
-ListFile::LineIndex ListFile::get_first_empty() const
-{
-    return readAt<unsigned int>(0);
-}
-
-ListFile::LineIndex ListFile::get_last_empty() const
-{
-    std::streampos where = 1*serial_size<unsigned int>();
-    return readAt<unsigned int>(where);
-}
-
-ListFile::LineIndex ListFile::get_next(LineIndex where) const
-{
-    std::streampos pos = where*LINESIZE;
-    pos += 1*serial_size<unsigned int>();
-    return readAt<unsigned int>(pos);
-}
-
-ListFile::LineIndex ListFile::get_previous(LineIndex where) const
-{
-    std::streampos pos = where*LINESIZE;
-    return readAt<unsigned int>(pos);
-}
-
-std::streampos ListFile::data_location(LineIndex where) const
-{
-    return where*LINESIZE+LINEHEAD;
-}
-
-void ListFile::set_first_empty(LineIndex what)
-{
-    writeAt(0,what);
-}
-
-void ListFile::set_last_empty(LineIndex what)
-{
-    std::streampos pos = serial_size<unsigned int>();
-    writeAt(pos,what);
-}
-
-void ListFile::set_next(LineIndex where, LineIndex what)
-{
-    std::streampos pos = where*LINESIZE;
-    pos += serial_size<unsigned int>();
-    writeAt(pos,what);
-}
-
-void ListFile::set_previous(LineIndex where, LineIndex what)
-{
-    std::streampos pos = where*LINESIZE;
-    writeAt(pos,what);
-}
-
-ListFile::LineIndex ListFile::extend()
-{
-    if (!pre_open())
-        return 0;
-    fs.seekp(0,fs.end);
-    std::streampos new_space = fs.tellp();
-    fs << std::string(LINESIZE-2*serial_size<char>(),0);
-    fs << "\r\n";
-    fs.flush();
-    if (!fs.good()) {
-        database->status = Database::Status::error;
-        database->log << "Fehler beim Erweitern der Listendatei" << std::endl;
-        return 0;
-    }
-    return new_space/LINESIZE;
-}
-
-ListFile::LineIndex ListFile::remove_empty()
-{
-    LineIndex first = get_first_empty();
-    if (first==0)
-        return extend();
-    LineIndex next = get_next(first);
-    set_first_empty(next);
-    if (next==0)
-        set_last_empty(0);
-    else
-        set_previous(next,0);
-    return first;
-}
-
-void ListFile::append_empty(LineIndex where)
-{
-    LineIndex last = get_last_empty();
-    if (last==0)
-        set_first_empty(where);
-    else
-        set_next(last,where);
-    set_previous(where,last);
-    set_next(where,0);
-    set_last_empty(where);
-}
-
-void ListFile::append_filled(LineIndex old_first, LineIndex new_first)
-{
-    set_next(new_first,old_first);
-    set_previous(new_first,0);
-    if (old_first!=0)
-        set_previous(old_first,new_first);
-}
-
-ListFile::LineIndex ListFile::remove_filled(LineIndex to_remove)
-{
-    LineIndex next = get_next(to_remove);
-    LineIndex previous = get_previous(to_remove);
-    if (next!=0)
-        set_previous(next,previous);
-    if (previous!=0)
-        set_next(previous,next);
-    return next;
-}
-
-ListFile::LineIndex ListFile::emplace(LineIndex old_first)
-{
-    LineIndex new_item = remove_empty();
-    append_filled(old_first,new_item);
-    return new_item;
-}
-
-ListFile::LineIndex ListFile::erase(LineIndex to_remove)
-{
-    LineIndex successor = remove_filled(to_remove);
-    append_empty(to_remove);
-    return successor;
-}
-
-const std::streampos ListFile::LINESIZE = 3*serial_size<unsigned int>() + 2;
-const std::streampos ListFile::LINEHEAD = 2*serial_size<unsigned int>();
-
-ClusterFile::ClusterFile(Database* db): File(db)
+CrashSafeFile::CrashSafeFile(Database* db):
+    Component(db),
+    datafile(db),
+    backupfile(db)
 { }
 
-void ClusterFile::open()
+void CrashSafeFile::open()
 {
-    if (!pre_init())
-        return;
-    File::open();
-    std::streampos len = size();
-    if (len==0)
+    if (file_opened)
+        throw Exception("Die Datei sollte nicht doppelt geoeffnet werden","CrashSafeFile::open()");
+    FileName tmpdir = name;
+    datafile.name = name;
+    datafile.name.extension = "data";
+    datafile.open();
+    backupfile.name = name;
+    backupfile.name.extension = "tmp";
+    backupfile.open();
+    if (backupfile.size()%BACKUP_CHUNKSIZE != 0)
     {
-        fs << std::string(linesize()-2*serial_size<char>(),0);
-        fs << "\r\n";
-        set_first_empty(0);
-        set_last_empty(0);
-        set_first_filled(0);
-        set_last_filled(0);
+        database->log << "Die Groesse von " << backupfile.name.fileOnly() << " ist fehlerhaft und wird korrigiert" << std::endl;
+        extend_backup_capacity();
     }
+
+    if (pre_good())
+    {
+        file_opened = true;
+    }
+    else
+    {
+        datafile.close();
+        backupfile.close();
+        return;
+    }
+
+    restore_all();
 }
 
-ClusterFile::LineIndex ClusterFile::get_first_filled() const
+void CrashSafeFile::close()
 {
-    return readAt<unsigned int>(0);
+    file_opened = false;
+    datafile.close();
+    backupfile.close();
 }
 
-ClusterFile::LineIndex ClusterFile::get_first_empty() const
+filesize_t CrashSafeFile::size() const
 {
-    return readAt<unsigned int>(2*serial_size<unsigned int>());
-}
-
-ClusterFile::LineIndex ClusterFile::get_last_filled() const
-{
-    return readAt<unsigned int>(1*serial_size<unsigned int>());
-}
-
-ClusterFile::LineIndex ClusterFile::get_last_empty() const
-{
-    return readAt<unsigned int>(3*serial_size<unsigned int>());
-}
-
-ClusterFile::LineIndex ClusterFile::get_next(LineIndex where) const
-{
-    std::streampos pos = where*linesize();
-    pos += serial_size<bool>() + serial_size<unsigned int>();
-    return readAt<unsigned int>(pos);
-}
-
-ClusterFile::LineIndex ClusterFile::get_previous(LineIndex where) const
-{
-    std::streampos pos = where*linesize();
-    pos += serial_size<bool>();
-    return readAt<unsigned int>(pos);
-}
-
-bool ClusterFile::get_occupied(LineIndex where) const
-{
-    std::streampos pos = where*linesize();
-    return readAt<bool>(pos);
-}
-
-unsigned int ClusterFile::get_refcount(LineIndex where) const
-{
-    std::streampos pos = where*linesize();
-    pos += serial_size<bool>() + 2*serial_size<unsigned int>();
-    return readAt<unsigned int>(pos);
-}
-
-ClusterFile::LineIndex ClusterFile::capacity() const
-{
-    if (!pre_open())
+    if (!pre_good())
         return 0;
-    return size() / linesize() - 1;
+    if (!file_opened)
+        throw Exception("Datei nicht offen","CrashSafeFile::size()");
+    return datafile.size();
 }
 
-std::streampos ClusterFile::data_location(LineIndex where) const
+void CrashSafeFile::extend(filesize_t len)
 {
-    return linesize()*where + LINEHEAD;
+    if (!pre_good())
+        return;
+    if (!file_opened)
+        throw Exception("Datei nicht offen","CrashSafeFile::extend()");
+    datafile.extend(len);
 }
 
-void ClusterFile::set_first_filled(LineIndex what)
+template<class PrimT>
+PrimT CrashSafeFile::readAt(filesize_t where) const
 {
-    writeAt(0,what);
+    return datafile.readAt<PrimT>(where);
 }
 
-void ClusterFile::set_first_empty(LineIndex what)
-{
-    writeAt(2*serial_size<unsigned int>(),what);
-}
+template int          CrashSafeFile::readAt(filesize_t) const;
+template unsigned int CrashSafeFile::readAt(filesize_t) const;
+template double       CrashSafeFile::readAt(filesize_t) const;
+template char         CrashSafeFile::readAt(filesize_t) const;
+template bool         CrashSafeFile::readAt(filesize_t) const;
 
-void ClusterFile::set_last_filled(LineIndex what)
+template<class PrimT>
+void CrashSafeFile::writeAt(filesize_t where, PrimT what)
 {
-    writeAt(1*serial_size<unsigned int>(),what);
-}
-
-void ClusterFile::set_last_empty(LineIndex what)
-{
-    writeAt(3*serial_size<unsigned int>(),what);
-}
-
-void ClusterFile::set_next(LineIndex where, LineIndex what)
-{
-    std::streampos pos = where*linesize();
-    pos += serial_size<bool>() + serial_size<unsigned int>();
-    writeAt(pos,what);
-}
-
-void ClusterFile::set_previous(LineIndex where, LineIndex what)
-{
-    std::streampos pos = where*linesize();
-    pos += serial_size<bool>();
-    writeAt(pos,what);
-}
-
-void ClusterFile::set_occupied(LineIndex where, bool what)
-{
-    std::streampos pos = where*linesize();
-    writeAt(pos,what);
-}
-
-void ClusterFile::clear_refcount(LineIndex where)
-{
-    std::streampos pos = where*linesize();
-    pos += serial_size<bool>()+2*serial_size<unsigned int>();
-    writeAt<unsigned int>(pos,0);
-}
-
-void ClusterFile::set_refcount_add(LineIndex where, int add)
-{
-    unsigned int refcount = get_refcount(where);
-    refcount+=add;
-    std::streampos pos = where*linesize();
-    pos += serial_size<bool>() + 2*serial_size<unsigned int>();
-    writeAt(pos,refcount);
-}
-
-ClusterFile::LineIndex ClusterFile::extend()
-{
-    if (!pre_open())
-        return size();
-    fs.seekp(0,fs.end);
-    LineIndex new_space = fs.tellp() / linesize();
-    fs << std::string(linesize()-2*serial_size<char>(), 0);
-    fs << "\r\n";
-    fs.flush();
-    if (!fs.good()) {
-        database->status = Database::Status::error;
-        database->log << "Datei konnte nicht erweitert werden: " << name.fileOnly() << std::endl;
+    if (!pre_good())
+        return;
+    if (database->critical_operation_running())
+    {
+        backup(where);
+        backup(where + serial_size<PrimT>() - 1);
+        if (!pre_good())
+            return;
     }
-    return new_space;
+    datafile.writeAt<PrimT>(where,what);
 }
 
-ClusterFile::LineIndex ClusterFile::remove_empty()
-{
-    LineIndex first = get_first_empty();
-    if (first == 0)
-        return extend();
-    LineIndex next = get_next(first);
-    set_first_empty(next);
-    if (next==0)
-        set_last_empty(0);
-    else
-        set_previous(next,0);
-    return first;
-}
+template void CrashSafeFile::writeAt(filesize_t,int);
+template void CrashSafeFile::writeAt(filesize_t,unsigned int);
+template void CrashSafeFile::writeAt(filesize_t,double);
+template void CrashSafeFile::writeAt(filesize_t,char);
+template void CrashSafeFile::writeAt(filesize_t,bool);
 
-void ClusterFile::append_empty(LineIndex new_empty)
+void CrashSafeFile::confirm()
 {
-    LineIndex last = get_last_empty();
-    if (last==0)
-        set_first_empty(new_empty);
-    else
-        set_next(last,new_empty);
+    if (!pre_good() || !file_opened)
+        return;
     
-    set_previous(new_empty,last);
-    set_next(new_empty,0);
-    set_last_empty(new_empty);
+    datafile.fs.flush();
+    if (!datafile.fs.good())
+    {
+        database->status = Database::Status::error;
+        database->log << "Backup system: Fehler in der Datendatei " << datafile.name.fileOnly() << std::endl;
+        return;
+    }
+
+    for (unsigned int i = 0; i<chunks.size(); i++)
+        set_backup_flag(chunks.size()-1-i,false);
+    backupfile.fs.flush();
+    if (!backupfile.fs.good())
+    {
+        database->status = Database::Status::error;
+        database->log << "Die Backupdatei konnte nicht zurueckgesetzt werden. " << backupfile.name.fileOnly() << std::endl;
+        return;
+    }
+    chunks.clear();
 }
 
-void ClusterFile::append_filled(LineIndex new_filled)
+void CrashSafeFile::restore_all()
 {
-    LineIndex last = get_last_filled();
-    if (last==0)
-        set_first_filled(new_filled);
-    else
-        set_next(last,new_filled);
-    set_previous(new_filled,last);
-    set_next(new_filled,0);
-    set_last_filled(new_filled);
-    clear_refcount(new_filled);
+    unsigned int backup_idx;
+    unsigned int backup_count = 0;
+    for (backup_idx=0;backup_idx<get_backup_capacity();backup_idx++)
+    {
+        if (!get_backup_flag(backup_idx))
+            return;
+        ++backup_count;
+        filesize_t length = prepare_data_transfer(backup_idx);
+        if (!pre_good())
+            return;
+        for (unsigned int j=0;j<length;j++)
+            datafile.fs.put(backupfile.fs.get());
+    }
+    datafile.fs.flush();
+    if (!datafile.fs.good() || !backupfile.fs.good())
+    {
+        database->status = Database::Status::error;
+        database->log << "Daten konnten nicht wieder hergestellt werden. " << backupfile.name.fileOnly() << std::endl;
+        return;
+    }
+    if (backup_count>0)
+        database->log << backup_count << " chunks von " << datafile.name.fileOnly() << " wiederhergestellt." << std::endl;
+    confirm();
 }
 
-void ClusterFile::remove_filled(LineIndex to_remove)
+void CrashSafeFile::backup(filesize_t what)
 {
-    LineIndex next = get_next(to_remove);
-    LineIndex previous = get_previous(to_remove);
-    if (next==0)
-        set_last_filled(previous);
-    else
-        set_previous(next,previous);
-    if (previous==0)
-        set_first_filled(next);
-    else
-        set_next(previous,next);
+    DataIndex data_idx = get_data_chunk_index(what);
+    if (chunks.count(data_idx)>0)
+        return;
+    BackupIndex backup_idx = chunks.size();
+    if (backup_idx>=get_backup_capacity())
+        extend_backup_capacity();
+    set_backup_flag(backup_idx,false);
+    set_data_index(backup_idx,data_idx);
+    filesize_t length = prepare_data_transfer(backup_idx);
+
+    if (!pre_good())
+        return;
+    for (unsigned int i=0;i<length;i++)
+        backupfile.fs.put(datafile.fs.get());
+    backupfile.fs.flush();
+    if (!datafile.fs.good() || !backupfile.fs.good())
+    {
+        database->status = Database::Status::error;
+        database->log << "Es konnte kein Backup von den Daten genommen werden. " << datafile.name.fileOnly() << std::endl;
+        return;
+    }
+
+    set_backup_flag(backup_idx, true);
+    backupfile.fs.flush();
+    if (!backupfile.fs.good())
+    {
+        database->status = Database::Status::error;
+        database->log << "Es konnte kein Backup von den Daten genommen werden. " << backupfile.name.fileOnly() << std::endl;
+    }
+
+    chunks.insert(data_idx);
 }
 
-ClusterFile::LineIndex ClusterFile::emplace()
+bool CrashSafeFile::get_backup_flag(BackupIndex where)
 {
-    LineIndex new_filled = remove_empty();
-    append_filled(new_filled);
-    set_occupied(new_filled,true);
-    return new_filled;
+    std::streamsize pos = where*BACKUP_CHUNKSIZE;
+    return backupfile.readAt<bool>(pos);
 }
 
-void ClusterFile::erase(LineIndex to_remove)
+void CrashSafeFile::set_backup_flag(BackupIndex where, bool what)
 {
-    if (get_refcount(to_remove)>0)
-        throw Exception("Removal of referenced Database-Element","Database::ClusterFile::erase");
-    remove_filled(to_remove);
-    append_empty(to_remove);
-    set_occupied(to_remove,false);
+    std::streamsize pos = where*BACKUP_CHUNKSIZE;
+    backupfile.writeAt(pos,what);
 }
 
-std::streampos ClusterFile::linesize() const
+filesize_t CrashSafeFile::get_data_stream_offset(BackupIndex where)
 {
-    std::streampos min_out = LINEHEAD + 2l;
-    std::streampos out = LINEHEAD + type.size + 2l;
-    return std::max(out,min_out);
+    std::streamsize pos = where*BACKUP_CHUNKSIZE;
+    pos += serial_size<bool>();
+    DataIndex data_idx = backupfile.readAt<DataIndex>(pos);
+    return data_idx * DATA_CHUNKSIZE;
 }
 
-const std::streampos ClusterFile::LINEHEAD = 1*serial_size<bool>() + 3*serial_size<unsigned int>();
+filesize_t CrashSafeFile::prepare_data_transfer(BackupIndex where)
+{
+    filesize_t datapos = get_data_stream_offset(where);
+    filesize_t backuppos = get_backup_stream_offset(where);
+    filesize_t datalen = std::min(
+        DATA_CHUNKSIZE,
+        filesize_t(datafile.size() - datapos)
+    );
+    datafile.fs.seekg(datapos);
+    datafile.fs.seekp(datapos);
+    backupfile.fs.seekg(backuppos);
+    backupfile.fs.seekp(backuppos);
+    return datalen;
+}
+
+void CrashSafeFile::set_data_index(BackupIndex where, DataIndex what)
+{
+    std::streamsize pos = where*BACKUP_CHUNKSIZE;
+    pos += serial_size<bool>();
+    backupfile.writeAt(pos,what);
+}
+
+filesize_t CrashSafeFile::get_backup_stream_offset(BackupIndex where)
+{
+    std::streamsize pos = where*BACKUP_CHUNKSIZE;
+    pos += serial_size<bool>();
+    pos += serial_size<DataIndex>();
+    return pos;
+}
+
+CrashSafeFile::DataIndex CrashSafeFile::get_data_chunk_index(filesize_t where)
+{
+    return where/DATA_CHUNKSIZE;
+}
+
+CrashSafeFile::BackupIndex CrashSafeFile::get_backup_capacity()
+{
+    return backupfile.size() / BACKUP_CHUNKSIZE;
+}
+
+void CrashSafeFile::extend_backup_capacity()
+{
+    filesize_t overhead = backupfile.size()%BACKUP_CHUNKSIZE;
+    BackupIndex idx = get_backup_capacity();
+    if (overhead < serial_size<bool>())
+        backupfile.extend(serial_size<bool>());
+    set_backup_flag(idx,false);
+    overhead = backupfile.size()%BACKUP_CHUNKSIZE;
+    backupfile.extend(BACKUP_CHUNKSIZE-overhead);
+}
+
+const filesize_t CrashSafeFile::DATA_CHUNKSIZE = 200;
+const filesize_t CrashSafeFile::BACKUP_CHUNKSIZE = DATA_CHUNKSIZE + serial_size<bool>() + serial_size<unsigned int>();

@@ -11,7 +11,7 @@ ClusterList::ClusterList(Database* db, ClusterFile* clfile):
 
 Cluster ClusterList::operator[] (unsigned int index)
 {
-    if (!pre_open())
+    if (!pre_open("ClusterList::operator[]"))
         return Cluster();
     return Cluster(database,cf,index);
 }
@@ -23,7 +23,7 @@ const Cluster ClusterList::operator[] (unsigned int index) const
 
 Cluster ClusterList::emplace()
 {
-    if (!pre_open())
+    if (!pre_open("ClusterList::emplace()"))
         return Cluster();
     Cluster out (database,cf,cf->emplace());
     out.init_memory();
@@ -32,14 +32,14 @@ Cluster ClusterList::emplace()
 
 void ClusterList::erase(const ClusterIterator& where)
 {
-    if (!pre_open())
+    if (!pre_open("ClusterList::erase()"))
         return;
     where->erase();
 }
 
 ClusterIterator ClusterList::begin()
 {
-    if (!pre_open())
+    if (!pre_open("ClusterList::begin()"))
         return end();
     ClusterIterator out;
     out.ref = Cluster(database,cf,cf->get_first_filled());
@@ -51,12 +51,12 @@ ClusterIterator ClusterList::end()
     return ClusterIterator();
 }
 
-Cluster::Cluster(Database* db, ClusterFile* clfile, ClusterFile::LineIndex ln):
+Cluster::Cluster(Database* db, ClusterFile* clfile, LineIndex ln):
     Component(db),
     cf(clfile),
     line(ln)
 {
-    if (!pre_open() || ln==0 || ln>cf->capacity() || !cf->get_occupied(ln))
+    if (!pre_open("Cluster::Constructor") || ln==0 || ln>=cf->get_data_capacity() || !cf->get_occupied(ln))
     {
         line = 0;
         nullflag = true;
@@ -91,14 +91,14 @@ Member Cluster::operator[] (const MemberType& memtype)
 
 unsigned int Cluster::index() const
 {
-    if (!pre_valid())
+    if (!pre_valid("Cluster::index()"))
         return 0;
     return line;
 }
 
 void Cluster::erase()
 {
-    if (!pre_valid())
+    if (!pre_valid("Cluster::erase()"))
         return;
     clear_references();
     cf->erase(line);
@@ -107,22 +107,22 @@ void Cluster::erase()
 
 unsigned int Cluster::reference_count()
 {
-    if (!pre_valid())
+    if (!pre_valid("Cluster::reference_count()"))
         return 0;
     return cf->get_refcount(line);
 }
 
 void Cluster::clear_references()
 {
-    if (!pre_valid())
+    if (!pre_valid("Cluster::clear_references()"))
         return;
     for (MemberType& item: cf->type.members)
         (*this)[item.name].clear_references();
 }
 
-bool Cluster::pre_valid() const
+bool Cluster::pre_valid(const std::string& trace) const
 {
-    if (!pre_open())
+    if (!pre_open(trace))
         return false;
     if (!cf->get_occupied(line))
         throw Exception("Zugriff auf entferntes Element","Cluster::pre_valid()");
@@ -144,7 +144,7 @@ void Cluster::add_refcount(int amount)
 
 ClusterIterator& ClusterIterator::operator++()
 {
-    if (!ref.pre_valid())
+    if (!ref.pre_valid("ClusterIterator::operator++"))
         return *this;
     ref = Cluster(
         ref.database,

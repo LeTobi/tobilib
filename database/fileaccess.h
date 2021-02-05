@@ -3,12 +3,13 @@
 
 #include "concepts.h"
 #include <fstream>
+#include <set>
 
 namespace tobilib {
 namespace database_detail {
 
 template<class PrimT>
-std::streampos serial_size();
+filesize_t serial_size();
 
 class File : public Component
 {
@@ -17,100 +18,63 @@ public:
     mutable std::fstream fs;
 
     File(Database*);
+    File(const File&) = delete;
 
     void open();
     void close();
-    std::streampos size() const;
+    filesize_t size() const;
+    void extend(filesize_t);
 
     template<class PrimT>
-    PrimT readAt(std::streampos) const;
+    PrimT readAt(filesize_t) const;
     template<class PrimT>
-    void writeAt(std::streampos,PrimT);
+    void writeAt(filesize_t, PrimT);
 };
 
-class ListFile: public File
+class CrashSafeFile : public Component
 {
 public:
-    using LineIndex = unsigned int;
+    FileName name;
 
-    ListFile(Database*);
-
-    void open();
-
-    LineIndex get_index(std::streampos position) const;
-    LineIndex capacity() const;
-
-    // single line access
-    LineIndex get_first_empty() const;
-    LineIndex get_last_empty() const;
-    LineIndex get_next(LineIndex) const;
-    LineIndex get_previous(LineIndex) const;
-    std::streampos data_location(LineIndex) const;
-    void set_first_empty(LineIndex);
-    void set_last_empty(LineIndex);
-    void set_next(LineIndex,LineIndex);
-    void set_previous(LineIndex,LineIndex);
-    LineIndex extend();
-
-    // leaking modification
-    LineIndex remove_empty();
-    void append_empty(LineIndex);
-    void append_filled(LineIndex, LineIndex);
-    LineIndex remove_filled(LineIndex);
-
-    // stable modification
-    LineIndex emplace(LineIndex);
-    LineIndex erase(LineIndex);
-
-    const static std::streampos LINESIZE;
-    const static std::streampos LINEHEAD;
-};
-
-class ClusterFile: public File
-{
-public:
-    using LineIndex = unsigned int;
-
-    ClusterFile(Database*);
+    CrashSafeFile(Database*);
 
     void open();
+    void close();
+    filesize_t size() const;
+    void extend(filesize_t);
+    
+    template<class PrimT>
+    PrimT readAt(filesize_t) const;
+    template<class PrimT>
+    void writeAt(filesize_t, PrimT);
 
-    // single entry access
-    LineIndex get_first_filled() const;
-    LineIndex get_first_empty() const;
-    LineIndex get_last_filled() const;
-    LineIndex get_last_empty() const;
-    LineIndex get_next(LineIndex) const;
-    LineIndex get_previous(LineIndex) const;
-    bool get_occupied(LineIndex) const;
-    unsigned int get_refcount(LineIndex) const;
-    LineIndex capacity() const;
-    std::streampos data_location(LineIndex) const;
-    void set_first_filled(LineIndex);
-    void set_first_empty(LineIndex);
-    void set_last_filled(LineIndex);
-    void set_last_empty(LineIndex);
-    void set_next(LineIndex,LineIndex);
-    void set_previous(LineIndex, LineIndex);
-    void set_occupied(LineIndex, bool);
-    void clear_refcount(LineIndex);
-    void set_refcount_add(LineIndex, int);
-    unsigned int extend();
+    void confirm();
+    
+private:
+    File datafile;
+    File backupfile;
 
-    // leaking modification
-    LineIndex remove_empty();
-    void append_empty(LineIndex);
-    void append_filled(LineIndex);
-    void remove_filled(LineIndex);
+    using BackupIndex = unsigned int;
+    using DataIndex = unsigned int;
 
-    // stable modification
-    LineIndex emplace();
-    void erase(LineIndex);
+    void restore_all();
+    void backup(filesize_t);
 
-    ClusterType type;
+    bool get_backup_flag(BackupIndex);
+    void set_backup_flag(BackupIndex, bool);
+    filesize_t get_data_stream_offset(BackupIndex);
+    filesize_t prepare_data_transfer(BackupIndex);
+    void set_data_index(BackupIndex, DataIndex);
+    filesize_t get_backup_stream_offset(BackupIndex);
+    DataIndex get_data_chunk_index(filesize_t);
+    BackupIndex get_backup_capacity();
+    void extend_backup_capacity();
 
-    std::streampos linesize() const;
-    const static std::streampos LINEHEAD;
+    std::set<DataIndex> chunks;
+    bool file_opened = false;
+
+    const static filesize_t DATA_CHUNKSIZE;
+    const static filesize_t BACKUP_CHUNKSIZE;
 };
 
 } // namespace database
