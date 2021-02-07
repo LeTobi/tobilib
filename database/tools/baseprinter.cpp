@@ -13,6 +13,7 @@ void print_listfile(const ListFile& file)
     std::fstream out (file.name.directory()+file.name.name+".csv",std::fstream::out);
     out << "first empty:;" << file.get_first_empty() << "\r\n";
     out << "last empty:;" << file.get_last_empty() << "\r\n";
+    out << "capacity:;" << file.get_data_capacity() << "\r\n";
     out << "\r\n";
     out << "line index;previous;next;target\r\n";
 
@@ -77,6 +78,7 @@ void print_clusterfile(ClusterFile& file)
     out << "last entry:;" << file.get_last_filled() << "\r\n";
     out << "first empty:;" << file.get_first_empty() << "\r\n";
     out << "last empty:;" << file.get_last_empty() << "\r\n";
+    out << "capacity:;" << file.get_data_capacity() << "\r\n";
     out << "\r\n";
     out << "line index;is occupied;previous entry;next entry;referenced by;";
     for (MemberType& member: file.type.members)

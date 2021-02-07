@@ -4,10 +4,10 @@
 
 using namespace tobilib;
 
-Database::Database(): listfile(this), status(Status::empty)
+Database::Database(): listfile(this), statusfile(this), status(Status::empty)
 { }
 
-Database::Database(const FileName& _path): listfile(this), status(Status::empty), path(_path)
+Database::Database(const FileName& _path): listfile(this), statusfile(this), status(Status::empty), path(_path)
 { }
 
 void Database::setPath(const FileName& fname)
@@ -22,6 +22,7 @@ bool Database::init()
     if (status!=Status::empty)
         throw Exception("Die Datenbank ist bereits geladen","Database::init()");
     listfile.name = path+"lists.data";
+    statusfile.name = path+"status.data";
     database_detail::Parser parser (this);
     parser.parse_all();
     if (!is_good())
@@ -44,12 +45,34 @@ bool Database::open()
         log << "open() mit falschem status" << std::endl;
         return false;
     }
+
     listfile.open();
-    for (auto& cf: clusters) {
+    statusfile.open();
+    for (auto& cf: clusters)
         cf.open();
+
+    if (statusfile.get_fallback_enabled())
+    {
+        listfile.restore();
+        for (auto& cf: clusters)
+            cf.restore();
     }
-    status = Status::open;
-    return is_good();
+    else
+    {
+        listfile.confirm();
+        for (auto& cf: clusters)
+            cf.confirm();
+    }
+    
+    if (status != Status::error)
+    {
+        status = Status::open;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 bool Database::is_open() const
@@ -62,6 +85,7 @@ void Database::close()
     if (critical_operation_running())
         throw Exception("Es sind empfindliche Zugriffe ausstehend.","Database::close()");
     listfile.close();
+    statusfile.close();
     for (auto& cf: clusters)
         cf.close();
     if (status != Status::error)
@@ -99,6 +123,10 @@ const Database::ClusterList Database::list(const std::string& name) const
 
 FlagRequest Database::begin_critical_operation()
 {
+    if (!critical_operation.is_requested())
+    {
+        statusfile.set_fallback_enabled(true);
+    }
     return critical_operation.request();
 }
 
@@ -113,6 +141,7 @@ void Database::end_critical_operation(FlagRequest id)
     critical_operation.events.clear();
     if (!critical_operation.is_requested())
     {
+        statusfile.set_fallback_enabled(false);
         listfile.confirm();
         for (ClusterFile& cf: clusters)
             cf.confirm();

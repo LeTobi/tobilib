@@ -2,7 +2,7 @@
 #define TC_DATABASE_MEMBER_H
 
 #include "concepts.h"
-#include "tableaccess.h"
+#include "filetable.h"
 #include "type.h"
 #include <memory> // unique_ptr for operator ->
 

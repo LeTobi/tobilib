@@ -16,7 +16,7 @@ class Database;
 namespace database_detail{
 
 using LineIndex = unsigned int;
-using filesize_t = unsigned long int;
+using filesize_t = unsigned long int; // should be = off_t
 
 class BlockType;
 class MemberType;

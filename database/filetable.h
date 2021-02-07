@@ -1,7 +1,7 @@
-#ifndef TC_DATABASE_TABLEACCESS_H
-#define TC_DATABASE_TABLEACCESS_H
+#ifndef TC_DATABASE_FILETABLE_H
+#define TC_DATABASE_FILETABLE_H
 
-#include "fileaccess.h"
+#include "filebackup.h"
 #include "type.h"
 
 namespace tobilib {

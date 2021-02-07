@@ -1,6 +1,6 @@
 #define TC_DATABASE_INTERN
 
-#include "tableaccess.h"
+#include "filetable.h"
 #include "database.h"
 #include "../general/exception.hpp"
 #include <cmath>

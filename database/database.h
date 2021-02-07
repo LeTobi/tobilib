@@ -6,7 +6,8 @@
 #include "type.h"
 #include "member.h"
 #include "cluster.h"
-#include "fileaccess.h"
+#include "filetable.h"
+#include "filestatus.h"
 #include "../general/exception.hpp"
 #include "../general/requestflag.h"
 
@@ -57,9 +58,11 @@ TC_DATABASE_PRIVATE:
 	using Component = database_detail::Component;
 	using ClusterFile = database_detail::ClusterFile;
 	using ListFile = database_detail::ListFile;
+	using StatusFile = database_detail::StatusFile;
 
 	FileName path;
 	mutable Status status;
+	StatusFile statusfile;
 	ListFile listfile;
 	std::list<ClusterFile> clusters;
 	RequestFlag critical_operation;

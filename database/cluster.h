@@ -3,7 +3,7 @@
 
 #include "concepts.h"
 #include "type.h"
-#include "tableaccess.h"
+#include "filetable.h"
 
 namespace tobilib {
 namespace database_detail {
