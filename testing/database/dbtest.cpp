@@ -142,6 +142,31 @@ bool list_test()
 	}
 }
 
+bool reopen_test()
+{
+	unsigned int index = data.base.list("AdvancedClass").emplace().index();
+	data.base.list("AdvancedClass")[index]["memberIntArray"][1].set(50);
+	data.base.close();
+
+	data.base.open();
+
+	if (!data.base.is_good())
+		return false;
+
+	int result = data.base.list("AdvancedClass")[index]["memberIntArray"][1].get<int>();
+	if (result == 50)
+	{
+		cout << "Reopen erfolgreich" << std::endl;
+	}
+	else
+	{
+		cout << "Falscher Eintrag nach reopen" << std::endl;
+		return false;
+	}
+	data.base.list("AdvancedClass")[index].erase();
+	return true;
+}
+
 int main(int argc, const char** args) {
 
 	Database::Cluster nullItem;
@@ -158,6 +183,11 @@ int main(int argc, const char** args) {
 	std::cout << "list test" << std::endl;
 	if (!list_test())
 		return 0;
-	std::cout << "erfolgreich" << std::endl;
+
+	std::cout << "reopen test" << std::endl;
+	if (!reopen_test())
+		return 0;
+
+	std::cout << "Alle Tests erfolgreich" << std::endl;
 	return 0;
 }

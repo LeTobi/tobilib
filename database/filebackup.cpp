@@ -127,7 +127,7 @@ void CrashSafeFile::restore()
     for (backup_idx=0;backup_idx<get_backup_capacity();backup_idx++)
     {
         if (!get_backup_flag(backup_idx))
-            break;
+            continue;
         ++backup_count;
         filesize_t datapos = get_data_stream_offset(backup_idx);
         filesize_t backuppos = get_backup_stream_offset(backup_idx);
@@ -221,4 +221,4 @@ void CrashSafeFile::extend_backup_capacity()
 }
 
 const filesize_t CrashSafeFile::DATA_CHUNKSIZE = 200;
-const filesize_t CrashSafeFile::BACKUP_CHUNKSIZE = DATA_CHUNKSIZE + serial_size<bool>() + serial_size<unsigned int>();
+const filesize_t CrashSafeFile::BACKUP_CHUNKSIZE = DATA_CHUNKSIZE + serial_size<bool>() + serial_size<DataIndex>();

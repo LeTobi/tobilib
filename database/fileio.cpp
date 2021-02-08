@@ -15,12 +15,6 @@ filesize_t database_detail::serial_size()
     return sizeof(PrimT);
 }
 
-template<bool>
-filesize_t serial_size()
-{
-    return sizeof(char);
-}
-
 template filesize_t database_detail::serial_size<int>();
 template filesize_t database_detail::serial_size<unsigned int>();
 template filesize_t database_detail::serial_size<double>();
@@ -115,7 +109,7 @@ std::string File::readSomeAt(filesize_t pos, filesize_t len) const
     filesize_t s = size();
     if (pos>=s)
         return std::string();
-    len = std::min(len,s-pos-1);
+    len = std::min(len,s-pos);
 
     filesize_t offset = 0;
     char* buffer = new char[len];
@@ -188,12 +182,7 @@ template int          File::readAt(filesize_t) const;
 template unsigned int File::readAt(filesize_t) const;
 template double       File::readAt(filesize_t) const;
 template char         File::readAt(filesize_t) const;
-
-template<>
-bool File::readAt(filesize_t where) const
-{
-    return readSomeAt(where,1) == "1";
-}
+template bool         File::readAt(filesize_t) const;
 
 template <class PrimT>
 void File::writeAt(filesize_t where, PrimT what)
@@ -208,12 +197,7 @@ template void File::writeAt(filesize_t,int);
 template void File::writeAt(filesize_t,unsigned int);
 template void File::writeAt(filesize_t,double);
 template void File::writeAt(filesize_t,char);
-
-template<>
-void File::writeAt(filesize_t where, bool what)
-{
-    writeSomeAt(where,what?"1":"0");
-}
+template void File::writeAt(filesize_t,bool);
 
 bool File::finish_kernel(int result) const
 {

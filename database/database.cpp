@@ -56,6 +56,7 @@ bool Database::open()
         listfile.restore();
         for (auto& cf: clusters)
             cf.restore();
+        statusfile.set_fallback_enabled(false);
     }
     else
     {

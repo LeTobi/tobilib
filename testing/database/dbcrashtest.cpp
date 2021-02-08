@@ -2,6 +2,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/wait.h>
 #include <thread>
 #include <random>
 
@@ -27,6 +28,12 @@ void hardwork()
         maincluster = *list.begin();
     Database::Member container = maincluster["memberList"];
     container.clear_references();
+    Database::ClusterList freeItems = db.list("SimpleClass");
+    for (Database::clusterIterator it=freeItems.begin();it!=freeItems.end();++it)
+    {
+        while (it!=freeItems.end() && it->reference_count()==0)
+            (it++)->erase();
+    }
     int size = 0;
     worklog << "running" << std::endl;
 
@@ -102,6 +109,7 @@ int main()
         fflush(stdin);
         std::cin.get();
         kill(child,SIGKILL);
+        waitpid(child,nullptr,0);
         inspect();
     }
     return 0;

@@ -137,7 +137,7 @@ void Cluster::init_memory()
 
 void Cluster::add_refcount(int amount)
 {
-    if (nullflag)
+    if (!pre_good())
         return;
     cf->set_refcount_add(line,amount);
 }
