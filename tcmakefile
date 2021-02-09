@@ -21,6 +21,8 @@ selection ssl
 
 selection tools
 	exe baseprinter ./database/tools/baseprinter.cpp
+	exe basetransfer ./database/tools/basetransfer.cpp
+	exe baseedit ./database/tools/baseedit.cpp
 
 selection test
 	exe database-test ./testing/database/dbtest.cpp

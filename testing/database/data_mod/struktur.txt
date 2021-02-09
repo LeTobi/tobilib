@@ -1,0 +1,10 @@
+type SimpleClass
+    char 20 memberString
+    int memberInt
+    double memberDouble
+    AdvancedClass memberPointer
+
+type AdvancedClass
+    bool flag
+    SimpleClass [] memberList
+    int 10 memberIntArray

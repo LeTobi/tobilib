@@ -15,5 +15,10 @@ int main() {
 
     std::cout << path << " + " << file << " = " << path+file << std::endl;
 
+    path = "onlyfile";
+    file = ".ext";
+
+    std::cout << path << " + " << file << " = " << path+file << std::endl;
+
     return 0;
 }

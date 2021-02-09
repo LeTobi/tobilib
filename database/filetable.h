@@ -23,7 +23,7 @@ class ListFile: public CrashSafeFile
     LineIndex get_previous(LineIndex) const;
     filesize_t data_location(LineIndex) const;
 
-    private:
+    TC_DATABASE_PRIVATE:
     void set_first_empty(LineIndex);
     void set_last_empty(LineIndex);
     void set_data_capacity(LineIndex);
@@ -66,7 +66,6 @@ class ClusterFile: public CrashSafeFile
 
     TC_DATABASE_PRIVATE:
     void set_refcount_add(LineIndex, int);
-    private:
     void set_first_filled(LineIndex);
     void set_first_empty(LineIndex);
     void set_last_filled(LineIndex);

@@ -67,7 +67,9 @@ bool Parser::next_matches(const std::string& str)
 
 bool Parser::is_eof()
 {
-    file.peek();
+    // hier müsste ich mal eine bessere lösung finden.
+    while (file && file.peek()==' '||file.peek()=='\t'||file.peek()=='\r'||file.peek()=='\n')
+        file.ignore();
     if (file.eof())
     {
         file.clear();
