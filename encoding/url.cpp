@@ -12,7 +12,7 @@ namespace tobilib
 			{
 				if (url.size()-i<3)
 					return out;
-				out += StringPlus::parseHex(url.substr(i+1,2));
+				out += url.substr(i+1,2).toInt_Hex();
 				i+=2;
 			}
 			else
@@ -34,7 +34,7 @@ namespace tobilib
 				out.append(1,'%');
 				if (text[i]<0x10)
 					out.append(1,'0');
-				out.append(StringPlus::toHex(text[i]));
+				out.append(StringPlus::make_hex(text[i]));
 			}
 			else
 			{

@@ -1,78 +1,56 @@
-#ifndef TC_ACCEPTOR_H
-#define TC_ACCEPTOR_H
+#ifndef TC_NETWORK_ACCEPTOR
+#define TC_NETWORK_ACCEPTOR
 
-#include "endpoint.h"
-#include <set>
+#include <list>
+#include "alias.h"
+#include "tcp-connector.h"
 
-namespace tobilib::stream
-{	
-	class WS_Acceptor
-	{
-	// DUMP //////////////////////////////////////////////////////////////////
-	public:
-		typedef WS_Endpoint EndpointType;
-		
-		WS_Acceptor();
-		WS_Acceptor(int _port);
-		WS_Acceptor(const WS_Acceptor&) = delete;
-		~WS_Acceptor();
-		void operator=(const WS_Acceptor&) = delete;
 
-		WS_Endpoint* release();
-		bool filled() const;
-		int size() const;
-		void tick();
-		std::string mytrace() const;
+namespace tobilib {
+namespace network {
 
-		Warning_list warnings;
+    class Acceptor {
+    public:
 
-	private:
-		std::set<WS_Endpoint*> available;
-		
-		boost::asio::io_context ioc;
-		boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard = boost::asio::make_work_guard(ioc);
-		
-	// LISTEN ////////////////////////////////////////////////////////////////
-	public:
-		enum class Status {Closed, Flush, Open};
-		int intern_port;
-		
-		Status status() const;
-		int port() const;
-		void open(int _port = 0);
-		void close();
+        class Interface: public detail::Connector<detail::TCP_Socket>
+        {
+        public:
+            Interface(Acceptor&, detail::TCP_Socket*, boost::asio::io_context&, ConnectorOptions&);
 
-	private:
-		boost::asio::ip::tcp::acceptor accpt;
-		WS_Endpoint* client = NULL;
-		Status _status = Status::Closed;
+            void tick();
+            void connect();
+            bool is_async() const;
+            void cancel();
+            void reset(detail::TCP_Socket*);
+        
+        private:
+            friend class Acceptor;
 
-		void accept();
-		void on_accept(const boost::system::error_code&);
+            Acceptor& accpt;
+            detail::TCP_Socket* socket;
+            bool enqueued = false;
+        };
 
-	// HANDSHAKE /////////////////////////////////////////////////////////////
-	private:
-		struct Connection
-		{
-			WS_Endpoint* endpoint;
-			Timer timeout = Timer(10).set();
-			enum class Status {Idle, Open, Cancel, Closed};
-			Status _status = Status::Idle;
-			boost::asio::ip::address remote_ip;
+        Acceptor(unsigned int);
+        bool busy() const;
 
-			Warning_list warnings;
+    private:
+        friend class Interface;
 
-			void tick();
-			void on_handshake(const boost::system::error_code&);
-			std::string mytrace() const;
-		};
-		std::set<Connection*> connections;
-		int handshake_pendings() const;
-	};
-}
+        Interface* current = nullptr;
+        std::list<Interface*> queue;
+        boost::asio::io_context ioc;
+        boost::asio::ip::tcp::acceptor acceptor;
+        boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard = boost::asio::make_work_guard(ioc);
+        unsigned int _port;
 
-#ifdef TC_AS_HPP
-	#include "acceptor.cpp"
-#endif
+        void connect(Interface*);
+        void on_connect(const boost::system::error_code&);
+    };
+
+    using TCP_ServerConnector = Acceptor::Interface;
+
+} // namespace network
+} // namespace tobilib
 
 #endif

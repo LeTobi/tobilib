@@ -5,12 +5,15 @@
 #include <string>
 #include <list>
 #include <ctime>
+#include <iostream>
 
 namespace tobilib
 {
     class Exception: public std::exception
     {
     private:
+        // what_str: wird verwendet um eine c-string ausgabe zu generieren e.g. what()
+        //  mutable weil nichts am status verändert wird.
         mutable std::string what_str;
 
     public:
@@ -23,6 +26,12 @@ namespace tobilib
         {
             time(&creation);
         };
+
+        template <class strT>
+        Exception(strT txt, std::string first_trace): msg(txt) {
+            time(&creation);
+            trace.push_back(first_trace);
+        }
 
         Exception()
         {
@@ -55,40 +64,53 @@ namespace tobilib
         };
     };
 
-    class Warning_list: public std::list<Exception>
+    class Logger
     {
+    private:
+        bool is_active = false;
+
     public:
-        std::string toString() const
+        Logger* parent = nullptr;
+        std::string prefix;
+
+        Logger()
+        { }
+
+        Logger(const std::string& pref) : prefix(pref)
+        { }
+
+        template<class msgType>
+        void raw_print(msgType msg)
         {
-            std::string out;
-            for (auto& err: *this)
-            {
-                out += err.what();
-                out += "\n";
+            if (parent==nullptr)
+                std::cout << msg;
+            else
+                *parent << msg;
+        }
+
+        template<class msgType>
+        Logger& operator<<(msgType msg)
+        {
+            if (!is_active) {
+                is_active=true;
+                raw_print(prefix);
             }
-            return out;
+            raw_print(msg);
+            return *this;
         }
 
-        void overtake(Warning_list& child, const std::string& trace="")
+        Logger& operator<< (std::ostream& (*op)(std::ostream&))
         {
-            while (!child.empty())
+            if (op == &std::endl<std::ostream::char_type,std::ostream::traits_type>)
             {
-                Exception& e = child.front();
-                if (trace.size()>0)
-                    e.trace.push_back(trace);
-                push_back(e);
-                child.pop_front();
+                is_active = false;
+                raw_print(op);
             }
-        }
-
-        operator bool () const
-        {
-            return !empty();
-        }
-
-        operator std::string () const
-        {
-            return toString();
+            else
+            {
+                throw Exception("Der Insertion-Operator wurde unvorhergesehen angewendet","Logger");
+            }
+            return *this;
         }
     };
 }

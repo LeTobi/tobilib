@@ -6,4 +6,80 @@ selection windows
 
 selection linux
 	lib libtc.a 
+	add database/
+	add encoding/
+	add general/
+	add h2ep/
+	add network/
+	add protocols/
+	add stringplus/
+	add webcap/
+
+selection ssl
+	lib libtc.a
 	add ./
+
+selection tools
+	exe baseprinter ./database/tools/baseprinter.cpp
+	exe basetransfer ./database/tools/basetransfer.cpp
+	exe baseedit ./database/tools/baseedit.cpp
+
+selection test
+	exe database-test ./testing/database/dbtest.cpp
+	exe database-crashtest ./testing/database/dbcrashtest.cpp
+	exe filename-test ./testing/stringplus/filenametest.cpp
+	exe number-test ./testing/stringplus/numbers.cpp
+	exe tcp-echoserver ./testing/network/tcp_echoserver.cpp
+		link pthread
+		link boost_system
+		link boost_thread
+	exe tcp-client ./testing/network/tcp_client.cpp
+		link pthread
+		link boost_system
+		link boost_thread
+	exe ws-echoserver ./testing/network/ws_echoserver.cpp
+		link pthread
+		link boost_system
+		link boost_thread
+	exe ws-client ./testing/network/ws_client.cpp
+		link pthread
+		link boost_system
+		link boost_thread
+	exe h2rfp-server ./testing/protocols/h2rfp_server.cpp
+		link pthread
+		link boost_system
+		link boost_thread
+	exe h2rfp-client ./testing/protocols/h2rfp_client.cpp
+		link pthread
+		link boost_system
+		link boost_thread
+	exe parsing ./testing/protocols/parsing.cpp
+	exe logger ./testing/general/logger.cpp
+	exe requestflag ./testing/general/requestflag.cpp
+
+selection ssl-test
+	exe ssl-client ./testing/network/ssl_client.cpp
+		link pthread
+		link boost_system
+		link boost_thread
+		link crypto
+		link ssl
+	exe ssl-echoserver ./testing/network/ssl_echoserver.cpp
+		link pthread
+		link ssl
+		link crypto
+		link boost_system
+		link boost_thread
+	exe wss-client ./testing/network/wss_client.cpp
+		link pthread
+		link boost_system
+		link boost_thread
+		link crypto
+		link ssl
+	exe wss-echoserver ./testing/network/wss_echoserver.cpp
+		link pthread
+		link ssl
+		link crypto
+		link boost_system
+		link boost_thread
+	

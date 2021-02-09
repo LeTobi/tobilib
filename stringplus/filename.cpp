@@ -24,11 +24,13 @@ namespace tobilib {
         std::vector<StringPlus> frags = filestring.split_all_of("\\/");
         
         // Dateiname extrahieren
-        if (frags.back().count_all(".")>0)
-            extension = frags.back().split(".").back();
-        int extstart = frags.back().rfind(".");
+        int extstart = frags.back().find(".");
         if (extstart==StringPlus::npos)
             extstart = frags.back().size();
+        if (extstart < frags.back().size())
+            extension = frags.back().substr(extstart+1);
+        else
+            extension = "";
         name = frags.back().substr(0,extstart);
         frags.pop_back();
 
@@ -114,7 +116,13 @@ namespace tobilib {
                 frag = path.erase(frag);
             }
             else if (*frag==".." && frag!=path.begin()) {
-                frag = path.erase(--frag);
+                frag--;
+                if (*frag==".." || *frag==".") {
+                    frag++;
+                    frag++;
+                    continue;
+                }
+                frag = path.erase(frag);
                 frag = path.erase(frag);
             }
             else {
