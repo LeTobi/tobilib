@@ -24,6 +24,7 @@ selection lib-web-ssl
 	add ssl/
 
 selection lib-camera
+	lib libtc.a
 	add stringplus/
 	add encoding/
 	add general/
