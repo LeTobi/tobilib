@@ -1,23 +1,34 @@
-selection windows
+selection lib-basic
 	lib libtc.a
 	add stringplus/
 	add encoding/
 	add general/
 
-selection linux
+selection lib-web-raw
 	lib libtc.a 
 	add database/
 	add encoding/
 	add general/
-	add h2ep/
 	add network/
 	add protocols/
 	add stringplus/
+
+selection lib-web-ssl
+	lib libtc.a 
+	add database/
+	add encoding/
+	add general/
+	add network/
+	add protocols/
+	add stringplus/
+	add ssl/
+
+selection lib-camera
+	add stringplus/
+	add encoding/
+	add general/
 	add webcap/
 
-selection ssl
-	lib libtc.a
-	add ./
 
 selection tools
 	exe baseprinter ./database/tools/baseprinter.cpp
