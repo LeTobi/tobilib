@@ -115,5 +115,10 @@ void Endpoint<NetworkEndpoint>::reset()
     events.clear();
 }
 
-template class Endpoint<network::TCP_Endpoint>;
-template class Endpoint<network::WS_Endpoint>;
+#ifdef TC_SSL_IMPL_ONLY
+    template class Endpoint<network::SSL_Endpoint>;
+    template class Endpoint<network::WSS_Endpoint>;
+#else
+    template class Endpoint<network::TCP_Endpoint>;
+    template class Endpoint<network::WS_Endpoint>;
+#endif
