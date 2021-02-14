@@ -6,7 +6,7 @@ using namespace network;
 
 int main()
 {
-    ssl_server_init("/home/pi/test.pem");
+    ssl_server_init("/root/ssl/wetterfrosch.pem");
     Acceptor accpt (1533);
     SSL_Endpoint endpoint (accpt);
     endpoint.options.inactive_warning = 5;
