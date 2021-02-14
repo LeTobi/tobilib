@@ -3,6 +3,45 @@
 using namespace tobilib;
 using namespace h2rfp;
 
+Response::Response():
+    requested(false),
+    received(false)
+{ }
+
+Response::Response(unsigned int _id):
+    requested(true),
+    received(false),
+    id(_id)
+{ }
+
+bool Response::is_requested() const
+{
+    return requested;
+}
+
+bool Response::is_received() const
+{
+    return received;
+}
+
+bool Response::update(ResponseList& list)
+{
+    if (list.count(id)>0)
+    {
+        data = std::move(list.at(id));
+        list.erase(id);
+        received=true;
+    }
+    return received;
+}
+
+void Response::dismiss()
+{
+    requested=false;
+    received=false;
+    id = 0;
+}
+
 template<class NetworkEndpoint>
 Endpoint<NetworkEndpoint>::Endpoint(network::Acceptor& accpt):
     network_endpoint(accpt)
@@ -67,25 +106,31 @@ void Endpoint<NetworkEndpoint>::tick()
             while (!parser.output.empty())
             {
                 EndpointEvent ev;
-                ev.msg = parser.output.next();
-                ev.type = ev.msg.name.empty()?
-                    EventType::callback:
-                    EventType::request;
-                events.push(ev);
+                ev.msg = std::move(parser.output.next());
+                if (ev.msg.name.empty())
+                {
+                    responses[ev.msg.id] = std::move(ev.msg.data);
+                }
+                else
+                {
+                    ev.type = EventType::message;
+                    events.push(ev);
+                }
             }
-        }break;
+        }   break;
 
         case network::EndpointEvent::inactive:{
             EndpointEvent ev;
             ev.type = EventType::inactive;
             events.push(ev);
-        }break;
+        }   break;
+
         case network::EndpointEvent::closed:{
             EndpointEvent ev;
             ev.type = EventType::closed;
             events.push(ev);
             parser.reset();
-        }break;
+        }   break;
     }
 }
 
@@ -96,8 +141,33 @@ void Endpoint<NetworkEndpoint>::connect()
 }
 
 template<class NetworkEndpoint>
-void Endpoint<NetworkEndpoint>::send(const Message& msg)
+void Endpoint<NetworkEndpoint>::notify(const std::string& name, const JSObject& data)
 {
+    Message msg;
+    msg.name = name;
+    msg.data = data;
+    msg.id = 0;
+    network_endpoint.write(msg.to_string());
+}
+
+template<class NetworkEndpoint>
+Response Endpoint<NetworkEndpoint>::request(const std::string& name, const JSObject& data)
+{
+    Message msg;
+    msg.name = name;
+    msg.data = data;
+    msg.id = nextid;
+    nextid = (nextid%10000)+1;
+    network_endpoint.write(msg.to_string());
+    return Response(msg.id);
+}
+
+template<class NetworkEndpoint>
+void Endpoint<NetworkEndpoint>::respond(unsigned int id, const JSObject& data)
+{
+    Message msg;
+    msg.data = data;
+    msg.id = id;
     network_endpoint.write(msg.to_string());
 }
 
@@ -113,6 +183,7 @@ void Endpoint<NetworkEndpoint>::reset()
     network_endpoint.reset();
     parser.reset();
     events.clear();
+    responses.clear();
 }
 
 #ifdef TC_SSL_IMPL_ONLY
