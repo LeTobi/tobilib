@@ -37,11 +37,11 @@ public:
 
     std::string name;
     ClusterType* parent;
-    filesize_t parent_offset;
+    filesize_t parent_offset = 0;
     BlockType blockType;
-    unsigned int amount;
+    unsigned int amount = 1;
     ClusterType* ptr_type = nullptr;
-    filesize_t size;
+    filesize_t size = 0;
 
 };
 
@@ -50,7 +50,7 @@ class ClusterType
 public:
     std::string name;
     std::vector<MemberType> members;
-    filesize_t size;
+    filesize_t size = 0;
 
     bool operator==(const ClusterType&) const;
     bool operator!=(const ClusterType&) const;
