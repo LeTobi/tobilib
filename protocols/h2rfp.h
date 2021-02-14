@@ -3,6 +3,7 @@
 
 #include "./parser/ph2rfp.h"
 #include "../network/network.h"
+#include <map>
 
 namespace tobilib {
 namespace h2rfp {
@@ -11,9 +12,8 @@ namespace h2rfp {
     using EndpointOptions = network::EndpointOptions;
     
     enum class EventType {
-        request,
-        callback,
         connected,
+        message,
         inactive,
         closed
     };
@@ -24,9 +24,36 @@ namespace h2rfp {
         Message msg;
     };
 
+    using ResponseList = std::map<unsigned int,JSObject>;
+
+    class Response
+    {
+    public:
+        Response();
+        Response(unsigned int);
+
+        bool is_requested() const;
+        bool is_received() const;
+        void dismiss();
+        bool update(ResponseList&);
+
+        JSObject data;
+    
+    private:
+        bool requested;
+        bool received;
+        unsigned int id;
+    };
+
     template<class NetworkEndpoint>
     class Endpoint
     {
+    private:
+        unsigned nextid = 1;
+
+        detail::Parser parser;
+        NetworkEndpoint network_endpoint;
+
     public:
         Endpoint(network::Acceptor&);
         Endpoint(const std::string&, unsigned int);
@@ -40,16 +67,15 @@ namespace h2rfp {
 
         void tick();
         void connect();
-        void send(const Message&);
+        void notify(const std::string&, const JSObject& = JSObject());
+        Response request(const std::string&, const JSObject& = JSObject());
+        void respond(unsigned int id, const JSObject& = JSObject());
         void close();
         void reset();
 
+        ResponseList responses;
         Queue<EndpointEvent> events;
-        EndpointOptions options;
-
-    private:
-        detail::Parser parser;
-        NetworkEndpoint network_endpoint;
+        EndpointOptions& options;
     };
 
     using TCP_Endpoint = Endpoint<network::TCP_Endpoint>;
