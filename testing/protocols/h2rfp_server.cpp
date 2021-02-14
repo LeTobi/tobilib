@@ -58,6 +58,8 @@ void react(const EndpointEvent& ev)
 int main()
 {
     std::cout << "H2RFP testserver on Port 15432" << std::endl;
+    endpoint.options.inactive_warning = 10;
+    endpoint.options.read_timeout = 15;
     endpoint.connect();
     while (true)
     {

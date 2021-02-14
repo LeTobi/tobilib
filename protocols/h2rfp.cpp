@@ -44,7 +44,8 @@ void Response::dismiss()
 
 template<class NetworkEndpoint>
 Endpoint<NetworkEndpoint>::Endpoint(network::Acceptor& accpt):
-    network_endpoint(accpt)
+    network_endpoint(accpt),
+    options(network_endpoint.options)
 {
     parser.log.parent = &log;
     network_endpoint.log.parent = &log;
@@ -52,7 +53,8 @@ Endpoint<NetworkEndpoint>::Endpoint(network::Acceptor& accpt):
 
 template<class NetworkEndpoint>
 Endpoint<NetworkEndpoint>::Endpoint(const std::string& address, unsigned int port):
-    network_endpoint(address, port)
+    network_endpoint(address, port),
+    options(network_endpoint.options)
 {
     parser.log.parent = &log;
     network_endpoint.log.parent = &log;

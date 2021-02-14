@@ -48,6 +48,12 @@ namespace h2rfp {
     template<class NetworkEndpoint>
     class Endpoint
     {
+    private:
+        unsigned nextid = 1;
+
+        detail::Parser parser;
+        NetworkEndpoint network_endpoint;
+
     public:
         Endpoint(network::Acceptor&);
         Endpoint(const std::string&, unsigned int);
@@ -69,13 +75,7 @@ namespace h2rfp {
 
         ResponseList responses;
         Queue<EndpointEvent> events;
-        EndpointOptions options;
-
-    private:
-        unsigned nextid = 1;
-
-        detail::Parser parser;
-        NetworkEndpoint network_endpoint;
+        EndpointOptions& options;
     };
 
     using TCP_Endpoint = Endpoint<network::TCP_Endpoint>;
