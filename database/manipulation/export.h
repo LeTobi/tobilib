@@ -22,9 +22,11 @@ namespace database_tools {
 
 namespace detail {
 
-    Result print_listfile(const Database::ListFile&, const FileName&);
-    void print_member(const Database::Member&, std::ostream&);
-    Result print_clusterfile(const Database::ClusterFile&, const FileName&);
+    #ifdef TC_DATABASE_INTERN
+        Result print_listfile(const Database::ListFile&, const FileName&);
+        void print_member(const Database::Member&, std::ostream&);
+        Result print_clusterfile(const Database::ClusterFile&, const FileName&);
+    #endif
 
 } // namespace detail
 } // namespace database_tools
