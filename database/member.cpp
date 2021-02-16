@@ -68,7 +68,7 @@ int Member::get() const
     if (!pre_open("Member::get<int>()"))
         return 0;
     if (type.blockType!=BlockType::t_int)
-        throw ("Type-Error","Database::Member::get<int>");
+        throw Exception("Type-Error","Database::Member::get<int>");
     return fs->readAt<int>(position);
 }
 
@@ -78,7 +78,7 @@ char Member::get() const
     if (!pre_open("Member::get<char>()"))
         return 0;
     if (type.blockType!=BlockType::t_char)
-        throw ("Type-Error","Database::Member::get<char>");
+        throw Exception("Type-Error","Database::Member::get<char>");
     return fs->readAt<char>(position);
 }
 
@@ -88,7 +88,7 @@ std::string Member::get() const
     if (!pre_open("Member::get<string>()"))
         return "";
     if (type.blockType!=BlockType::t_char)
-        throw ("Type-Error","Database::Member::get<string>");
+        throw Exception("Type-Error","Database::Member::get<string>");
     std::string out;
     for (filesize_t i=0;i<type.amount;i+=1)
     {
@@ -106,7 +106,7 @@ double Member::get() const
     if (!pre_open("Member::get<double>()"))
         return 0;
     if (type.blockType!=BlockType::t_double)
-        throw ("Type-Error","Database::Member::get<double>");
+        throw Exception("Type-Error","Database::Member::get<double>");
     return fs->readAt<double>(position);
 }
 
@@ -116,7 +116,7 @@ bool Member::get() const
     if (!pre_open("Member::get<bool>()"))
         return 0;
     if (type.blockType!=BlockType::t_bool)
-        throw ("Type-Error","Database::Member::get<bool>");
+        throw Exception("Type-Error","Database::Member::get<bool>");
     return fs->readAt<bool>(position);
 }
 
