@@ -12,19 +12,20 @@ std::string command(Database& db, const std::string);
 namespace detail {
 
     enum class TargetType {
-        none,
+        root,
         clusterlist,
         cluster,
         primitiveMember,
         array,
         pointer,
-        list
+        list,
+        invalid
     };
 
     struct Target {
         Target(Database& _db): db(_db) { };
 
-        TargetType type = TargetType::none;
+        TargetType type = TargetType::invalid;
         std::string name;
         Database::Cluster cluster;
         Database::Member member;

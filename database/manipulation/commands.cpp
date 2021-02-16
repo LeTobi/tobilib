@@ -18,14 +18,12 @@ std::string database_tools::command(Database& db, std::string cmd)
     if (method == "get")
     {
         Target target = resolve(db, input);
-        if (target.type == TargetType::none)
-            return "Das objekt konnte nicht geparst werden.";
         return print(target);
     }
     else if (method == "set")
     {
         Target target = resolve(db,input);
-        if (target.type == TargetType::none)
+        if (target.type == TargetType::invalid)
             return "Das Zielobjekt konnte nicht geparst werden.";
         if (!set(target,input))
             return "Zuweisung fehlgeschlagen";
@@ -34,7 +32,7 @@ std::string database_tools::command(Database& db, std::string cmd)
     else if (method == "list")
     {
         Target target = resolve(db, input);
-        if (target.type == TargetType::none)
+        if (target.type == TargetType::invalid)
             return "Das objekt konnte nicht geparst werden.";
         if (target.type != TargetType::list)
             return "Das objekt ist keine Memberliste.";
@@ -116,7 +114,9 @@ Target detail::resolve(Database& db, std::istream& input)
     StringPlus tstr;
     input >> tstr;
     std::vector<StringPlus> names = tstr.split(".");
-    return resolve(Target(db),names);
+    Target root (db);
+    root.type = TargetType::root;
+    return resolve(root,names);
 }
 
 Target detail::resolve(Target source, std::vector<StringPlus>& names)
@@ -124,11 +124,11 @@ Target detail::resolve(Target source, std::vector<StringPlus>& names)
     if (names.empty())
         return source;
     
-    if (source.type == TargetType::none)
+    if (source.type == TargetType::root)
     {
         Database::ClusterFile* cf = source.db.get_file(names.front());
         if (cf == nullptr)
-            return source;
+            return Target(source.db);
         Target next (source.db);
         next.type = TargetType::clusterlist;
         next.name = cf->type.name;
@@ -190,6 +190,10 @@ Target detail::resolve(Target source, std::vector<StringPlus>& names)
         names.erase(names.begin());
         return resolve(next, names);
     }
+    if (source.type == TargetType::invalid)
+    {
+        return source;
+    }
 
     throw Exception("Unhandled Type","tobilib::database_tools::detail::resolve()");
 }
@@ -199,6 +203,11 @@ Target detail::select_type(Database::Member member)
     Target out (*member.database);
     out.member = member;
 
+    if (member.is_null())
+    {
+        out.type = TargetType::invalid;
+        return out;
+    }
     if (member.type.amount > 1)
     {
         out.type = TargetType::array;
@@ -225,7 +234,9 @@ bool detail::set(Target target, std::istream& input)
         StringPlus sstr;
         input >> sstr;
         std::vector<StringPlus> names = sstr.split(".");
-        Target source = resolve(Target(target.db),names);
+        Target root (target.db);
+        root.type = TargetType::root;
+        Target source = resolve(root,names);
         if (source.type != TargetType::cluster)
             return false;
         if (source.cluster.cf->type != *target.member.type.ptr_type)
@@ -308,9 +319,13 @@ bool detail::set(Target target, std::istream& input)
 
 std::string detail::print(Target target)
 {
-    if (target.type == TargetType::none)
+    if (target.type == TargetType::invalid)
     {
-        return "null";
+        return "Invalid name";
+    }
+    if (target.type == TargetType::root)
+    {
+        return "Database";
     }
     if (target.type == TargetType::array)
     {
