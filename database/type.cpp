@@ -59,7 +59,7 @@ MemberType& Database::ClusterType::getMember(const std::string& name)
         if (mem.name==name)
             return mem;
     }
-    throw Exception("Name nicht gefunden","Database::ClusterType::operator[]");
+    throw Exception(std::string("Name nicht gefunden: ") + name,"Database::ClusterType::operator[]");
 }
 
 const MemberType& Database::ClusterType::getMember(const std::string& name) const
