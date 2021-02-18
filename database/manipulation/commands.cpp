@@ -113,7 +113,7 @@ Target detail::resolve(Database& db, std::istream& input)
     StringPlus tstr;
     input >> tstr;
     std::vector<StringPlus> names = tstr.split(".");
-    if (names.size()<2)
+    if (names.size()<1)
         return Target();
     Database::ClusterType ctype = db.getType(names.front());
     if (ctype == Database::ClusterType::invalid)
@@ -310,6 +310,10 @@ std::string detail::print(Target target)
     if (target.type == TargetType::invalid)
     {
         return "Invalid name";
+    }
+    if (target.type == TargetType::clusterlist)
+    {
+        return std::string("List of: ")+ target.list.type().name;
     }
     if (target.type == TargetType::array)
     {

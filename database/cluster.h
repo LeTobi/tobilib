@@ -23,6 +23,7 @@ public:
     void erase(const ClusterIterator&);
     ClusterIterator begin();
     ClusterIterator end();
+    const ClusterType& type() const;
 
 TC_DATABASE_PRIVATE:
     ClusterFile* cf;

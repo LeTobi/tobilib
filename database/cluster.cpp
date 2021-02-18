@@ -51,6 +51,13 @@ ClusterIterator ClusterList::end()
     return ClusterIterator();
 }
 
+const ClusterType& ClusterList::type() const
+{
+    if (!pre_good())
+        return ClusterType::invalid;
+    return cf->type;
+}
+
 Cluster::Cluster(Database* db, ClusterFile* clfile, LineIndex ln):
     Component(db),
     cf(clfile),
