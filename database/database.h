@@ -68,7 +68,9 @@ TC_DATABASE_PRIVATE:
 	RequestFlag critical_operation;
 
 	ClusterFile* get_file(const std::string&);
+	const ClusterFile* get_file(const std::string&) const;
 	ClusterFile* get_file(const ClusterType*);
+	const ClusterFile* get_file(const ClusterType*) const;
 
 };
 

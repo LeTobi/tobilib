@@ -27,6 +27,21 @@ Result database_tools::export_database(const Database& db, const FileName& path)
     return print_listfile(db.listfile,path);
 }
 
+Result database_tools::export_table(const Database& db, const std::string& tname)
+{
+    return export_table(db,tname,db.path);
+}
+
+Result database_tools::export_table(const Database& db, const std::string& tname, const FileName& path)
+{
+    if (tname=="Lists")
+        return print_listfile(db.listfile, path);
+    const ClusterFile* cf = db.get_file(tname);
+    if (cf==nullptr)
+        return "Die Tabelle existiert nicht";
+    return print_clusterfile(*cf,path);
+}
+
 Result detail::print_listfile(const ListFile& file, const FileName& path)
 {
     std::fstream out (path.directory()+file.name.name+".csv",std::fstream::out);

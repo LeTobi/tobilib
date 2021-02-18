@@ -19,6 +19,8 @@ namespace database_tools {
 
     Result export_database(const Database&);
     Result export_database(const Database&, const FileName&);
+    Result export_table(const Database&, const std::string&);
+    Result export_table(const Database&, const std::string&, const FileName&);
 
 namespace detail {
 

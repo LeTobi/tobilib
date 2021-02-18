@@ -158,6 +158,11 @@ Database::ClusterFile* Database::get_file(const std::string& name)
     return nullptr;
 }
 
+const Database::ClusterFile* Database::get_file(const std::string& name) const
+{
+    return const_cast<Database*>(this)->get_file(name);
+}
+
 Database::ClusterFile* Database::get_file(const ClusterType* cltype)
 {
     for (auto& cf: clusters) {
@@ -165,4 +170,9 @@ Database::ClusterFile* Database::get_file(const ClusterType* cltype)
             return &cf;
     }
     throw Exception("Clustertype ohne Clusterfile","Database::get_file(ClusterType*)");
+}
+
+const Database::ClusterFile* Database::get_file(const ClusterType* cltype) const
+{
+    return const_cast<Database*>(this)->get_file(cltype);
 }
