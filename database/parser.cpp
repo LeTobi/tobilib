@@ -181,7 +181,7 @@ void Parser::parse_block(ClusterType& cluster)
             errorlog("Unbekannter Membertyp");
             return;
         }
-        member.ptr_type = &(cf->type);
+        member.target_type = &(cf->type);
     }
 
     parse_arr_len(member.amount);

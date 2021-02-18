@@ -75,6 +75,13 @@ bool Cluster::operator!=(const Cluster& other) const
     return !(*this==other);
 }
 
+const ClusterType& Cluster::type() const
+{
+    if (!pre_good())
+        return ClusterType::invalid;
+    return cf->type;
+}
+
 Member Cluster::operator[] (const std::string& name)
 {
     if (nullflag)

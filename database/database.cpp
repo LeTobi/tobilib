@@ -122,6 +122,26 @@ const Database::ClusterList Database::list(const std::string& name) const
     return const_cast<Database*>(this)->list(name);
 }
 
+const Database::ClusterType& Database::getType(const std::string& name) const
+{
+    if (!is_good())
+        return ClusterType::invalid;
+    const ClusterFile* cf = get_file(name);
+    if (cf==nullptr)
+        return ClusterType::invalid;
+    return cf->type;
+}
+
+std::vector<std::string> Database::getTypes() const
+{
+    std::vector<std::string> out;
+    if (!is_good())
+        return out;
+    for (const auto& cf: clusters)
+        out.push_back(cf.type.name);
+    return out;
+}
+
 FlagRequest Database::begin_critical_operation()
 {
     if (!critical_operation.is_requested())

@@ -70,11 +70,11 @@ Result detail::print_listfile(const ListFile& file, const FileName& path)
 
 void detail::print_member(const Member& member, std::ostream& out)
 {
-    if (member.type.blockType == BlockType::t_char)
+    if (member.type().blockType == BlockType::t_char)
     {
         out << member.get<std::string>();
     }
-    else if (member.type.amount>1)
+    else if (member.type().amount>1)
     {
         for (const_MemberIterator it=member.cbegin();it!=member.cend();++it)
         {
@@ -82,25 +82,29 @@ void detail::print_member(const Member& member, std::ostream& out)
             out << " / ";
         }
     }
-    else if (member.type.blockType == BlockType::t_int)
+    else if (member.type().blockType == BlockType::t_int)
     {
         out << member.get<int>();
     }
-    else if (member.type.blockType == BlockType::t_bool)
+    else if (member.type().blockType == BlockType::t_bool)
     {
         out << (member.get<bool>()?"1":"0");
     }
-    else if (member.type.blockType == BlockType::t_double)
+    else if (member.type().blockType == BlockType::t_double)
     {
         out << member.get<double>();
     }
-    else if (member.type.blockType == BlockType::t_list)
+    else if (member.type().blockType == BlockType::t_list)
     {
         out << member.fs->readAt<unsigned int>(member.position);
     }
-    else if (member.type.blockType == BlockType::t_ptr)
+    else if (member.type().blockType == BlockType::t_ptr)
     {
         out << member.fs->readAt<unsigned int>(member.position);
+    }
+    else
+    {
+        throw Exception("Implementierungsfehler","database_tools::print_member()");
     }
 }
 

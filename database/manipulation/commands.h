@@ -12,7 +12,6 @@ std::string command(Database& db, const std::string);
 namespace detail {
 
     enum class TargetType {
-        root,
         clusterlist,
         cluster,
         primitiveMember,
@@ -23,20 +22,16 @@ namespace detail {
     };
 
     struct Target {
-        Target(Database& _db): db(_db) { };
-
         TargetType type = TargetType::invalid;
-        std::string name;
+        Database::ClusterList list;
         Database::Cluster cluster;
         Database::Member member;
-
-        Database& db;
     };
 
     Target resolve(Database&, std::istream&);
     Target resolve(Target, std::vector<StringPlus>&);
     Target select_type(Database::Member);
-    bool set(Target, std::istream&);
+    bool set(Database&, Target, std::istream&);
     std::string print(Target);
 
 } // namespace detail

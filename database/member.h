@@ -22,6 +22,9 @@ public:
     bool operator==(const Member&) const;
     bool operator!=(const Member&) const;
 
+    // diese referenz wird ungültig mit database.init()
+    const MemberType& type() const;
+
     template<class PrimT>
     PrimT get() const;
     
@@ -51,7 +54,7 @@ TC_DATABASE_PRIVATE:
     LineIndex get_list_begin() const;
     void set_list_begin(LineIndex);
 
-    MemberType type;
+    MemberType memtype;
     CrashSafeFile* fs;
     filesize_t position;
 };
