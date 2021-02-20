@@ -3,44 +3,46 @@
 using namespace tobilib;
 using namespace h2rfp;
 
-Response::Response():
-    requested(false),
-    received(false)
-{ }
+#ifndef TC_SSL_IMPL_ONLY
+    Response::Response():
+        requested(false),
+        received(false)
+    { }
 
-Response::Response(unsigned int _id):
-    requested(true),
-    received(false),
-    id(_id)
-{ }
+    Response::Response(unsigned int _id):
+        requested(true),
+        received(false),
+        id(_id)
+    { }
 
-bool Response::is_requested() const
-{
-    return requested;
-}
-
-bool Response::is_received() const
-{
-    return received;
-}
-
-bool Response::update(ResponseList& list)
-{
-    if (list.count(id)>0)
+    bool Response::is_requested() const
     {
-        data = std::move(list.at(id));
-        list.erase(id);
-        received=true;
+        return requested;
     }
-    return received;
-}
 
-void Response::dismiss()
-{
-    requested=false;
-    received=false;
-    id = 0;
-}
+    bool Response::is_received() const
+    {
+        return received;
+    }
+
+    bool Response::update(ResponseList& list)
+    {
+        if (list.count(id)>0)
+        {
+            data = std::move(list.at(id));
+            list.erase(id);
+            received=true;
+        }
+        return received;
+    }
+
+    void Response::dismiss()
+    {
+        requested=false;
+        received=false;
+        id = 0;
+    }
+#endif
 
 template<class NetworkEndpoint>
 Endpoint<NetworkEndpoint>::Endpoint(network::Acceptor& accpt):
