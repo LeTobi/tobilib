@@ -103,6 +103,14 @@ Member Cluster::operator[] (const MemberType& memtype)
     return Member(memtype,*cf,index());
 }
 
+const Member Cluster::operator[] (const std::string& name) const {
+    return const_cast<Cluster*>(this)->operator[](name);
+}
+
+const Member Cluster::operator[] (const MemberType& memtype) const {
+    return const_cast<Cluster*>(this)->operator[](memtype);
+}
+
 unsigned int Cluster::index() const
 {
     if (!pre_valid("Cluster::index()"))
