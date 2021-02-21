@@ -1,4 +1,3 @@
-#define TC_DATABASE_INTERN
 #include "commands.h"
 
 using namespace tobilib;
@@ -18,23 +17,21 @@ std::string database_tools::command(Database& db, std::string cmd)
     if (method == "get")
     {
         Target target = resolve(db, input);
-        if (target.type == TargetType::none)
-            return "Das objekt konnte nicht geparst werden.";
         return print(target);
     }
     else if (method == "set")
     {
         Target target = resolve(db,input);
-        if (target.type == TargetType::none)
+        if (target.type == TargetType::invalid)
             return "Das Zielobjekt konnte nicht geparst werden.";
-        if (!set(target,input))
+        if (!set(db,target,input))
             return "Zuweisung fehlgeschlagen";
         return "Zuweisung erfolgreich";
     }
     else if (method == "list")
     {
         Target target = resolve(db, input);
-        if (target.type == TargetType::none)
+        if (target.type == TargetType::invalid)
             return "Das objekt konnte nicht geparst werden.";
         if (target.type != TargetType::list)
             return "Das objekt ist keine Memberliste.";
@@ -46,7 +43,7 @@ std::string database_tools::command(Database& db, std::string cmd)
             if (item->is_null())
                 out+="nullptr\n";
             else
-                out+= target.member.type.ptr_type->name + "." + std::to_string(item->index()) + "\n";
+                out+= target.member.type().ptrType().name + "." + std::to_string(item->index()) + "\n";
         }
         if (count==0)
             return "empty list";
@@ -57,7 +54,7 @@ std::string database_tools::command(Database& db, std::string cmd)
         Target target = resolve(db, input);
         if (target.type == TargetType::clusterlist)
         {
-            unsigned int index = db.list(target.name).emplace().index();
+            unsigned int index = target.list.emplace().index();
             return std::string("Die Liste wurde erweitert.\nNeues Element bei: ") + std::to_string(index);
         }
         else if (target.type == TargetType::list)
@@ -115,8 +112,23 @@ Target detail::resolve(Database& db, std::istream& input)
 {
     StringPlus tstr;
     input >> tstr;
+    if (tstr=="nullptr") {
+        Target out;
+        out.type = TargetType::nullpointer;
+        return out;
+    }
+
     std::vector<StringPlus> names = tstr.split(".");
-    return resolve(Target(db),names);
+    if (names.size()<1)
+        return Target();
+    Database::ClusterType ctype = db.getType(names.front());
+    if (ctype == Database::ClusterType::invalid)
+        return Target();
+    Target source;
+    source.type = TargetType::clusterlist;
+    source.list = db.list(ctype.name);
+    names.erase(names.begin());
+    return resolve(source,names);
 }
 
 Target detail::resolve(Target source, std::vector<StringPlus>& names)
@@ -124,52 +136,42 @@ Target detail::resolve(Target source, std::vector<StringPlus>& names)
     if (names.empty())
         return source;
     
-    if (source.type == TargetType::none)
-    {
-        Database::ClusterFile* cf = source.db.get_file(names.front());
-        if (cf == nullptr)
-            return source;
-        Target next (source.db);
-        next.type = TargetType::clusterlist;
-        next.name = cf->type.name;
-        names.erase(names.begin());
-        return resolve(next,names);
-    }
     if (source.type == TargetType::clusterlist)
     {
         if (!names.front().isInt())
-            return Target(source.db);
-        Target next (source.db);
-        next.type = TargetType::cluster;
-        next.cluster = source.db.list(source.name)[names.front().toInt()];
+            return Target();
+        int index = names.front().toInt();
+        Target target;
+        target.type = TargetType::cluster;
+        target.cluster = source.list[index];
         names.erase(names.begin());
-        return resolve(next,names);
+        return resolve(target,names);
     }
     if (source.type == TargetType::cluster)
     {
-        if (!source.cluster.cf->type.contains(names.front()))
-            return Target(source.db);
+        if (!source.cluster.type().contains(names.front()))
+            return Target();
         Database::Member next = source.cluster[names.front()];
         names.erase(names.begin());
         return resolve(select_type(next), names);
     }
     if (source.type == TargetType::primitiveMember)
     {
-        return Target(source.db);
+        return Target();
     }
     if (source.type == TargetType::array)
     {
         if (!names.front().isInt())
-            return Target(source.db);
+            return Target();
         int index = names.front().toInt();
-        if (index<0 || index >= source.member.type.amount)
-            return Target(source.db);
+        if (index<0 || index >= source.member.type().amount)
+            return Target();
         names.erase(names.begin());
         return resolve(select_type(source.member[index]), names);
     }
     if (source.type == TargetType::pointer)
     {
-        Target next (source.db);
+        Target next;
         next.type = TargetType::cluster;
         next.cluster = *source.member;
         return resolve(next,names);
@@ -177,18 +179,19 @@ Target detail::resolve(Target source, std::vector<StringPlus>& names)
     if (source.type == TargetType::list)
     {
         if (!names.front().isInt())
-            return Target(source.db);
+            return Target();
         int index = names.front().toInt();
         if (index<0)
-            return Target(source.db);
+            return Target();
         Database::MemberIterator it = source.member.begin();
         while (index-- > 0)
             ++it;
-        Target next (source.db);
-        next.type = TargetType::pointer;
-        next.member = *it;
         names.erase(names.begin());
-        return resolve(next, names);
+        return resolve(select_type(*it), names);
+    }
+    if (source.type == TargetType::invalid)
+    {
+        return source;
     }
 
     throw Exception("Unhandled Type","tobilib::database_tools::detail::resolve()");
@@ -196,20 +199,25 @@ Target detail::resolve(Target source, std::vector<StringPlus>& names)
 
 Target detail::select_type(Database::Member member)
 {
-    Target out (*member.database);
+    Target out;
     out.member = member;
 
-    if (member.type.amount > 1)
+    if (member.is_null())
+    {
+        out.type = TargetType::invalid;
+        return out;
+    }
+    if (member.type().amount > 1)
     {
         out.type = TargetType::array;
         return out;
     }
-    if (member.type.blockType == Database::BlockType::t_ptr)
+    if (member.type().blockType == Database::BlockType::t_ptr)
     {
         out.type = TargetType::pointer;
         return out;
     }
-    if (member.type.blockType == Database::BlockType::t_list)
+    if (member.type().blockType == Database::BlockType::t_list)
     {
         out.type = TargetType::list;
         return out;
@@ -218,24 +226,25 @@ Target detail::select_type(Database::Member member)
     return out;
 }
 
-bool detail::set(Target target, std::istream& input)
+bool detail::set(Database& db, Target target, std::istream& input)
 {
     if (target.type == TargetType::pointer)
     {
-        StringPlus sstr;
-        input >> sstr;
-        std::vector<StringPlus> names = sstr.split(".");
-        Target source = resolve(Target(target.db),names);
-        if (source.type != TargetType::cluster)
+        Target item = resolve(db,input);
+        if (item.type == TargetType::nullpointer) {
+            target.member.set( Database::Cluster() );
+            return true;
+        }
+        if (item.type != TargetType::cluster)
             return false;
-        if (source.cluster.cf->type != *target.member.type.ptr_type)
+        if (item.cluster.type() != target.member.type().ptrType())
             return false;
-        target.member.set(source.cluster);
+        target.member.set(item.cluster);
         return true;
     }
     if (target.type == TargetType::primitiveMember)
     {
-        if (target.member.type.blockType == Database::BlockType::t_bool)
+        if (target.member.type().blockType == Database::BlockType::t_bool)
         {
             bool val;
             input >> val;
@@ -244,7 +253,7 @@ bool detail::set(Target target, std::istream& input)
             target.member.set(val);
             return true;
         }
-        if (target.member.type.blockType == Database::BlockType::t_char)
+        if (target.member.type().blockType == Database::BlockType::t_char)
         {
             char val;
             input >> val;
@@ -253,7 +262,7 @@ bool detail::set(Target target, std::istream& input)
             target.member.set(val);
             return true;
         }
-        if (target.member.type.blockType == Database::BlockType::t_int)
+        if (target.member.type().blockType == Database::BlockType::t_int)
         {
             int val;
             input >> val;
@@ -262,7 +271,7 @@ bool detail::set(Target target, std::istream& input)
             target.member.set(val);
             return true;
         }
-        if (target.member.type.blockType == Database::BlockType::t_double)
+        if (target.member.type().blockType == Database::BlockType::t_double)
         {
             double val;
             input >> val;
@@ -275,7 +284,7 @@ bool detail::set(Target target, std::istream& input)
     }
     if (target.type == TargetType::array)
     {
-        if (target.member.type.blockType != Database::BlockType::t_char)
+        if (target.member.type().blockType != Database::BlockType::t_char)
             return false;
         
         std::string val;
@@ -308,52 +317,56 @@ bool detail::set(Target target, std::istream& input)
 
 std::string detail::print(Target target)
 {
-    if (target.type == TargetType::none)
+    if (target.type == TargetType::nullpointer)
     {
-        return "null";
+        return "nullptr";
+    }
+    if (target.type == TargetType::invalid)
+    {
+        return "Invalid name";
+    }
+    if (target.type == TargetType::clusterlist)
+    {
+        return std::string("List of: ")+ target.list.type().name;
     }
     if (target.type == TargetType::array)
     {
-        if (target.member.type.blockType == Database::BlockType::t_char)
+        if (target.member.type().blockType == Database::BlockType::t_char)
             return target.member.get<std::string>();
         return "array";
     }
     if (target.type == TargetType::cluster)
     {
         if (target.cluster.is_null())
-            return "null";
-        return target.cluster.cf->type.name + "." + std::to_string(target.cluster.index());
-    }
-    if (target.type == TargetType::clusterlist)
-    {
-        return std::string("list of ") + target.name;
+            return "not part of the database";
+        return target.cluster.type().name + "." + std::to_string(target.cluster.index());
     }
     if (target.type == TargetType::list)
     {
-        return std::string("list of ") + target.member.type.ptr_type->name;
+        return std::string("list of ") + target.member.type().ptrType().name;
     }
     if (target.type == TargetType::pointer)
     {
         Database::Cluster ptr = *target.member;
         if (ptr.is_null())
             return "nullptr";
-        return std::string("pointer to ") + ptr.cf->type.name + "." + std::to_string(ptr.index());
+        return std::string("pointer to ") + ptr.type().name + "." + std::to_string(ptr.index());
     }
     if (target.type == TargetType::primitiveMember)
     {
-        if (target.member.type.blockType == Database::BlockType::t_bool)
+        if (target.member.type().blockType == Database::BlockType::t_bool)
         {
             return std::to_string(target.member.get<bool>());
         }
-        if (target.member.type.blockType == Database::BlockType::t_char)
+        if (target.member.type().blockType == Database::BlockType::t_char)
         {
             return std::to_string(target.member.get<char>());
         }
-        if (target.member.type.blockType == Database::BlockType::t_int)
+        if (target.member.type().blockType == Database::BlockType::t_int)
         {
             return std::to_string(target.member.get<int>());
         }
-        if (target.member.type.blockType == Database::BlockType::t_double)
+        if (target.member.type().blockType == Database::BlockType::t_double)
         {
             return std::to_string(target.member.get<double>());
         }

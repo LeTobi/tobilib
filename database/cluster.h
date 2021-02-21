@@ -23,6 +23,7 @@ public:
     void erase(const ClusterIterator&);
     ClusterIterator begin();
     ClusterIterator end();
+    const ClusterType& type() const;
 
 TC_DATABASE_PRIVATE:
     ClusterFile* cf;
@@ -33,6 +34,9 @@ class Cluster : public Component
 public:
     Cluster() = default;
     Cluster(Database*, ClusterFile*, LineIndex);
+
+    // diese referenz wird ungültig mit database.init()
+    const ClusterType& type() const;
 
     bool operator==(const Cluster& other) const;
     bool operator!=(const Cluster& other) const;

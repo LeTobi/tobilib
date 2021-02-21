@@ -6,33 +6,22 @@ using namespace h2rfp;
 
 network::Acceptor acceptor (15432);
 TCP_Endpoint endpoint (acceptor);
+Response stringmsg;
+Response intmsg;
 
-Message stringRequest()
+void read_string()
 {
-    h2rfp::Message out;
-    out.name = "getString";
-    out.id = 1;
-    return out;
-}
-
-Message numberRequest()
-{
-    h2rfp::Message out;
-    out.name = "getNumber";
-    out.id = 2;
-    return out;
-}
-
-void read_string(const JSObject& data)
-{
-    std::string value = data.get("value","");
+    std::string value = stringmsg.data.get("value","");
     std::cout << "client sent string: " << value << std::endl;
+    stringmsg.dismiss();
 }
 
-void read_int(const JSObject& data)
+void read_int()
 {
-    int value = data.get("value",0);
+    int value = intmsg.data.get("value",0);
     std::cout << "client sent number: " << value << std::endl;
+    intmsg.dismiss();
+    endpoint.notify("ende");
 }
 
 void react(const EndpointEvent& ev)
@@ -41,24 +30,15 @@ void react(const EndpointEvent& ev)
     {
     case EventType::connected:
         std::cout << "Connected: " << endpoint.remote_ip().to_string() << std::endl;
-        endpoint.send(stringRequest());
-        endpoint.send(numberRequest());
         break;
-    case EventType::callback:
-        if (ev.msg.id==1)
-            read_string(ev.msg.data);
-        else if (ev.msg.id==2)
-            read_int(ev.msg.data);
-        else
-            std::cout << "unexpected callback from client (id " << ev.msg.id << ")" << std::endl;
-        break;
-    case EventType::request:
+    case EventType::message:
         if (ev.msg.name == "getName")
         {
-            Message response;
-            response.id = ev.msg.id;
-            response.data.put("name","My Testserver");
-            endpoint.send(response);
+            JSObject response;
+            response.put("name","My Testserver");
+            endpoint.respond(ev.msg.id,response);
+            stringmsg = endpoint.request("getString");
+            intmsg = endpoint.request("getNumber");
         }
         else
         {
@@ -78,11 +58,17 @@ void react(const EndpointEvent& ev)
 int main()
 {
     std::cout << "H2RFP testserver on Port 15432" << std::endl;
+    endpoint.options.inactive_warning = 10;
+    endpoint.options.read_timeout = 15;
     endpoint.connect();
     while (true)
     {
         endpoint.tick();
         while (!endpoint.events.empty())
             react(endpoint.events.next());
+        if (stringmsg.update(endpoint.responses))
+            read_string();
+        if (intmsg.update(endpoint.responses))
+            read_int();
     }
 }

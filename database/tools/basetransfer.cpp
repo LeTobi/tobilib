@@ -11,13 +11,12 @@ Database targetdb;
 
 void transfer_data(Member src, Member tgt)
 {
-    if (src.type.blockType != tgt.type.blockType)
+    if (src.memtype.blockType != tgt.memtype.blockType)
         return;
-    if (src.type.ptr_type != nullptr)
-        if (src.type.ptr_type->name != tgt.type.ptr_type->name)
-            return;
+    if (src.memtype.ptrType().name != tgt.memtype.ptrType().name)
+        return;
 
-    int amount = std::min(src.type.amount,tgt.type.amount);
+    int amount = std::min(src.memtype.amount,tgt.memtype.amount);
     if (amount>1)
     {
         for (int i=0;i<amount;i++)
@@ -25,28 +24,27 @@ void transfer_data(Member src, Member tgt)
         return;
     }
 
-    if (src.type.blockType == BlockType::t_bool)
+    if (src.memtype.blockType == BlockType::t_bool)
         tgt.set(src.get<bool>());
-    if (src.type.blockType == BlockType::t_char)
+    if (src.memtype.blockType == BlockType::t_char)
         tgt.set(src.get<char>());
-    if (src.type.blockType == BlockType::t_int)
+    if (src.memtype.blockType == BlockType::t_int)
         tgt.set(src.get<int>());
-    if (src.type.blockType == BlockType::t_double)
+    if (src.memtype.blockType == BlockType::t_double)
         tgt.set(src.get<double>());
-    if (src.type.blockType == BlockType::t_ptr)
+    if (src.memtype.blockType == BlockType::t_ptr)
         tgt.set( Cluster(
             &targetdb,
-            (ClusterFile*) &tgt.fs,
+            targetdb.get_file(tgt.memtype.target_type),
             src->index()
             ));
-    if (src.type.blockType == BlockType::t_list)
+    if (src.memtype.blockType == BlockType::t_list)
         for (Member item: src)
             tgt.emplace().set( Cluster(
                 &targetdb,
-                (ClusterFile*) &tgt.fs,
+                targetdb.get_file(tgt.memtype.target_type),
                 item->index()
             ));
-    
 }
 
 void transfer_data(Cluster src, Cluster tgt)

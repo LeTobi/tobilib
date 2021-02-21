@@ -18,6 +18,7 @@ public:
     bool operator==(const BlockType& other) const {return other.id==id;};
     bool operator!=(const BlockType& other) const {return !(*this==other);};
 
+    const static BlockType t_invalid;
     const static BlockType t_int;
     const static BlockType t_char;
     const static BlockType t_double;
@@ -37,12 +38,16 @@ public:
 
     std::string name;
     ClusterType* parent;
-    filesize_t parent_offset;
+    filesize_t parent_offset = 0;
     BlockType blockType;
-    unsigned int amount;
-    ClusterType* ptr_type = nullptr;
-    filesize_t size;
+    unsigned int amount = 1;
+    filesize_t size = 0;
+    const ClusterType& ptrType() const;
 
+    const static MemberType invalid;
+
+TC_DATABASE_PRIVATE:
+    ClusterType* target_type = nullptr;
 };
 
 class ClusterType
@@ -50,7 +55,7 @@ class ClusterType
 public:
     std::string name;
     std::vector<MemberType> members;
-    filesize_t size;
+    filesize_t size = 0;
 
     bool operator==(const ClusterType&) const;
     bool operator!=(const ClusterType&) const;
@@ -58,6 +63,8 @@ public:
     bool contains(const std::string&) const;
     MemberType& getMember(const std::string&);
     const MemberType& getMember(const std::string&) const;
+
+    const static ClusterType invalid;
 };
 
 } // namespace database_detail

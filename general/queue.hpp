@@ -25,6 +25,9 @@ namespace tobilib
                 std::queue<Item>::pop();
         }
 
+        using std::queue<Item>::pop;
+        using std::queue<Item>::front;
+        using std::queue<Item>::size;
         using std::queue<Item>::empty;
         using std::queue<Item>::push;
     };

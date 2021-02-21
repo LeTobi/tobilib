@@ -7,6 +7,8 @@ using namespace database_detail;
 
 Parser::Parser(Database* db): Component(db)
 {
+    log.parent = &db->log;
+    log.prefix = "Parser: ";
 }
 
 void Parser::parse_all()
@@ -18,7 +20,7 @@ void Parser::parse_all()
     if (!file.good())
     {
         database->status = Database::Status::error;
-        database->log << "Datei konnte nicht geoeffnet werden." << std::endl;
+        log << "Datei konnte nicht geoeffnet werden." << std::endl;
         file.close();
         return;
     }
@@ -181,7 +183,7 @@ void Parser::parse_block(ClusterType& cluster)
             errorlog("Unbekannter Membertyp");
             return;
         }
-        member.ptr_type = &(cf->type);
+        member.target_type = &(cf->type);
     }
 
     parse_arr_len(member.amount);
@@ -257,6 +259,6 @@ void Parser::parse_arr_len(unsigned int& out)
 
 void Parser::errorlog(const std::string& msg)
 {
-    database->log << "struktur.txt Position " << file.tellg() << ": " << msg << std::endl;
+    log << "struktur.txt Position " << file.tellg() << ": " << msg << std::endl;
     database->status = Database::Status::error;
 }

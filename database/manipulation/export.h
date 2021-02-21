@@ -19,12 +19,16 @@ namespace database_tools {
 
     Result export_database(const Database&);
     Result export_database(const Database&, const FileName&);
+    Result export_table(const Database&, const std::string&);
+    Result export_table(const Database&, const std::string&, const FileName&);
 
 namespace detail {
 
-    Result print_listfile(const Database::ListFile&, const FileName&);
-    void print_member(const Database::Member&, std::ostream&);
-    Result print_clusterfile(const Database::ClusterFile&, const FileName&);
+    #ifdef TC_DATABASE_INTERN
+        Result print_listfile(const Database::ListFile&, const FileName&);
+        void print_member(const Database::Member&, std::ostream&);
+        Result print_clusterfile(const Database::ClusterFile&, const FileName&);
+    #endif
 
 } // namespace detail
 } // namespace database_tools

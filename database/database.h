@@ -47,8 +47,11 @@ public:
 	void close();
 	void clear();
 	bool is_good() const;
+
 	ClusterList list(const std::string&);
 	const ClusterList list(const std::string&) const;
+	const ClusterType& getType(const std::string&) const;
+	std::vector<std::string> getTypes() const;
 
 	FlagRequest begin_critical_operation();
 	bool critical_operation_running() const;
@@ -68,7 +71,9 @@ TC_DATABASE_PRIVATE:
 	RequestFlag critical_operation;
 
 	ClusterFile* get_file(const std::string&);
+	const ClusterFile* get_file(const std::string&) const;
 	ClusterFile* get_file(const ClusterType*);
+	const ClusterFile* get_file(const ClusterType*) const;
 
 };
 

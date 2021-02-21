@@ -2,6 +2,7 @@
 #define TC_DATABASE_PARSER_H
 
 #include "concepts.h"
+#include "../general/exception.hpp"
 #include <fstream>
 
 namespace tobilib {
@@ -17,6 +18,7 @@ public:
 TC_DATABASE_PRIVATE:
     const static std::string valid_chars;
 	std::fstream file;
+	Logger log;
 
     static bool valid_name(const std::string&);
 	bool next_matches(const std::string&);

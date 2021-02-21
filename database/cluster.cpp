@@ -51,6 +51,13 @@ ClusterIterator ClusterList::end()
     return ClusterIterator();
 }
 
+const ClusterType& ClusterList::type() const
+{
+    if (!pre_good())
+        return ClusterType::invalid;
+    return cf->type;
+}
+
 Cluster::Cluster(Database* db, ClusterFile* clfile, LineIndex ln):
     Component(db),
     cf(clfile),
@@ -75,6 +82,13 @@ bool Cluster::operator!=(const Cluster& other) const
     return !(*this==other);
 }
 
+const ClusterType& Cluster::type() const
+{
+    if (!pre_good())
+        return ClusterType::invalid;
+    return cf->type;
+}
+
 Member Cluster::operator[] (const std::string& name)
 {
     if (nullflag)
@@ -87,6 +101,14 @@ Member Cluster::operator[] (const MemberType& memtype)
     if (nullflag)
         return Member();
     return Member(memtype,*cf,index());
+}
+
+const Member Cluster::operator[] (const std::string& name) const {
+    return const_cast<Cluster*>(this)->operator[](name);
+}
+
+const Member Cluster::operator[] (const MemberType& memtype) const {
+    return const_cast<Cluster*>(this)->operator[](memtype);
 }
 
 unsigned int Cluster::index() const
