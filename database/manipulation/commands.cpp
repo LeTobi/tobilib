@@ -112,6 +112,12 @@ Target detail::resolve(Database& db, std::istream& input)
 {
     StringPlus tstr;
     input >> tstr;
+    if (tstr=="nullptr") {
+        Target out;
+        out.type = TargetType::nullpointer;
+        return out;
+    }
+
     std::vector<StringPlus> names = tstr.split(".");
     if (names.size()<1)
         return Target();
@@ -225,6 +231,10 @@ bool detail::set(Database& db, Target target, std::istream& input)
     if (target.type == TargetType::pointer)
     {
         Target item = resolve(db,input);
+        if (item.type == TargetType::nullpointer) {
+            target.member.set( Database::Cluster() );
+            return true;
+        }
         if (item.type != TargetType::cluster)
             return false;
         if (item.cluster.type() != target.member.type().ptrType())
@@ -307,6 +317,10 @@ bool detail::set(Database& db, Target target, std::istream& input)
 
 std::string detail::print(Target target)
 {
+    if (target.type == TargetType::nullpointer)
+    {
+        return "nullptr";
+    }
     if (target.type == TargetType::invalid)
     {
         return "Invalid name";
@@ -324,7 +338,7 @@ std::string detail::print(Target target)
     if (target.type == TargetType::cluster)
     {
         if (target.cluster.is_null())
-            return "null";
+            return "not part of the database";
         return target.cluster.type().name + "." + std::to_string(target.cluster.index());
     }
     if (target.type == TargetType::list)

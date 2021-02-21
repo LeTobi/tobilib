@@ -18,6 +18,7 @@ namespace detail {
         array,
         pointer,
         list,
+        nullpointer,
         invalid
     };
 
