@@ -52,13 +52,13 @@ void WebsocketReader<SocketType>::tick()
 template<class SocketType>
 void SocketReader<SocketType>::start_reading()
 {
-    if (async)
+    if (asio_reading)
         return;
     if (options.read_timeout>0)
         timer_B.set(options.read_timeout);
     if (options.inactive_warning>0)
         timer_A.set(options.inactive_warning);
-    async = true;
+    asio_reading = true;
     socket->async_read_some(
         boost::asio::buffer(buffer,BUFFER_SIZE),
         boost::bind(&SocketReader<SocketType>::on_receive,this,_1,_2)
@@ -68,13 +68,13 @@ void SocketReader<SocketType>::start_reading()
 template<class SocketType>
 void WebsocketReader<SocketType>::start_reading()
 {
-    if (async)
+    if (asio_reading)
         return;
     if (options.read_timeout>0)
         timer_B.set(options.read_timeout);
     if (options.inactive_warning>0)
         timer_A.set(options.inactive_warning);
-    async = true;
+    asio_reading = true;
     socket->async_read(
         buffer,
         boost::bind(&WebsocketReader::on_receive,this,_1,_2)
@@ -82,22 +82,9 @@ void WebsocketReader<SocketType>::start_reading()
 }
 
 template<class SocketType>
-bool SocketReader<SocketType>::is_async() const
-{
-    return async;
-}
-
-template<class SocketType>
-bool WebsocketReader<SocketType>::is_async() const
-{
-    return async;
-}
-
-template<class SocketType>
 void SocketReader<SocketType>::reset(SocketType* sock)
 {
-    if (async)
-        throw Exception("Implementierungsfehler: Offene Leseanfrage","SocketReader::reset()");
+    asio_reading = false;
     socket = sock;
     warning = false;
     inactive = false;
@@ -111,8 +98,7 @@ void SocketReader<SocketType>::reset(SocketType* sock)
 template<class SocketType>
 void WebsocketReader<SocketType>::reset(WebsocketType* sock)
 {
-    if (async)
-        throw Exception("Implementierungsfehler: Offene Leseanfrage","WebsocketReader::reset()");
+    asio_reading = false;
     socket = sock;
     warning = false;
     inactive = false;
@@ -126,7 +112,7 @@ void WebsocketReader<SocketType>::reset(WebsocketType* sock)
 template<class SocketType>
 void SocketReader<SocketType>::on_receive(const boost::system::error_code& ec, size_t recv_len)
 {
-    async = false;
+    asio_reading = false;
     timer_A.disable();
     timer_B.disable();
     error = ec;
@@ -139,7 +125,7 @@ void SocketReader<SocketType>::on_receive(const boost::system::error_code& ec, s
 template<class SocketType>
 void WebsocketReader<SocketType>::on_receive(const boost::system::error_code& ec, size_t recv_len)
 {
-    async = false;
+    asio_reading = false;
     timer_A.disable();
     timer_B.disable();
     error = ec;

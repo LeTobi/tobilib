@@ -25,7 +25,7 @@ namespace detail{
 
         void tick();
         void send_data(const std::string&);
-        bool is_async() const;
+        bool is_writing() const;
         void reset(SocketType*);
 
         bool timed_out = false;
@@ -37,7 +37,7 @@ namespace detail{
         SocketType* socket;
         
         Timer timer;
-        bool async = false;
+        bool asio_writing = false;
         std::string data_sending;
         std::string data_queue;
 
@@ -54,7 +54,7 @@ namespace detail{
 
         void tick();
         void send_data(const std::string&);
-        bool is_async() const;
+        bool is_writing() const;
         void reset(WebsocketType*);
 
         bool timed_out = false;
@@ -66,7 +66,7 @@ namespace detail{
         WebsocketType* socket;
 
         Timer timer;
-        bool async = false;
+        bool asio_writing = false;
         std::string data_sending;
         std::string data_queue;
 

@@ -18,7 +18,6 @@ namespace detail {
 
         void tick();
         void connect();
-        bool is_async() const;
         void cancel();
         void reset(WebsocketType*);
 
@@ -28,7 +27,7 @@ namespace detail {
         ConnectorType lowerlevel;
         WebsocketType* socket;
         boost::asio::io_context& ioc;
-        bool async = false;
+        bool asio_handshaking = false;
         Timer hs_timer;
 
         void on_handshake(const boost::system::error_code&);
@@ -42,7 +41,6 @@ namespace detail {
 
         void tick();
         void connect();
-        bool is_async() const;
         void cancel();
         void reset(WebsocketType*);
 
@@ -50,7 +48,7 @@ namespace detail {
         ConnectorType lowerlevel;
         WebsocketType* socket;
         boost::asio::io_context& ioc;
-        bool async = false;
+        bool asio_handshaking = false;
         Timer hs_timer;
 
         void on_handshake(const boost::system::error_code&);
