@@ -19,7 +19,6 @@ namespace network {
 
             void tick();
             void connect();
-            bool is_async() const;
             void cancel();
             void reset(detail::TCP_Socket*);
         

@@ -53,7 +53,7 @@ void WS_ClientConnector<WebsocketType,ConnectorType>::tick()
         if (this->options.handshake_timeout>0)
             hs_timer.set(this->options.handshake_timeout);
         this->remote_ip = lowerlevel.remote_ip;
-        async = true;
+        asio_handshaking = true;
         socket->async_handshake(
             address,
             "/",
@@ -84,7 +84,7 @@ void WS_ServerConnector<WebsocketType,ConnectorType>::tick()
         if (this->options.handshake_timeout>0)
             hs_timer.set(this->options.handshake_timeout);
         this->remote_ip = lowerlevel.remote_ip;
-        async = true;
+        asio_handshaking = true;
         socket->async_accept(boost::bind(&WS_ServerConnector::on_handshake,this,_1));
     }
     if (hs_timer.due())
@@ -112,18 +112,6 @@ void WS_ServerConnector<WebsocketType,ConnectorType>::connect()
 }
 
 template<class WebsocketType, class ConnectorType>
-bool WS_ClientConnector<WebsocketType,ConnectorType>::is_async() const
-{
-    return async || lowerlevel.is_async();
-}
-
-template<class WebsocketType, class ConnectorType>
-bool WS_ServerConnector<WebsocketType,ConnectorType>::is_async() const
-{
-    return async || lowerlevel.is_async();
-}
-
-template<class WebsocketType, class ConnectorType>
 void WS_ClientConnector<WebsocketType,ConnectorType>::cancel()
 {
     lowerlevel.cancel();
@@ -138,8 +126,7 @@ void WS_ServerConnector<WebsocketType,ConnectorType>::cancel()
 template<class WebsocketType, class ConnectorType>
 void WS_ClientConnector<WebsocketType,ConnectorType>::reset(WebsocketType* sock)
 {
-    if (is_async())
-        throw Exception("reset mit ausstehender Operation","WS_ClientConnector::reset()");
+    asio_handshaking = false;
     socket = sock;
     lowerlevel.reset(&sock->next_layer());
     hs_timer.disable();
@@ -149,8 +136,7 @@ void WS_ClientConnector<WebsocketType,ConnectorType>::reset(WebsocketType* sock)
 template<class WebsocketType, class ConnectorType>
 void WS_ServerConnector<WebsocketType,ConnectorType>::reset(WebsocketType* sock)
 {
-    if (is_async())
-        throw Exception("reset mit ausstehender operation","WS_ServerConnector::reset()");
+    asio_handshaking = false;
     socket = sock;
     lowerlevel.reset(&sock->next_layer());
     hs_timer.disable();
@@ -161,7 +147,7 @@ template<class WebsocketType, class ConnectorType>
 void WS_ClientConnector<WebsocketType,ConnectorType>::on_handshake(const boost::system::error_code& ec)
 {
     hs_timer.disable();
-    async = false;
+    asio_handshaking = false;
     this->finished = true;
     this->error = ec;
 }
@@ -170,7 +156,7 @@ template<class WebsocketType, class ConnectorType>
 void WS_ServerConnector<WebsocketType,ConnectorType>::on_handshake(const boost::system::error_code& ec)
 {
     hs_timer.disable();
-    async = false;
+    asio_handshaking = false;
     this->finished = true;
     this->error = ec;
 }

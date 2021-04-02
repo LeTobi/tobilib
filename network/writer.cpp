@@ -43,7 +43,7 @@ template<class SocketType>
 void SocketWriter<SocketType>::send_data(const std::string& msg)
 {
     data_queue += msg;
-    if (async)
+    if (asio_writing || error)
         return;
     data_sending += data_queue;
     data_queue.clear();
@@ -56,7 +56,7 @@ void SocketWriter<SocketType>::send_data(const std::string& msg)
             boost::asio::buffer(data_sending),
             boost::bind(&SocketWriter<SocketType>::on_write,this,_1,_2)
         );
-    async = true;
+    asio_writing = true;
     if (options.send_timeout>0)
         timer.set(options.send_timeout);
 }
@@ -65,7 +65,7 @@ template<class SocketType>
 void WebsocketWriter<SocketType>::send_data(const std::string& msg)
 {
     data_queue += msg;
-    if (async)
+    if (asio_writing || error)
         return;
     data_sending += data_queue;
     data_queue.clear();
@@ -78,32 +78,32 @@ void WebsocketWriter<SocketType>::send_data(const std::string& msg)
             boost::asio::buffer(data_sending),
             boost::bind(&WebsocketWriter<SocketType>::on_write,this,_1,_2)
         );
-    async = true;
+    asio_writing = true;
     if (options.send_timeout>0)
         timer.set(options.send_timeout);
 }
 
 template<class SocketType>
-bool SocketWriter<SocketType>::is_async() const
+bool SocketWriter<SocketType>::is_writing() const
 {
-    return async;
+    return asio_writing;
 }
 
 template<class SocketType>
-bool WebsocketWriter<SocketType>::is_async() const
+bool WebsocketWriter<SocketType>::is_writing() const
 {
-    return async;
+    return asio_writing;
 }
 
 template<class SocketType>
 void SocketWriter<SocketType>::reset(SocketType* sock)
 {
-    if (async)
-        throw Exception("Implementierungsfehler: Offener Schreibauftrag","SocketWriter::reset()");
+    asio_writing = false;
     socket = sock;
     error.clear();
     timer.disable();
     timed_out = false;
+    written = false;
     data_queue.clear();
     data_sending.clear();
 }
@@ -111,12 +111,12 @@ void SocketWriter<SocketType>::reset(SocketType* sock)
 template<class SocketType>
 void WebsocketWriter<SocketType>::reset(WebsocketType* sock)
 {
-    if (async)
-        throw Exception("Implementierungsfehler: Offener Schreibauftrag","WebsocketWriter::reset()");
+    asio_writing = false;
     socket = sock;
     error.clear();
     timer.disable();
     timed_out = false;
+    written = false,
     data_queue.clear();
     data_sending.clear();
 }
@@ -125,7 +125,7 @@ template<class SocketType>
 void SocketWriter<SocketType>::on_write(const boost::system::error_code& ec, std::size_t len)
 {
     timer.disable();
-    async = false;
+    asio_writing = false;
     data_sending = data_sending.substr(len);
     error = ec;
     send_data("");
@@ -135,7 +135,7 @@ template<class SocketType>
 void WebsocketWriter<SocketType>::on_write(const boost::system::error_code& ec, std::size_t len)
 {
     timer.disable();
-    async = false;
+    asio_writing = false;
     data_sending = data_sending.substr(len);
     error = ec;
     send_data("");

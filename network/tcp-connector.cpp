@@ -38,11 +38,6 @@ void TCP_ClientConnector::connect()
         );
 }
 
-bool TCP_ClientConnector::is_async() const
-{
-    return async;
-}
-
 void TCP_ClientConnector::cancel()
 {
     resetting = true;
@@ -55,7 +50,7 @@ void TCP_ClientConnector::cancel()
 
 void TCP_ClientConnector::reset(TCP_Socket* sock)
 {
-    if (async)
+    if (asio_connecting)
         throw Exception("reset mit ausstehender Verbindung","TCP_ClientConnector::reset()");
     socket = sock;
     error.clear();
@@ -71,7 +66,7 @@ void TCP_ClientConnector::on_resolve(const boost::system::error_code& ec, boost:
         finished = true;
         return;
     }
-    async = true;
+    asio_connecting = true;
     boost::asio::async_connect(*socket,results,boost::bind(&TCP_ClientConnector::on_connect,this,_1,_2));
 }
 
@@ -80,5 +75,5 @@ void TCP_ClientConnector::on_connect(const boost::system::error_code& ec, const 
     error = ec;
     remote_ip = ep.address();
     finished = true;
-    async = false;
+    asio_connecting = false;
 }

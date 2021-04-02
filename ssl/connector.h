@@ -22,12 +22,11 @@ public:
 
     void tick();
     void connect();
-    bool is_async() const;
     void cancel();
     void reset(SSL_Socket*);
 
 private:
-    bool async = false;
+    bool asio_handshaking = false;
     Timer hs_timer;
     TCP_ClientConnector lowerlevel;
     SSL_Socket* socket;
@@ -42,12 +41,11 @@ public:
 
     void tick();
     void connect();
-    bool is_async() const;
     void cancel();
     void reset(SSL_Socket*);
 
 private:
-    bool async = false;
+    bool asio_handshaking = false;
     Timer hs_timer;
     TCP_ServerConnector lowerlevel;
     SSL_Socket* socket;

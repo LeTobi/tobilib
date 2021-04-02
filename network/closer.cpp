@@ -46,8 +46,7 @@ void WS_Closer::force()
 {
     boost::system::error_code ec;
     socket->next_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
-    while (pending)
-        ioc.poll_one();
+    socket->next_layer().close();
 }
 
 void TCP_Closer::reset(TCP_Socket* sock)
