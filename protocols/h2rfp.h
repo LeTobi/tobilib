@@ -35,7 +35,7 @@ namespace h2rfp {
         bool is_requested() const;
         bool is_received() const;
         void dismiss();
-        bool update(ResponseList&);
+        bool pull(ResponseList&);
 
         JSObject data;
     

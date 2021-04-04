@@ -66,9 +66,9 @@ int main()
         endpoint.tick();
         while (!endpoint.events.empty())
             react(endpoint.events.next());
-        if (stringmsg.update(endpoint.responses))
+        if (stringmsg.pull(endpoint.responses))
             read_string();
-        if (intmsg.update(endpoint.responses))
+        if (intmsg.pull(endpoint.responses))
             read_int();
     }
 }
