@@ -82,6 +82,13 @@ bool Cluster::operator!=(const Cluster& other) const
     return !(*this==other);
 }
 
+bool Cluster::operator<(const Cluster& other) const
+{
+    if (type().name == other.type().name)
+        return line < other.line;
+    return type().name < other.type().name;
+}
+
 const ClusterType& Cluster::type() const
 {
     if (!pre_good())
