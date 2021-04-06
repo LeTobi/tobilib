@@ -45,6 +45,7 @@ public:
     MemberIterator begin();
     MemberIterator end();
     void erase(const MemberIterator&);
+    void erase(const Cluster&);
     Member emplace();
 
     void clear_references();

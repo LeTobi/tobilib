@@ -279,6 +279,19 @@ void Member::erase(const MemberIterator& where)
     database->end_critical_operation(lock);
 }
 
+void Member::erase(const Cluster& target)
+{
+    if (memtype.blockType != BlockType::t_list)
+        throw Exception("Type error, Liste erwartet.","Database::Member::erase(Cluster)");
+    MemberIterator it = begin();
+    while (it!=end()) {
+        MemberIterator last = it;
+        ++it;
+        if (**last==target)
+            erase(last);
+    }
+}
+
 Member Member::emplace()
 {
     if (!pre_open("Member::emplace()"))
