@@ -281,6 +281,8 @@ void Member::erase(const MemberIterator& where)
 
 void Member::erase(const Cluster& target)
 {
+    if (!pre_open("Member::erase(Cluster)"))
+        return;
     if (memtype.blockType != BlockType::t_list)
         throw Exception("Type error, Liste erwartet.","Database::Member::erase(Cluster)");
     MemberIterator it = begin();
