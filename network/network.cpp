@@ -160,6 +160,7 @@ void Endpoint<StackConfig>::write(const std::string& msg)
 {
     if (_status != EndpointStatus::connected)
         throw Exception("Schreiben in ungueltigem Zustand","Endpoint::write()");
+    writer.written = false;
     writer.send_data(msg);
 }
 
@@ -200,7 +201,7 @@ void Endpoint<StackConfig>::close()
     if (options.close_timeout>0)
         close_timer.set(options.close_timeout);
     set_closing();
-    if (!writer.is_async())
+    if (!writer.is_writing())
         closer.request();
 }
 
@@ -213,22 +214,18 @@ void Endpoint<StackConfig>::reset()
 
     connector->cancel();
     closer.force();
-    while (connector->is_async())
-        connector->tick();
-    while (reader.is_async())
-        reader.tick();
-    while (writer.is_async())
-        writer.tick();
+ 
+    ioc.stop();
+    ioc.run();
+    ioc.restart();
 
     connect_timer.disable();
     close_timer.disable();
-
     reset_socket();
     reader.reset(&socket);
     writer.reset(&socket);
     connector->reset(&socket);
     closer.reset(&socket);
-
     set_closed();
 }
 

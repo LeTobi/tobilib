@@ -25,7 +25,7 @@ using namespace h2rfp;
         return received;
     }
 
-    bool Response::update(ResponseList& list)
+    bool Response::pull(ResponseList& list)
     {
         if (list.count(id)>0)
         {

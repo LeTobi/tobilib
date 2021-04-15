@@ -71,6 +71,8 @@ namespace tobilib
 
     public:
         Logger* parent = nullptr;
+        std::ostream* dump = &std::cout;
+        bool print_time = false;
         std::string prefix;
 
         Logger()
@@ -83,7 +85,7 @@ namespace tobilib
         void raw_print(msgType msg)
         {
             if (parent==nullptr)
-                std::cout << msg;
+                *dump << msg;
             else
                 *parent << msg;
         }
@@ -93,6 +95,12 @@ namespace tobilib
         {
             if (!is_active) {
                 is_active=true;
+                if (print_time && parent==nullptr) {
+                    char tmp_c [21];
+                    time_t tmp_t = time(nullptr);
+                    strftime(tmp_c,21,"%F %T ",localtime(&tmp_t));
+                    raw_print(tmp_c);
+                }
                 raw_print(prefix);
             }
             raw_print(msg);

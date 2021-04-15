@@ -122,6 +122,7 @@ void transfer(std::string srcpath, std::string tarpath)
     if (!targetdb.init() || !targetdb.open())
         return;
 
+    targetdb.disable_crash_protection();
 
     std::cout << "allocate entries" << std::endl;
     targetdb.listfile.set_first_empty(0);

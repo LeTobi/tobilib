@@ -68,11 +68,6 @@ void Acceptor::Interface::connect()
     accpt.connect(this);
 }
 
-bool Acceptor::Interface::is_async() const
-{
-    return accpt.current==this;
-}
-
 void Acceptor::Interface::cancel()
 {
     if (accpt.current==this)

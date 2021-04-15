@@ -142,6 +142,13 @@ std::vector<std::string> Database::getTypes() const
     return out;
 }
 
+void Database::disable_crash_protection()
+{
+    if (critical_operation_running())
+        throw Exception("Crash Protection kann nicht aufgehoben werden, wenn schon davon gebrauch gemacht wird.","Database::disable_crash_protection()");
+    crash_protection=false;
+}
+
 FlagRequest Database::begin_critical_operation()
 {
     if (!critical_operation.is_requested())
@@ -153,14 +160,14 @@ FlagRequest Database::begin_critical_operation()
 
 bool Database::critical_operation_running() const
 {
-    return critical_operation.is_requested();
+    return crash_protection && critical_operation.is_requested();
 }
 
 void Database::end_critical_operation(FlagRequest id)
 {
     critical_operation.dismiss(id);
     critical_operation.events.clear();
-    if (!critical_operation.is_requested())
+    if (crash_protection && !critical_operation.is_requested())
     {
         statusfile.set_fallback_enabled(false);
         listfile.confirm();

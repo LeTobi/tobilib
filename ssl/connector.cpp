@@ -48,7 +48,7 @@ void SSL_ClientConnector::tick()
         if (options.handshake_timeout>0)
             hs_timer.set(options.handshake_timeout);
         remote_ip = lowerlevel.remote_ip;
-        async = true;
+        asio_handshaking = true;
         socket->async_handshake(
                 SSL_Socket_Asio::handshake_type::client,
                 boost::bind(&SSL_ClientConnector::on_handshake,this,_1)
@@ -77,7 +77,7 @@ void SSL_ServerConnector::tick()
         if (options.handshake_timeout>0)
             hs_timer.set(options.handshake_timeout);
         remote_ip = lowerlevel.remote_ip;
-        async = true;
+        asio_handshaking = true;
         socket->async_handshake(
                 SSL_Socket_Asio::handshake_type::server,
                 boost::bind(&SSL_ServerConnector::on_handshake,this,_1)
@@ -105,16 +105,6 @@ void SSL_ServerConnector::connect()
     lowerlevel.connect();
 }
 
-bool SSL_ClientConnector::is_async() const
-{
-    return async || lowerlevel.is_async();
-}
-
-bool SSL_ServerConnector::is_async() const
-{
-    return async || lowerlevel.is_async();
-}
-
 void SSL_ClientConnector::cancel()
 {
     lowerlevel.cancel();
@@ -127,8 +117,7 @@ void SSL_ServerConnector::cancel()
 
 void SSL_ClientConnector::reset(SSL_Socket* sock)
 {
-    if (is_async())
-        throw Exception("reset mit ausstehender Operation","SSL_ClientConnector::reset()");
+    asio_handshaking = false;
     socket = sock;
     hs_timer.disable();
     lowerlevel.reset(&socket->next_layer());
@@ -137,8 +126,7 @@ void SSL_ClientConnector::reset(SSL_Socket* sock)
 
 void SSL_ServerConnector::reset(SSL_Socket* sock)
 {
-    if (is_async())
-        throw Exception("reset mit ausstehender Operation","SSL_ServerConnector::reset()");
+    asio_handshaking = false;
     socket = sock;
     hs_timer.disable();
     lowerlevel.reset(&socket->next_layer());
@@ -148,7 +136,7 @@ void SSL_ServerConnector::reset(SSL_Socket* sock)
 void SSL_ClientConnector::on_handshake(const boost::system::error_code& ec)
 {
     hs_timer.disable();
-    async = false;
+    asio_handshaking = false;
     finished = true;
     error = ec;
 }
@@ -156,7 +144,7 @@ void SSL_ClientConnector::on_handshake(const boost::system::error_code& ec)
 void SSL_ServerConnector::on_handshake(const boost::system::error_code& ec)
 {
     hs_timer.disable();
-    async = false;
+    asio_handshaking = false;
     finished = true;
     error = ec;
 }

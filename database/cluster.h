@@ -40,6 +40,7 @@ public:
 
     bool operator==(const Cluster& other) const;
     bool operator!=(const Cluster& other) const;
+    bool operator<(const Cluster& other) const; // nützlich in sets und maps
 
     Member operator[](const std::string&);
     Member operator[](const MemberType&);

@@ -53,6 +53,7 @@ public:
 	const ClusterType& getType(const std::string&) const;
 	std::vector<std::string> getTypes() const;
 
+	void disable_crash_protection();
 	FlagRequest begin_critical_operation();
 	bool critical_operation_running() const;
 	void end_critical_operation(FlagRequest);
@@ -69,6 +70,7 @@ TC_DATABASE_PRIVATE:
 	ListFile listfile;
 	std::list<ClusterFile> clusters;
 	RequestFlag critical_operation;
+	bool crash_protection = true;
 
 	ClusterFile* get_file(const std::string&);
 	const ClusterFile* get_file(const std::string&) const;

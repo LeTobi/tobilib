@@ -54,7 +54,7 @@ int main()
     while (endpoint.status() != EndpointStatus::closed)
     {
         endpoint.tick();
-        if (servername.update(endpoint.responses))
+        if (servername.pull(endpoint.responses))
         {
             std::cout << "verbunden mit " << servername.data.get("name","") << std::endl;
             servername.dismiss();

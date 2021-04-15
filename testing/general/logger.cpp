@@ -9,6 +9,9 @@ int main()
     Logger process ("process: ");
     device.parent = &system;
     process.parent = &device;
-    process << "finished" << std::endl;
+    process << "this is without time" << std::endl;
+    system.print_time = true;
+    process.print_time = true;
+    process << "this should be with time" << std::endl;
     return 0;
 }
