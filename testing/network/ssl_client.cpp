@@ -14,7 +14,7 @@ void send(SSL_Endpoint* ep)
 
 int main()
 {
-    ssl_client_ctx.add_verify_path("/etc/ssl/certs");
+    add_cert_path("/etc/ssl/certs");
 
     std::cout << "***Synchronous SSL-Client***" << std::endl;
     std::cout << "enter address:" << std::endl;

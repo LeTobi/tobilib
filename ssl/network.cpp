@@ -1,21 +1,31 @@
 #include "network.h"
 
-void tobilib::network::ssl_server_init(const std::string& pemfile)
+#include "../network/network-impl.hpp"
+#include "../network/reader-impl.hpp"
+#include "../network/writer-impl.hpp"
+#include "../network/ws-connector-impl.hpp"
+
+template<>
+void Endpoint<Config_SSL>::reset_socket()
 {
-    ssl_server_ctx.set_options(
-        boost::asio::ssl::context::default_workarounds
-        | boost::asio::ssl::context::no_sslv2);
-    boost::system::error_code ec;
-    ssl_server_ctx.use_certificate_chain_file(pemfile, ec);
-    if (ec)
-        throw Exception(std::string("Fehler beim Laden von Zertifikaten (1): ")+ec.message(),"ssl_server_init()");
-    ssl_server_ctx.use_private_key_file(pemfile, boost::asio::ssl::context::pem, ec);
-    if (ec)
-        throw Exception(std::string("Fehler beim Laden von Zertifikaten (2): ")+ec.message(),"ssl_server_init()");
+    socket.reset();
 }
 
-#define TC_SSL_IMPL_ONLY
-#include "../network/network.cpp"
-#include "../network/reader.cpp"
-#include "../network/writer.cpp"
-#include "../network/ws-connector.cpp"
+template<>
+void Endpoint<Config_WSS>::reset_socket()
+{
+    socket.~WSS_Socket();
+    new (&socket) WSS_Socket(ioc);
+}
+
+template class Endpoint<Config_SSL>;
+template class Endpoint<Config_WSS>;
+
+template class SocketReader<SSL_Socket>;
+template class WebsocketReader<SSL_Socket>;
+
+template class SocketWriter<SSL_Socket>;
+template class WebsocketWriter<SSL_Socket>;
+
+template class WS_ClientConnector<WSS_Socket,SSL_ClientConnector>;
+template class WS_ServerConnector<WSS_Socket,SSL_ServerConnector>;

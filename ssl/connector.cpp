@@ -18,7 +18,7 @@ SSL_ClientConnector::SSL_ClientConnector(
         socket(_socket),
         lowerlevel(address,port,&_socket->next_layer(),ioc,_options)
 {
-    socket->reassign(SSL_Socket_Asio::handshake_type::client,address);
+    socket->set_client(address);
 }
 
 SSL_ServerConnector::SSL_ServerConnector(
@@ -30,7 +30,7 @@ SSL_ServerConnector::SSL_ServerConnector(
         socket(_socket),
         lowerlevel(accpt,&_socket->next_layer(),ioc,_options)
 {
-    socket->reassign(SSL_Socket_Asio::handshake_type::server,"");
+    socket->set_server();
 }
 
 void SSL_ClientConnector::tick()
