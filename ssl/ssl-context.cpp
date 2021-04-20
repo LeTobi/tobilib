@@ -51,6 +51,8 @@ boost::asio::ssl::context* tobilib::network::detail::begin_client_context_creati
     if (ssl_context_data.last_context != nullptr)
         throw tobilib::Exception("Kontext Erstellungsprozess falsch angewendet","tobilib::network::begin_server_context_creation()");
     boost::asio::ssl::context* out = new boost::asio::ssl::context(boost::asio::ssl::context::sslv23);
+    for (const std::string& path: ssl_context_data.cert_paths)
+        out->add_verify_path(path);
     ssl_context_data.last_context = out;
     return out;
 }
