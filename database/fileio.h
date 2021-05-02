@@ -23,6 +23,9 @@ public:
     filesize_t size() const;
     void extend(filesize_t);
     void save() const;
+    bool is_locked(off_t start, off_t len);
+    bool lock(off_t start, off_t len);
+    void unlock(off_t start, off_t len);
 
     std::string readSomeAt(filesize_t,filesize_t) const;
     void writeSomeAt(filesize_t,const std::string&);
@@ -38,7 +41,7 @@ private:
     mutable int kernel_error;
 
     bool is_open = false;
-    int descriptor;
+    int descriptor; // this is actually a file *description* and not file *descriptor*
 
     const static mode_t FILEMODE;
 };

@@ -14,7 +14,7 @@ count: unsigned int
     [idx] last occupied
     [idx] first empty
     [idx] last empty
-    [idx] datasize
+    [idx] capacity: number of lines in the file (entries + header)
     [] space
     
 * Other lines:
@@ -29,7 +29,7 @@ count: unsigned int
 * First line:
     [idx] first empty
     [idx] last empty
-    [idx] datasize
+    [idx] capacity: number of lines in the file (entries + header)
     [] space
 
 * Other lines:

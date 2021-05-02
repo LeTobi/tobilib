@@ -13,6 +13,21 @@ void StatusFile::open()
         writeAt<bool>(0,false);
 }
 
+bool StatusFile::is_locked()
+{
+    return File::is_locked(0,1);
+}
+
+bool StatusFile::lock()
+{
+    return File::lock(0,1);
+}
+
+void StatusFile::unlock()
+{
+    File::unlock(0,1);
+}
+
 bool StatusFile::get_fallback_enabled() const
 {
     return readAt<bool>(0);

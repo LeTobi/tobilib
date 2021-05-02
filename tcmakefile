@@ -37,10 +37,11 @@ selection tools
 	exe baseedit ./database/tools/baseedit.cpp
 
 selection test
-	exe database-test ./testing/database/dbtest.cpp
+	exe database-test      ./testing/database/dbtest.cpp
+	exe database-locktest  ./testing/database/dblocktest.cpp
 	exe database-crashtest ./testing/database/dbcrashtest.cpp
-	exe filename-test ./testing/stringplus/filenametest.cpp
-	exe number-test ./testing/stringplus/numbers.cpp
+	exe filename-test      ./testing/stringplus/filenametest.cpp
+	exe number-test        ./testing/stringplus/numbers.cpp
 	exe tcp-echoserver ./testing/network/tcp_echoserver.cpp
 		link pthread
 		link boost_system

@@ -12,6 +12,9 @@ public:
     StatusFile(Database*);
 
     void open();
+    bool is_locked();
+    bool lock();
+    void unlock();
 
     bool get_fallback_enabled() const;
     void set_fallback_enabled(bool);

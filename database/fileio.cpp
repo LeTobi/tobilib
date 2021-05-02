@@ -1,10 +1,13 @@
 #define TC_DATABASE_INTERN
+#define _GNU_SOURCE // locks based on file descriptions rather than the process
 #include "fileio.h"
 #include "database.h"
 #include <fcntl.h>
 #include <unistd.h>
 #include <cmath>
 #include <string.h>
+
+// https://www.gnu.org/software/libc/manual/html_node/Low_002dLevel-I_002fO.html
 
 using namespace tobilib;
 using namespace database_detail;
@@ -98,6 +101,69 @@ void File::save() const
         database->status = Database::Status::error;
         database->log << "Datei kann nicht auf speicher geschrieben werden (" << name.fileOnly() << "): " << strerror(kernel_error) << std::endl;
     }
+}
+
+bool File::is_locked(off_t start, off_t len)
+{
+    if (!pre_good())
+        return false;
+    if (!is_open)
+        throw Exception("Die Datei ist nicht offen","Database::File::has_lock()");
+    flock lck {
+        .l_type = F_WRLCK,
+        .l_whence = SEEK_SET,
+        .l_start = start,
+        .l_len = len
+    };
+    int result = fcntl(descriptor,F_OFD_GETLK,&lck);
+    int err = errno;
+    if (result==-1)
+        throw Exception("Fehler beim lesen des Locks","Database::File::is_locked()");
+    return lck.l_type != F_UNLCK;
+}
+
+bool File::lock(off_t start, off_t len)
+{
+    if (!pre_good())
+        return false;
+    if (!is_open)
+        throw Exception("Die Datei ist nicht offen","Database::File::lock()");
+    if (is_locked(start,len))
+        return false;
+    flock lck {
+        .l_type = F_WRLCK,
+        .l_whence = SEEK_SET,
+        .l_start = start,
+        .l_len = len
+    };
+    int result = ::fcntl(descriptor,F_OFD_SETLK,&lck);
+    int err = errno;
+    if (result==-1)
+    {
+        if (err==EACCES)
+            return false; // eigentlich sollte das nicht passieren, da schon is_locked() geprüft wurde
+        else
+            throw Exception(std::string("Fehler mit lock (errno ") + std::to_string(err) + ")","Database::File::lock()");
+    }
+    return true;
+}
+
+void File::unlock(off_t start, off_t len)
+{
+    if (!pre_good())
+        return;
+    if (!is_open)
+        throw Exception("Die Datei ist nicht offen","Database::File::unlock()");
+    flock lck {
+        .l_type = F_UNLCK,
+        .l_whence = SEEK_SET,
+        .l_start = start,
+        .l_len = len
+    };
+    int result = ::fcntl(descriptor,F_SETLK,&lck);
+    int err = errno;
+    if (result==-1)
+        throw Exception(std::string("Fehler mit lock (errno ") + std::to_string(err) + ")","Database::File::lock()");
 }
 
 std::string File::readSomeAt(filesize_t pos, filesize_t len) const
