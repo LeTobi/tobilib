@@ -16,14 +16,14 @@ namespace detail {
         SSL_Socket(boost::asio::io_context&);
         ~SSL_Socket();
 
-        void set_client(const std::string&);
-        void set_server();
+        void setup_client(const std::string&);
+        void setup_server();
         void reset();
-
+        
     private:
-        void clear();
-        void fill_server();
-        void fill_client();
+        void delete_base();
+        void new_base_server();
+        void new_base_client();
 
         boost::asio::ssl::context* ssl_ctx;
         int role;

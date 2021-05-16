@@ -16,9 +16,10 @@ SSL_ClientConnector::SSL_ClientConnector(
     ConnectorOptions& _options):
         Connector(_options),
         socket(_socket),
-        lowerlevel(address,port,&_socket->next_layer(),ioc,_options)
+        lowerlevel(address,port,&_socket->next_layer(),ioc,_options),
+        target_address(address)
 {
-    socket->set_client(address);
+    socket->setup_client(address);
 }
 
 SSL_ServerConnector::SSL_ServerConnector(
@@ -30,7 +31,7 @@ SSL_ServerConnector::SSL_ServerConnector(
         socket(_socket),
         lowerlevel(accpt,&_socket->next_layer(),ioc,_options)
 {
-    socket->set_server();
+    socket->setup_server();
 }
 
 void SSL_ClientConnector::tick()
@@ -119,6 +120,7 @@ void SSL_ClientConnector::reset(SSL_Socket* sock)
 {
     asio_handshaking = false;
     socket = sock;
+    socket->setup_client(target_address);
     hs_timer.disable();
     lowerlevel.reset(&socket->next_layer());
     finished = false;
@@ -128,6 +130,7 @@ void SSL_ServerConnector::reset(SSL_Socket* sock)
 {
     asio_handshaking = false;
     socket = sock;
+    socket->setup_server();
     hs_timer.disable();
     lowerlevel.reset(&socket->next_layer());
     finished = false;

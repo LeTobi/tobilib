@@ -30,6 +30,7 @@ private:
     Timer hs_timer;
     TCP_ClientConnector lowerlevel;
     SSL_Socket* socket;
+    std::string target_address;
 
     void on_handshake(const boost::system::error_code&);
 };
