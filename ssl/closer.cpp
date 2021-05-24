@@ -18,15 +18,15 @@ WSS_Closer::WSS_Closer(WSS_Socket* _socket, boost::asio::io_context& _ioc):
 
 void SSL_Closer::request()
 {
-    pending = true;
+    asio_closing = true;
     socket->async_shutdown(boost::bind(&SSL_Closer::on_close,this,_1));
 }
 
 void WSS_Closer::request()
 {
-    pending = true;
+    asio_closing = true;
     socket->async_close(
-        boost::beast::websocket::close_reason("Shutdown by tobilib"),
+        boost::beast::websocket::close_reason("Server initiated shutdown, proceedure by tobilib"),
         boost::bind(&WSS_Closer::on_close,this,_1)
     );
 }
@@ -45,6 +45,16 @@ void WSS_Closer::force()
     socket->next_layer().next_layer().close();
 }
 
+bool SSL_Closer::is_closing() const
+{
+    return asio_closing;
+}
+
+bool WSS_Closer::is_closing() const
+{
+    return asio_closing;
+}
+
 void SSL_Closer::reset(SSL_Socket* sock)
 {
     socket = sock;
@@ -59,12 +69,12 @@ void WSS_Closer::reset(WSS_Socket* sock)
 
 void SSL_Closer::on_close(const boost::system::error_code& err)
 {
-    pending = false;
+    asio_closing = false;
     error = err;
 }
 
 void WSS_Closer::on_close(const boost::system::error_code& err)
 {
-    pending = false;
+    asio_closing = false;
     error = err;
 }

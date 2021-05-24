@@ -211,14 +211,13 @@ void Endpoint<StackConfig>::reset()
     if (_status==EndpointStatus::closed)
         return;
     
-
+    // cancel all running processes
     connector->cancel();
     closer.force();
- 
-    ioc.stop();
-    ioc.run();
-    ioc.restart();
+    while (reader.is_reading() || writer.is_writing() || closer.is_closing())
+        ioc.poll_one();
 
+    // rebuild all members
     connect_timer.disable();
     close_timer.disable();
     reset_socket();
@@ -226,6 +225,7 @@ void Endpoint<StackConfig>::reset()
     writer.reset(&socket);
     connector->reset(&socket);
     closer.reset(&socket);
+    
     set_closed();
 }
 

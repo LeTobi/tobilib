@@ -82,6 +82,18 @@ void WebsocketReader<SocketType>::start_reading()
 }
 
 template<class SocketType>
+bool SocketReader<SocketType>::is_reading() const
+{
+    return asio_reading;
+}
+
+template<class SocketType>
+bool WebsocketReader<SocketType>::is_reading() const
+{
+    return asio_reading;
+}
+
+template<class SocketType>
 void SocketReader<SocketType>::reset(SocketType* sock)
 {
     asio_reading = false;

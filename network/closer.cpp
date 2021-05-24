@@ -30,7 +30,7 @@ void TCP_Closer::request()
 
 void WS_Closer::request()
 {
-    pending = true;
+    asio_closing = true;
     socket->async_close(
         boost::beast::websocket::close_reason("Shutdown by tobilib"),
         boost::bind(&WS_Closer::on_close,this,_1)
@@ -39,6 +39,8 @@ void WS_Closer::request()
 
 void TCP_Closer::force()
 {
+    boost::system::error_code ec;
+    socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
     socket->close();
 }
 
@@ -47,6 +49,16 @@ void WS_Closer::force()
     boost::system::error_code ec;
     socket->next_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
     socket->next_layer().close();
+}
+
+bool TCP_Closer::is_closing() const
+{
+    return false;
+}
+
+bool WS_Closer::is_closing() const
+{
+    return asio_closing;
 }
 
 void TCP_Closer::reset(TCP_Socket* sock)
@@ -63,6 +75,6 @@ void WS_Closer::reset(WS_Socket* sock)
 
 void WS_Closer::on_close(const boost::system::error_code& err)
 {
-    pending = false;
+    asio_closing = false;
     error = err;
 }

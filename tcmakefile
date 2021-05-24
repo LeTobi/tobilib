@@ -95,4 +95,10 @@ selection ssl-test
 		link crypto
 		link boost_system
 		link boost_thread
+	exe wss-server-close ./testing/network/wss_server_close.cpp
+		link pthread
+		link ssl
+		link crypto
+		link boost_system
+		link boost_thread
 	
