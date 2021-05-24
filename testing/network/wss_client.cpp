@@ -14,7 +14,7 @@ void send(WSS_Endpoint* ep)
 
 int main()
 {
-    ssl_client_ctx.set_default_verify_paths();
+    add_cert_path("/etc/ssl/certs");
 
     std::cout << "***Synchronous WSS-Client***" << std::endl;
     std::cout << "enter address:" << std::endl;

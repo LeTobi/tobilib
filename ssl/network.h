@@ -5,12 +5,10 @@
 #include "../network/network.h"
 #include "connector.h"
 #include "closer.h"
+#include "ssl-context.h"
 
 namespace tobilib {
 namespace network {
-
-    void ssl_server_init(const std::string&);
-
 namespace detail {
 
     struct Config_SSL

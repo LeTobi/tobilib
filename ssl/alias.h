@@ -6,10 +6,6 @@
 
 namespace tobilib {
 namespace network {
-
-    extern boost::asio::ssl::context ssl_client_ctx;
-    extern boost::asio::ssl::context ssl_server_ctx;
-
 namespace detail {
 
     using SSL_Socket_Asio = boost::asio::ssl::stream<TCP_Socket>;
@@ -18,9 +14,18 @@ namespace detail {
     {
     public:
         SSL_Socket(boost::asio::io_context&);
+        ~SSL_Socket();
 
-        void reassign(int,const std::string&);
+        void setup_client(const std::string&);
+        void setup_server();
+        void reset();
+        
+    private:
+        void delete_base();
+        void new_base_server();
+        void new_base_client();
 
+        boost::asio::ssl::context* ssl_ctx;
         int role;
         std::string sni;
         boost::asio::io_context& ioc;

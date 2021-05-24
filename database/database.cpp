@@ -46,8 +46,15 @@ bool Database::open()
         return false;
     }
 
-    listfile.open();
     statusfile.open();
+    if (!statusfile.lock()) {
+        statusfile.close();
+        status=Status::error;
+        log << "Die Datenbank wird bereits von einem anderen Prozess bearbeitet" << std::endl;
+        return false;
+    }
+
+    listfile.open();
     for (auto& cf: clusters)
         cf.open();
 
@@ -86,6 +93,7 @@ void Database::close()
     if (critical_operation_running())
         throw Exception("Es sind empfindliche Zugriffe ausstehend.","Database::close()");
     listfile.close();
+    statusfile.unlock();
     statusfile.close();
     for (auto& cf: clusters)
         cf.close();

@@ -1,0 +1,4 @@
+data_mod/**
+!data_mod/struktur.txt
+data_test/**
+!data_test/struktur.txt

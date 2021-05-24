@@ -7,7 +7,7 @@ using namespace detail;
 
 int main()
 {
-    ssl_server_init("/root/ssl/wetterfrosch.pem");
+    set_cert_file("/root/ssl/wetterfrosch.pem");
     Acceptor accpt (1533);
     WSS_Endpoint endpoint (accpt);
     endpoint.options.inactive_warning = 5;
