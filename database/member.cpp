@@ -343,6 +343,21 @@ void Member::init_memory()
     else if (memtype.blockType==BlockType::t_list) {
         fs->writeAt<unsigned int>(position,0);
     }
+    else if (memtype.blockType==BlockType::t_bool) {
+        fs->writeAt<bool>(position,false);
+    }
+    else if (memtype.blockType==BlockType::t_char) {
+        fs->writeAt<char>(position,0);
+    }
+    else if (memtype.blockType==BlockType::t_double) {
+        fs->writeAt<double>(position,0);
+    }
+    else if (memtype.blockType==BlockType::t_int) {
+        fs->writeAt<int>(position,0);
+    }
+    else {
+        throw Exception("Initialisierung eines BlockTypes nicht programmiert","Member::init_memory()");
+    }
 }
 
 LineIndex Member::get_list_begin() const

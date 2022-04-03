@@ -26,7 +26,7 @@ namespace detail{
 
         void tick();
         void start_reading();
-        bool is_async() const;
+        bool is_reading() const;
         void reset(SocketType*);
 
         bool warning = false;
@@ -58,6 +58,7 @@ namespace detail{
 
         void tick();
         void start_reading();
+        bool is_reading() const;
         void reset(WebsocketType*);
 
         bool warning = false;

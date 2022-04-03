@@ -88,7 +88,7 @@ void detail::print_member(const Member& member, std::ostream& out)
     }
     else if (member.type().blockType == BlockType::t_bool)
     {
-        out << (member.get<bool>()?"1":"0");
+        out << (member.get<bool>()?"true":"false");
     }
     else if (member.type().blockType == BlockType::t_double)
     {

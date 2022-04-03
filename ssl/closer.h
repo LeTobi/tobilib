@@ -17,7 +17,12 @@ namespace websocket {
         tobilib::network::detail::SSL_Socket& stream,
         TeardownHandler&& handler)
     {
-        // nothing
+        tobilib::network::detail::SSL_Socket_Asio& nextlayer = stream;
+        async_teardown(
+            role,
+            nextlayer,
+            std::forward<TeardownHandler>(handler)
+        );
     }
 } // namespace websocket
 } // namespace beast
@@ -34,6 +39,7 @@ namespace detail {
 
         void request();
         void force();
+        bool is_closing() const;
         void reset(SSL_Socket*);
 
         boost::system::error_code error;
@@ -41,7 +47,7 @@ namespace detail {
     private:
         SSL_Socket* socket;
         boost::asio::io_context& ioc;
-        bool pending = false;
+        bool asio_closing = false;
 
         void on_close(const boost::system::error_code&);
     };
@@ -53,6 +59,7 @@ namespace detail {
 
         void request();
         void force();
+        bool is_closing() const;
         void reset(WSS_Socket*);
 
         boost::system::error_code error;
@@ -60,7 +67,7 @@ namespace detail {
     private:
         WSS_Socket* socket;
         boost::asio::io_context& ioc;
-        bool pending = false;
+        bool asio_closing = false;
 
         void on_close(const boost::system::error_code&);
     };

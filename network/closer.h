@@ -13,6 +13,7 @@ namespace detail {
 
         void request();
         void force();
+        bool is_closing() const;
         void reset(TCP_Socket*);
 
         boost::system::error_code error;
@@ -29,6 +30,7 @@ namespace detail {
 
         void request();
         void force();
+        bool is_closing() const;
         void reset(WS_Socket*);
 
         boost::system::error_code error;
@@ -36,7 +38,7 @@ namespace detail {
     private:
         WS_Socket* socket;
         boost::asio::io_context& ioc;
-        bool pending = false;
+        bool asio_closing = false;
 
         void on_close(const boost::system::error_code&);
     };
